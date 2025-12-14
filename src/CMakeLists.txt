@@ -9,17 +9,17 @@
 # 基础设施层
 add_subdirectory(base)
 
-# HAL层（待实现）
-# add_subdirectory(hal)
+# HAL层
+add_subdirectory(hal)
 
-# 算法层（待实现）
-# add_subdirectory(algorithm)
+# 算法层
+add_subdirectory(algorithm)
 
 # 核心业务层（待实现）
 # add_subdirectory(core)
 
-# UI层（待实现）
-# add_subdirectory(ui)
+# UI层
+add_subdirectory(ui)
 
 # ============================================================
 # 主程序
@@ -50,6 +50,9 @@ add_executable(VisionForge
 target_link_libraries(VisionForge PRIVATE
     # 内部库
     VisionForgeBase
+    VisionForgeHAL
+    VisionForgeAlgorithm
+    VisionForgeUI
 
     # Qt库
     Qt6::Core

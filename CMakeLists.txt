@@ -91,7 +91,7 @@ endif()
 message(STATUS "OpenCV路径: ${OpenCV_DIR}")
 
 # Halcon路径（可选）
-option(USE_HALCON "使用Halcon库" OFF)
+option(USE_HALCON "使用Halcon库" ON)
 if(USE_HALCON)
     if(NOT DEFINED HALCONROOT)
         set(HALCONROOT "F:/Halcon/HALCON-24.11-Progress-Steady" CACHE PATH "Halcon路径")
@@ -139,11 +139,22 @@ message(STATUS "OpenCV库: ${OpenCV_LIBS}")
 
 # 查找Halcon（可选）
 if(USE_HALCON)
-    find_package(Halcon QUIET)
-    if(Halcon_FOUND)
-        message(STATUS "Halcon版本: ${Halcon_VERSION}")
+    # Halcon没有标准的find_package，需要手动配置
+    if(EXISTS "${HALCONROOT}/include/halconcpp/HalconCpp.h")
+        message(STATUS "Halcon: 已找到")
+        include_directories(${HALCONROOT}/include)
+        include_directories(${HALCONROOT}/include/halconcpp)
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            # 64位
+            link_directories(${HALCONROOT}/lib/x64-win64)
+        else()
+            # 32位
+            link_directories(${HALCONROOT}/lib/x86sse2-win32)
+        endif()
+        # 定义宏，表示启用了Halcon
+        add_definitions(-DUSE_HALCON)
     else()
-        message(WARNING "Halcon未找到，部分功能将不可用")
+        message(WARNING "Halcon未找到: ${HALCONROOT}/include/halconcpp/HalconCpp.h")
         set(USE_HALCON OFF)
     endif()
 endif()
