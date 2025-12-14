@@ -3,69 +3,54 @@
 # ============================================================
 
 # ============================================================
-# 源文件收集
+# 子模块目录
 # ============================================================
 
-# 基础设施层源文件
-file(GLOB_RECURSE BASE_SOURCES
-    base/*.cpp
-    base/*.h
-)
+# 基础设施层
+add_subdirectory(base)
 
-# HAL层源文件
-file(GLOB_RECURSE HAL_SOURCES
-    hal/*.cpp
-    hal/*.h
-)
+# HAL层（待实现）
+# add_subdirectory(hal)
 
-# 算法层源文件
-file(GLOB_RECURSE ALGORITHM_SOURCES
-    algorithm/*.cpp
-    algorithm/*.h
-)
+# 算法层（待实现）
+# add_subdirectory(algorithm)
 
-# 核心业务层源文件
-file(GLOB_RECURSE CORE_SOURCES
-    core/*.cpp
-    core/*.h
-)
+# 核心业务层（待实现）
+# add_subdirectory(core)
 
-# UI层源文件
-file(GLOB_RECURSE UI_SOURCES
-    ui/*.cpp
-    ui/*.h
-    ui/*.ui
-)
+# UI层（待实现）
+# add_subdirectory(ui)
 
+# ============================================================
 # 主程序
+# ============================================================
+
 set(MAIN_SOURCES
     main.cpp
 )
 
 # ============================================================
-# 资源文件
+# 资源文件（可选）
 # ============================================================
-set(RESOURCE_FILES
-    ${CMAKE_SOURCE_DIR}/resources/resources.qrc
-)
+# set(RESOURCE_FILES
+#     ${CMAKE_SOURCE_DIR}/resources/resources.qrc
+# )
 
 # ============================================================
 # 创建可执行文件
 # ============================================================
 add_executable(VisionForge
     ${MAIN_SOURCES}
-    ${BASE_SOURCES}
-    ${HAL_SOURCES}
-    ${ALGORITHM_SOURCES}
-    ${CORE_SOURCES}
-    ${UI_SOURCES}
-    ${RESOURCE_FILES}
+    # ${RESOURCE_FILES}
 )
 
 # ============================================================
 # 链接库
 # ============================================================
 target_link_libraries(VisionForge PRIVATE
+    # 内部库
+    VisionForgeBase
+
     # Qt库
     Qt6::Core
     Qt6::Widgets
@@ -129,16 +114,13 @@ if(MSVC)
 endif()
 
 # ============================================================
-# Windows应用程序图标和信息
+# Windows应用程序配置
 # ============================================================
 if(WIN32)
-    # 设置为Windows GUI应用（不显示控制台）
-    set_target_properties(VisionForge PROPERTIES
-        WIN32_EXECUTABLE ON
-    )
-
-    # 添加版本信息资源文件（需要创建）
-    # target_sources(VisionForge PRIVATE ${CMAKE_SOURCE_DIR}/resources/app.rc)
+    # 暂时保留控制台窗口（方便调试）
+    # set_target_properties(VisionForge PROPERTIES
+    #     WIN32_EXECUTABLE ON
+    # )
 endif()
 
 # ============================================================
