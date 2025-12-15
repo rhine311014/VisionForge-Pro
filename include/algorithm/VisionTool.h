@@ -64,7 +64,7 @@ public:
         Gray, Blur, Binary, ROI, ColorConvert,
 
         // 定位检测
-        TemplateMatch, FindCircle, FindLine, FindEdge,
+        TemplateMatch, Match, FindCircle, FindLine, FindEdge,
         BlobAnalysis, AIDetection,
 
         // 测量计算

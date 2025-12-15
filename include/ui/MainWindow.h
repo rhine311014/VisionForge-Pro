@@ -66,6 +66,7 @@ private slots:
     void onActualSize();
     void onZoomIn();
     void onZoomOut();
+    void onTogglePanels();  // 切换侧边面板显示/隐藏
 
     // 工具菜单
     void onAddTool();

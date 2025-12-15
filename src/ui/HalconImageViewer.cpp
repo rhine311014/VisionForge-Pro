@@ -57,6 +57,12 @@ HalconImageViewer::HalconImageViewer(QWidget* parent)
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
 
+    // 移除所有边距，确保Halcon窗口占据全部空间
+    setContentsMargins(0, 0, 0, 0);
+
+    // 设置尺寸策略为扩展，占据所有可用空间
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
     // 设置背景色为黑色
     QPalette pal = palette();
     pal.setColor(QPalette::Window, Qt::black);
@@ -146,7 +152,11 @@ void HalconImageViewer::setScale(double scale)
     fitMode_ = NoFit;
 
     updateImagePart();
-    updateDisplay();
+
+    // 重新显示图像以应用新的缩放
+    if (currentImage_ && displayWorker_ && halconWindowInitialized_) {
+        displayWorker_->requestDisplayImage(currentImage_);
+    }
 
     emit scaleChanged(scale_);
 }
@@ -161,7 +171,11 @@ void HalconImageViewer::fitToWindow()
     fitMode_ = FitToWindow;
 
     updateImagePart();
-    updateDisplay();
+
+    // 重新显示图像以应用新的缩放
+    if (displayWorker_ && halconWindowInitialized_) {
+        displayWorker_->requestDisplayImage(currentImage_);
+    }
 
     emit scaleChanged(scale_);
 }
@@ -176,7 +190,11 @@ void HalconImageViewer::fitToWidth()
     fitMode_ = FitToWidth;
 
     updateImagePart();
-    updateDisplay();
+
+    // 重新显示图像以应用新的缩放
+    if (displayWorker_ && halconWindowInitialized_) {
+        displayWorker_->requestDisplayImage(currentImage_);
+    }
 
     emit scaleChanged(scale_);
 }
@@ -191,7 +209,11 @@ void HalconImageViewer::fitToHeight()
     fitMode_ = FitToHeight;
 
     updateImagePart();
-    updateDisplay();
+
+    // 重新显示图像以应用新的缩放
+    if (displayWorker_ && halconWindowInitialized_) {
+        displayWorker_->requestDisplayImage(currentImage_);
+    }
 
     emit scaleChanged(scale_);
 }
@@ -299,8 +321,16 @@ void HalconImageViewer::resizeEvent(QResizeEvent* event)
 #ifdef _WIN32
     if (halconWindowInitialized_ && windowHandle_.Length() > 0) {
         try {
-            // 重新设置窗口大小
-            SetWindowExtents(windowHandle_, 0, 0, width(), height());
+            // 获取设备像素比，处理High DPI显示
+            qreal dpr = devicePixelRatio();
+            int scaledWidth = static_cast<int>(width() * dpr);
+            int scaledHeight = static_cast<int>(height() * dpr);
+
+            // 重新设置窗口大小（使用缩放后的尺寸）
+            SetWindowExtents(windowHandle_, 0, 0, scaledWidth, scaledHeight);
+
+            LOG_DEBUG(QString("Halcon窗口大小已调整: %1x%2 (DPR: %3)")
+                .arg(scaledWidth).arg(scaledHeight).arg(dpr));
 
             // 如果是自动适应模式，重新计算缩放
             if (fitMode_ == FitToWindow) {
@@ -571,8 +601,13 @@ void HalconImageViewer::initHalconWindow()
         // 获取Qt窗口句柄
         WId winId = this->winId();
 
-        // 创建Halcon窗口
-        OpenWindow(0, 0, width(), height(), (Hlong)winId, "visible", "", &windowHandle_);
+        // 获取设备像素比，处理High DPI显示
+        qreal dpr = devicePixelRatio();
+        int scaledWidth = static_cast<int>(width() * dpr);
+        int scaledHeight = static_cast<int>(height() * dpr);
+
+        // 创建Halcon窗口（使用缩放后的尺寸）
+        OpenWindow(0, 0, scaledWidth, scaledHeight, (Hlong)winId, "visible", "", &windowHandle_);
 
         // 使用工具类初始化窗口配置（UTF-8、颜色模式、字体、线宽等）
         HalconUtils::InitializeWindow(windowHandle_);
@@ -587,7 +622,8 @@ void HalconImageViewer::initHalconWindow()
             displayWorker_->setWindowHandle(windowHandle_);
         }
 
-        LOG_INFO("Halcon窗口初始化成功（含UTF-8支持、字体配置）");
+        LOG_INFO(QString("Halcon窗口初始化成功: %1x%2 (DPR: %3, 含UTF-8支持、字体配置)")
+            .arg(scaledWidth).arg(scaledHeight).arg(dpr));
 
         // 如果已经有图像，显示它
         if (currentImage_) {

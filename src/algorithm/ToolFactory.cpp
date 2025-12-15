@@ -10,6 +10,10 @@
 #include "algorithm/EdgeDetectionTool.h"
 #include "base/Logger.h"
 
+#ifdef _WIN32
+#include "algorithm/ShapeMatchTool.h"
+#endif
+
 namespace VisionForge {
 namespace Algorithm {
 
@@ -172,6 +176,21 @@ void ToolFactory::registerBuiltInTools()
         ),
         []() -> VisionTool* { return new EdgeDetectionTool(); }
     );
+
+#ifdef _WIN32
+    // 注册Halcon形状匹配工具
+    registerTool(
+        VisionTool::Match,
+        ToolInfo(
+            "形状匹配",
+            "定位检测",
+            "使用Halcon形状匹配算法查找图像中的目标，支持角度、缩放变化",
+            ":/icons/match.png",
+            VisionTool::Match
+        ),
+        []() -> VisionTool* { return new ShapeMatchTool(); }
+    );
+#endif
 
     // TODO: 注册其他内置工具
     // 例如:

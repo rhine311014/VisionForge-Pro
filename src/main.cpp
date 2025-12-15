@@ -8,6 +8,8 @@
 
 #include <QApplication>
 #include <QMessageBox>
+#include <QTranslator>
+#include <QLibraryInfo>
 
 // Windows平台UTF-8控制台支持
 #ifdef _WIN32
@@ -63,11 +65,32 @@ int main(int argc, char *argv[])
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
 
-    // 初始化Logger
+    // 初始化Logger（必须在记录日志之前）
     Logger::instance().setLogLevel(Logger::Debug);
     Logger::instance().enableConsoleOutput(true);
     Logger::instance().setLogFile("VisionForge.log");
     Logger::instance().enableFileOutput(true);
+
+    // 加载Qt中文翻译
+    QTranslator qtTranslator;
+    QTranslator qtBaseTranslator;
+    QString translationsPath = QLibraryInfo::path(QLibraryInfo::TranslationsPath);
+
+    // 加载Qt基础控件翻译（按钮、菜单等标准控件）
+    if (qtTranslator.load("qt_zh_CN", translationsPath)) {
+        app.installTranslator(&qtTranslator);
+        LOG_DEBUG("Qt中文翻译已加载: qt_zh_CN");
+    } else {
+        LOG_WARNING(QString("未找到Qt中文翻译文件: %1/qt_zh_CN.qm").arg(translationsPath));
+    }
+
+    // 加载Qt Base模块翻译（对话框、文件选择器等）
+    if (qtBaseTranslator.load("qtbase_zh_CN", translationsPath)) {
+        app.installTranslator(&qtBaseTranslator);
+        LOG_DEBUG("Qt Base中文翻译已加载: qtbase_zh_CN");
+    } else {
+        LOG_WARNING(QString("未找到Qt Base中文翻译文件: %1/qtbase_zh_CN.qm").arg(translationsPath));
+    }
 
     LOG_INFO("========================================");
     LOG_INFO(QString("VisionForge Pro v%1").arg(VISIONFORGE_VERSION));

@@ -58,6 +58,11 @@ signals:
      */
     void parameterChanged();
 
+    /**
+     * @brief 训练模板请求信号（用于形状匹配工具）
+     */
+    void trainModelRequested();
+
 private slots:
     void onParameterChanged();
 
@@ -71,6 +76,11 @@ private:
      * @brief 创建灰度工具参数界面
      */
     void createGrayToolParameters();
+
+    /**
+     * @brief 创建形状匹配工具参数界面
+     */
+    void createShapeMatchToolParameters();
 
     /**
      * @brief 更新工具参数（从UI到工具）
@@ -100,6 +110,9 @@ private:
     // GrayTool参数（示例）
     QComboBox* convertModeCombo_;
     QComboBox* channelCombo_;
+
+    // ShapeMatchTool参数面板
+    QWidget* shapeMatchParamPanel_;
 };
 
 } // namespace UI

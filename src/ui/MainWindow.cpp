@@ -39,7 +39,10 @@ MainWindow::MainWindow(QWidget* parent)
     , isContinuousGrabbing_(false)
 {
     setWindowTitle("VisionForge Pro - 机器视觉检测平台");
-    resize(1600, 1000);  // 增大窗口尺寸，提供更多显示空间
+
+    // 设置主窗口样式，移除所有内边距和边距
+    setStyleSheet("QMainWindow { padding: 0px; margin: 0px; } "
+                  "QMainWindow::separator { width: 0px; height: 0px; }");
 
     // 创建中央图像查看器
 #ifdef USE_HALCON
@@ -47,7 +50,16 @@ MainWindow::MainWindow(QWidget* parent)
 #else
     imageViewer_ = new ImageViewer(this);
 #endif
+
+    // 设置中央窗口，确保没有边距
     setCentralWidget(imageViewer_);
+
+    // 移除所有可能的边距
+    centralWidget()->setContentsMargins(0, 0, 0, 0);
+    setContentsMargins(0, 0, 0, 0);
+
+    // 设置主窗口最大化显示，以获得最大的Halcon窗口尺寸
+    showMaximized();
 
     // 创建停靠窗口和面板
     createDockWindows();
@@ -166,6 +178,32 @@ void MainWindow::onZoomIn()
 void MainWindow::onZoomOut()
 {
     imageViewer_->zoomOut();
+}
+
+void MainWindow::onTogglePanels()
+{
+    // 检查当前面板是否全部隐藏
+    bool allHidden = toolChainDock_->isHidden() &&
+                     toolParameterDock_->isHidden() &&
+                     resultTableDock_->isHidden();
+
+    // 切换显示状态
+    if (allHidden) {
+        // 全部隐藏时，恢复显示（历史面板保持隐藏）
+        toolChainDock_->show();
+        toolParameterDock_->show();
+        resultTableDock_->show();
+        statusLabel_->setText("已显示侧边面板");
+        LOG_DEBUG("侧边面板已显示");
+    } else {
+        // 隐藏所有侧边面板，最大化Halcon图像窗口
+        toolChainDock_->hide();
+        toolParameterDock_->hide();
+        resultTableDock_->hide();
+        historyDock_->hide();
+        statusLabel_->setText("已隐藏侧边面板 - Halcon窗口最大化");
+        LOG_DEBUG("侧边面板已隐藏");
+    }
 }
 
 // ========== 工具菜单 ==========
@@ -411,6 +449,16 @@ void MainWindow::createMenus()
     connect(zoomOutAction_, &QAction::triggered, this, &MainWindow::onZoomOut);
     viewMenu_->addAction(zoomOutAction_);
 
+    viewMenu_->addSeparator();
+
+    // 添加切换面板动作（F11快捷键）
+    QAction* togglePanelsAction = new QAction("切换侧边面板(&P)", this);
+    togglePanelsAction->setShortcut(Qt::Key_F11);
+    togglePanelsAction->setStatusTip("显示/隐藏所有侧边面板，最大化Halcon窗口（F11）");
+    togglePanelsAction->setCheckable(false);
+    connect(togglePanelsAction, &QAction::triggered, this, &MainWindow::onTogglePanels);
+    viewMenu_->addAction(togglePanelsAction);
+
     // 工具菜单
     toolMenu_ = menuBar()->addMenu("工具(&T)");
 
@@ -539,6 +587,8 @@ void MainWindow::createDockWindows()
     resultTableDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
     resultTableDock_->setMinimumWidth(200);
     resultTableDock_->setMaximumWidth(350);
+    resultTableDock_->setMinimumHeight(150);  // 限制最小高度
+    resultTableDock_->setMaximumHeight(300);  // 限制最大高度
 
     resultTablePanel_ = new ResultTablePanel(this);
     resultTableDock_->setWidget(resultTablePanel_);
@@ -558,12 +608,16 @@ void MainWindow::createDockWindows()
     addDockWidget(Qt::LeftDockWidgetArea, historyDock_);
     splitDockWidget(toolChainDock_, historyDock_, Qt::Vertical);
 
-    // 默认隐藏历史记录面板，让图像窗口更大
+    // 默认隐藏所有侧边面板，最大化Halcon窗口显示空间
+    toolChainDock_->hide();
+    toolParameterDock_->hide();
+    resultTableDock_->hide();
     historyDock_->hide();
 
-    // 设置停靠窗口的初始大小比例（让中央图像窗口占更多空间）
+    // 设置停靠窗口的初始大小（当显示时使用）
     resizeDocks({toolChainDock_}, {250}, Qt::Horizontal);
     resizeDocks({toolParameterDock_}, {250}, Qt::Horizontal);
+    resizeDocks({resultTableDock_}, {200}, Qt::Vertical);
 }
 
 void MainWindow::createStatusBar()

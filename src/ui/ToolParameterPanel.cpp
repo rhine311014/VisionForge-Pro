@@ -8,6 +8,11 @@
 #include "base/Logger.h"
 #include <QPushButton>
 
+#ifdef _WIN32
+#include "ui/ShapeMatchParamPanel.h"
+#include "algorithm/ShapeMatchTool.h"
+#endif
+
 namespace VisionForge {
 namespace UI {
 
@@ -16,6 +21,7 @@ ToolParameterPanel::ToolParameterPanel(QWidget* parent)
     , currentTool_(nullptr)
     , convertModeCombo_(nullptr)
     , channelCombo_(nullptr)
+    , shapeMatchParamPanel_(nullptr)
 {
     mainLayout_ = new QVBoxLayout(this);
     mainLayout_->setContentsMargins(5, 5, 5, 5);
@@ -79,11 +85,17 @@ void ToolParameterPanel::setTool(Algorithm::VisionTool* tool)
 
     convertModeCombo_ = nullptr;
     channelCombo_ = nullptr;
+    shapeMatchParamPanel_ = nullptr;
 
     // 根据工具类型创建参数界面
     if (currentTool_->toolType() == Algorithm::VisionTool::Gray) {
         createGrayToolParameters();
     }
+#ifdef _WIN32
+    else if (currentTool_->toolType() == Algorithm::VisionTool::Match) {
+        createShapeMatchToolParameters();
+    }
+#endif
 
     // 刷新UI
     refreshUI();
@@ -105,6 +117,7 @@ void ToolParameterPanel::clear()
 
     convertModeCombo_ = nullptr;
     channelCombo_ = nullptr;
+    shapeMatchParamPanel_ = nullptr;
 
     setEnabled(false);
 }
@@ -232,6 +245,32 @@ void ToolParameterPanel::refreshUI()
 
     blockSignals(false);
 }
+
+#ifdef _WIN32
+void ToolParameterPanel::createShapeMatchToolParameters()
+{
+    using namespace Algorithm;
+
+    // 创建ShapeMatchParamPanel实例
+    ShapeMatchTool* shapeTool = dynamic_cast<ShapeMatchTool*>(currentTool_);
+    if (!shapeTool) {
+        LOG_ERROR("工具类型转换失败: ShapeMatchTool");
+        return;
+    }
+
+    ShapeMatchParamPanel* panel = new ShapeMatchParamPanel(shapeTool, this);
+    shapeMatchParamPanel_ = panel;
+
+    // 将整个面板添加到布局中
+    specificLayout_->addRow(panel);
+
+    // 连接信号
+    connect(panel, &ShapeMatchParamPanel::parameterChanged,
+            this, &ToolParameterPanel::onParameterChanged);
+    connect(panel, &ShapeMatchParamPanel::trainModelRequested,
+            this, &ToolParameterPanel::trainModelRequested);
+}
+#endif
 
 } // namespace UI
 } // namespace VisionForge
