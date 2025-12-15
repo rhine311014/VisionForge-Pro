@@ -33,6 +33,7 @@ set(ALGORITHM_HEADERS
 if(USE_HALCON)
     list(APPEND ALGORITHM_HEADERS
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeMatchTool.h
+        ${CMAKE_SOURCE_DIR}/include/algorithm/HalconObjectWrapper.h
     )
 endif()
 

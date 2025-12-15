@@ -25,6 +25,7 @@ struct ToolResult {
     QJsonObject data;                       // 结果数据
     Base::ImageData::Ptr outputImage;       // 输出图像
     double executionTime;                   // 执行时间(毫秒)
+    QVariantMap displayObjects;             // 显示对象(如Halcon XLD轮廓)
 
     ToolResult() : success(false), executionTime(0.0) {}
 
@@ -41,6 +42,20 @@ struct ToolResult {
      */
     void setValue(const QString& key, const QVariant& value) {
         data[key] = QJsonValue::fromVariant(value);
+    }
+
+    /**
+     * @brief 设置显示对象
+     */
+    void setDisplayObject(const QString& key, const QVariant& object) {
+        displayObjects[key] = object;
+    }
+
+    /**
+     * @brief 获取显示对象
+     */
+    QVariant getDisplayObject(const QString& key) const {
+        return displayObjects.value(key);
     }
 };
 

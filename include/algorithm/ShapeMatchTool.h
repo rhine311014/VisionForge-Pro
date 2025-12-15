@@ -108,6 +108,9 @@ public:
     void setModelPath(const QString& path) { modelPath_ = path; }
     QString getModelPath() const { return modelPath_; }
 
+    void setUseXLDDisplay(bool use) { useXLDDisplay_ = use; emit paramChanged(); }
+    bool getUseXLDDisplay() const { return useXLDDisplay_; }
+
 private:
 #ifdef _WIN32
     /**
@@ -121,6 +124,12 @@ private:
     void drawMatchResults(cv::Mat& image,
                          const HTuple& row, const HTuple& col,
                          const HTuple& angle, const HTuple& score);
+
+    /**
+     * @brief 创建匹配结果的XLD轮廓
+     */
+    HXLDCont createMatchContours(const HTuple& row, const HTuple& col,
+                                 const HTuple& angle);
 #endif
 
 private:
@@ -138,6 +147,7 @@ private:
     int minContrast_;           // 最小对比度
     double scaleMin_;           // 最小缩放
     double scaleMax_;           // 最大缩放
+    bool useXLDDisplay_;        // 是否使用XLD轮廓显示
 
     // 模板信息
     int modelWidth_;            // 模板宽度

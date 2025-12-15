@@ -4,6 +4,7 @@
  */
 
 #include "algorithm/ShapeMatchTool.h"
+#include "algorithm/HalconObjectWrapper.h"
 
 // 解决Halcon与OpenCV/标准库的宏冲突
 // 必须在包含OpenCV之前解除Halcon定义的宏
@@ -37,6 +38,7 @@ ShapeMatchTool::ShapeMatchTool(QObject* parent)
     , minContrast_(10)
     , scaleMin_(0.9)
     , scaleMax_(1.1)
+    , useXLDDisplay_(true)    // 默认使用XLD轮廓显示
     , modelWidth_(0)
     , modelHeight_(0)
     , modelRefRow_(0.0)
@@ -234,11 +236,20 @@ bool ShapeMatchTool::process(const Base::ImageData::Ptr& input, ToolResult& outp
                 .arg(angle[0].D() * 180.0 / 3.14159)
                 .arg(score[0].D()));
 
-            // 绘制结果到输出图像
-            cv::Mat resultImg = input->mat().clone();
-            drawMatchResults(resultImg, row, col, angle, score);
+            if (useXLDDisplay_) {
+                // 使用XLD轮廓显示（非破坏性）
+                HXLDCont contours = createMatchContours(row, col, angle);
+                XLDContourPtr xldPtr = QSharedPointer<XLDContourWrapper>::create(contours);
+                output.setDisplayObject("match_contours", QVariant::fromValue(
+                    qSharedPointerCast<HalconObjectWrapper>(xldPtr)));
+                output.outputImage = input;  // 返回原图
+            } else {
+                // 绘制结果到输出图像（破坏性）
+                cv::Mat resultImg = input->mat().clone();
+                drawMatchResults(resultImg, row, col, angle, score);
+                output.outputImage = std::make_shared<Base::ImageData>(resultImg);
+            }
 
-            output.outputImage = std::make_shared<Base::ImageData>(resultImg);
             output.success = true;
         }
         else {
@@ -330,6 +341,43 @@ void ShapeMatchTool::drawMatchResults(cv::Mat& image,
                    cv::Scalar(0, 255, 0), 2);
     }
 }
+
+HXLDCont ShapeMatchTool::createMatchContours(const HTuple& row, const HTuple& col,
+                                             const HTuple& angle)
+{
+    HXLDCont allContours;
+
+    try {
+        // 获取模板轮廓
+        HXLDCont modelContours;
+        GetShapeModelContours(&modelContours, shapeModel_, 1);
+
+        int numMatches = row.Length();
+        for (int i = 0; i < numMatches; i++) {
+            // 计算仿射变换矩阵
+            HTuple homMat2D;
+            VectorAngleToRigid(modelRefRow_, modelRefCol_, 0,  // 模板参考点
+                             row[i].D(), col[i].D(), angle[i].D(),  // 匹配结果
+                             &homMat2D);
+
+            // 变换轮廓
+            HXLDCont transformedCont;
+            AffineTransContourXld(modelContours, &transformedCont, homMat2D);
+
+            // 合并到总轮廓
+            if (i == 0) {
+                allContours = transformedCont;
+            } else {
+                allContours = allContours.ConcatObj(transformedCont);
+            }
+        }
+    }
+    catch (const HException& e) {
+        LOG_ERROR(QString("创建匹配轮廓失败: %1").arg(e.ErrorMessage().Text()));
+    }
+
+    return allContours;
+}
 #endif
 
 QJsonObject ShapeMatchTool::serializeParams() const
@@ -343,6 +391,7 @@ QJsonObject ShapeMatchTool::serializeParams() const
     json["min_contrast"] = minContrast_;
     json["scale_min"] = scaleMin_;
     json["scale_max"] = scaleMax_;
+    json["use_xld_display"] = useXLDDisplay_;
     return json;
 }
 
@@ -356,6 +405,7 @@ void ShapeMatchTool::deserializeParams(const QJsonObject& json)
     minContrast_ = json.value("min_contrast").toInt(10);
     scaleMin_ = json.value("scale_min").toDouble(0.9);
     scaleMax_ = json.value("scale_max").toDouble(1.1);
+    useXLDDisplay_ = json.value("use_xld_display").toBool(true);
 
     // 如果有模板路径，尝试加载
     if (!modelPath_.isEmpty()) {
