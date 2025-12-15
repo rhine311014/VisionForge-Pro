@@ -16,6 +16,7 @@ set(ALGORITHM_SOURCES
 if(USE_HALCON)
     list(APPEND ALGORITHM_SOURCES
         ShapeMatchTool.cpp
+        ShapeModelManager.cpp
     )
 endif()
 
@@ -34,6 +35,7 @@ if(USE_HALCON)
     list(APPEND ALGORITHM_HEADERS
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeMatchTool.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/HalconObjectWrapper.h
+        ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeModelManager.h
     )
 endif()
 

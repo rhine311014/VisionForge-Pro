@@ -4,12 +4,15 @@
  */
 
 #include "ui/ShapeMatchParamPanel.h"
+#include "ui/ShapeModelLibraryDialog.h"
 #include "algorithm/ShapeMatchTool.h"
+#include "algorithm/ShapeModelManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QStandardPaths>
 #include <cmath>
 
 namespace VisionForge {
@@ -48,21 +51,29 @@ void ShapeMatchParamPanel::createUI()
     modelStatusLabel_->setStyleSheet("QLabel { color: #ff6b6b; font-weight: bold; }");
     modelLayout->addWidget(modelStatusLabel_);
 
-    // 按钮行
-    QHBoxLayout* btnLayout = new QHBoxLayout();
+    // 按钮行1
+    QHBoxLayout* btnLayout1 = new QHBoxLayout();
     loadModelBtn_ = new QPushButton("加载模板", this);
     saveModelBtn_ = new QPushButton("保存模板", this);
     trainModelBtn_ = new QPushButton("训练模板", this);
-    clearModelBtn_ = new QPushButton("清除模板", this);
 
     saveModelBtn_->setEnabled(false);
+
+    btnLayout1->addWidget(loadModelBtn_);
+    btnLayout1->addWidget(saveModelBtn_);
+    btnLayout1->addWidget(trainModelBtn_);
+    modelLayout->addLayout(btnLayout1);
+
+    // 按钮行2
+    QHBoxLayout* btnLayout2 = new QHBoxLayout();
+    clearModelBtn_ = new QPushButton("清除模板", this);
+    modelLibraryBtn_ = new QPushButton("模板库", this);
+
     clearModelBtn_->setEnabled(false);
 
-    btnLayout->addWidget(loadModelBtn_);
-    btnLayout->addWidget(saveModelBtn_);
-    btnLayout->addWidget(trainModelBtn_);
-    btnLayout->addWidget(clearModelBtn_);
-    modelLayout->addLayout(btnLayout);
+    btnLayout2->addWidget(clearModelBtn_);
+    btnLayout2->addWidget(modelLibraryBtn_);
+    modelLayout->addLayout(btnLayout2);
 
     mainLayout->addWidget(modelGroup);
 
@@ -72,6 +83,15 @@ void ShapeMatchParamPanel::createUI()
     matchLayout->setColumnStretch(1, 1);
 
     int row = 0;
+
+    // 匹配类型
+    matchLayout->addWidget(new QLabel("匹配类型:", this), row, 0);
+    matchTypeCombo_ = new QComboBox(this);
+    matchTypeCombo_->addItem("标准匹配（仅旋转）", 0);  // Standard
+    matchTypeCombo_->addItem("缩放匹配（旋转+缩放）", 1);  // Scaled
+    matchTypeCombo_->addItem("仿射匹配（旋转+各向异性缩放）", 2);  // Anisotropic
+    matchTypeCombo_->setToolTip("选择匹配模式：标准（仅旋转）、缩放（旋转+各向同性缩放）、仿射（旋转+各向异性缩放）");
+    matchLayout->addWidget(matchTypeCombo_, row++, 1);
 
     // 最小匹配分数
     matchLayout->addWidget(new QLabel("最小分数:", this), row, 0);
@@ -140,7 +160,46 @@ void ShapeMatchParamPanel::createUI()
     scaleMaxSpinBox_->setValue(1.1);
     matchLayout->addWidget(scaleMaxSpinBox_, row++, 1);
 
+    // 缩放步长 - 行方向（仅仿射匹配）
+    scaleStepRowLabel_ = new QLabel("行缩放步长:", this);
+    matchLayout->addWidget(scaleStepRowLabel_, row, 0);
+    scaleStepRowSpinBox_ = new QDoubleSpinBox(this);
+    scaleStepRowSpinBox_->setRange(0.5, 1.0);
+    scaleStepRowSpinBox_->setSingleStep(0.01);
+    scaleStepRowSpinBox_->setDecimals(2);
+    scaleStepRowSpinBox_->setValue(0.95);
+    scaleStepRowSpinBox_->setToolTip("仿射匹配时行方向的缩放步长，值越接近1搜索越精细但速度越慢");
+    matchLayout->addWidget(scaleStepRowSpinBox_, row++, 1);
+
+    // 缩放步长 - 列方向（仅仿射匹配）
+    scaleStepColLabel_ = new QLabel("列缩放步长:", this);
+    matchLayout->addWidget(scaleStepColLabel_, row, 0);
+    scaleStepColSpinBox_ = new QDoubleSpinBox(this);
+    scaleStepColSpinBox_->setRange(0.5, 1.0);
+    scaleStepColSpinBox_->setSingleStep(0.01);
+    scaleStepColSpinBox_->setDecimals(2);
+    scaleStepColSpinBox_->setValue(0.95);
+    scaleStepColSpinBox_->setToolTip("仿射匹配时列方向的缩放步长，值越接近1搜索越精细但速度越慢");
+    matchLayout->addWidget(scaleStepColSpinBox_, row++, 1);
+
+    // 默认隐藏缩放步长参数（仅在仿射匹配时显示）
+    scaleStepRowLabel_->setVisible(false);
+    scaleStepRowSpinBox_->setVisible(false);
+    scaleStepColLabel_->setVisible(false);
+    scaleStepColSpinBox_->setVisible(false);
+
     mainLayout->addWidget(matchGroup);
+
+    // ========== 显示选项组 ==========
+    QGroupBox* displayGroup = new QGroupBox("显示选项", this);
+    QVBoxLayout* displayLayout = new QVBoxLayout(displayGroup);
+
+    useXLDDisplayCheckBox_ = new QCheckBox("使用XLD轮廓显示（非破坏性）", this);
+    useXLDDisplayCheckBox_->setChecked(true);
+    useXLDDisplayCheckBox_->setToolTip("启用后将直接显示轮廓而不烧录到图像上");
+    displayLayout->addWidget(useXLDDisplayCheckBox_);
+
+    mainLayout->addWidget(displayGroup);
 
     // 添加弹簧
     mainLayout->addStretch();
@@ -149,6 +208,9 @@ void ShapeMatchParamPanel::createUI()
 void ShapeMatchParamPanel::connectSignals()
 {
     // 匹配参数
+    connect(matchTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &ShapeMatchParamPanel::onMatchTypeChanged);
+
     connect(minScoreSpinBox_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &ShapeMatchParamPanel::onMinScoreChanged);
     connect(minScoreSlider_, &QSlider::valueChanged, this, [this](int value) {
@@ -171,6 +233,15 @@ void ShapeMatchParamPanel::connectSignals()
     connect(scaleMaxSpinBox_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &ShapeMatchParamPanel::onScaleRangeChanged);
 
+    connect(scaleStepRowSpinBox_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &ShapeMatchParamPanel::onScaleStepRowChanged);
+    connect(scaleStepColSpinBox_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &ShapeMatchParamPanel::onScaleStepColChanged);
+
+    // 显示选项
+    connect(useXLDDisplayCheckBox_, &QCheckBox::checkStateChanged,
+            this, &ShapeMatchParamPanel::onUseXLDDisplayChanged);
+
     // 模板管理按钮
     connect(loadModelBtn_, &QPushButton::clicked,
             this, &ShapeMatchParamPanel::onLoadModelClicked);
@@ -180,6 +251,8 @@ void ShapeMatchParamPanel::connectSignals()
             this, &ShapeMatchParamPanel::onTrainModelClicked);
     connect(clearModelBtn_, &QPushButton::clicked,
             this, &ShapeMatchParamPanel::onClearModelClicked);
+    connect(modelLibraryBtn_, &QPushButton::clicked,
+            this, &ShapeMatchParamPanel::onModelLibraryClicked);
 }
 
 void ShapeMatchParamPanel::updateUI()
@@ -187,6 +260,7 @@ void ShapeMatchParamPanel::updateUI()
     if (!tool_) return;
 
     // 更新匹配参数
+    matchTypeCombo_->blockSignals(true);
     minScoreSpinBox_->blockSignals(true);
     minScoreSlider_->blockSignals(true);
     numMatchesSpinBox_->blockSignals(true);
@@ -195,7 +269,11 @@ void ShapeMatchParamPanel::updateUI()
     minContrastSpinBox_->blockSignals(true);
     scaleMinSpinBox_->blockSignals(true);
     scaleMaxSpinBox_->blockSignals(true);
+    scaleStepRowSpinBox_->blockSignals(true);
+    scaleStepColSpinBox_->blockSignals(true);
+    useXLDDisplayCheckBox_->blockSignals(true);
 
+    matchTypeCombo_->setCurrentIndex(static_cast<int>(tool_->getMatchType()));
     minScoreSpinBox_->setValue(tool_->getMinScore());
     minScoreSlider_->setValue(static_cast<int>(tool_->getMinScore() * 100));
     numMatchesSpinBox_->setValue(tool_->getNumMatches());
@@ -204,7 +282,18 @@ void ShapeMatchParamPanel::updateUI()
     minContrastSpinBox_->setValue(tool_->getMinContrast());
     scaleMinSpinBox_->setValue(tool_->getScaleMin());
     scaleMaxSpinBox_->setValue(tool_->getScaleMax());
+    scaleStepRowSpinBox_->setValue(tool_->getScaleStepRow());
+    scaleStepColSpinBox_->setValue(tool_->getScaleStepCol());
+    useXLDDisplayCheckBox_->setChecked(tool_->getUseXLDDisplay());
 
+    // 根据匹配类型显示/隐藏缩放步长参数
+    bool showScaleStep = (tool_->getMatchType() == Algorithm::ShapeMatchTool::Anisotropic);
+    scaleStepRowLabel_->setVisible(showScaleStep);
+    scaleStepRowSpinBox_->setVisible(showScaleStep);
+    scaleStepColLabel_->setVisible(showScaleStep);
+    scaleStepColSpinBox_->setVisible(showScaleStep);
+
+    matchTypeCombo_->blockSignals(false);
     minScoreSpinBox_->blockSignals(false);
     minScoreSlider_->blockSignals(false);
     numMatchesSpinBox_->blockSignals(false);
@@ -213,6 +302,9 @@ void ShapeMatchParamPanel::updateUI()
     minContrastSpinBox_->blockSignals(false);
     scaleMinSpinBox_->blockSignals(false);
     scaleMaxSpinBox_->blockSignals(false);
+    scaleStepRowSpinBox_->blockSignals(false);
+    scaleStepColSpinBox_->blockSignals(false);
+    useXLDDisplayCheckBox_->blockSignals(false);
 
     // 更新模板状态
     if (tool_->hasModel()) {
@@ -295,6 +387,46 @@ void ShapeMatchParamPanel::onScaleRangeChanged()
     emit parameterChanged();
 }
 
+void ShapeMatchParamPanel::onMatchTypeChanged(int index)
+{
+    if (!tool_) return;
+
+    Algorithm::ShapeMatchTool::MatchType matchType =
+        static_cast<Algorithm::ShapeMatchTool::MatchType>(index);
+
+    tool_->setMatchType(matchType);
+
+    // 根据匹配类型显示/隐藏缩放步长参数
+    bool showScaleStep = (matchType == Algorithm::ShapeMatchTool::Anisotropic);
+    scaleStepRowLabel_->setVisible(showScaleStep);
+    scaleStepRowSpinBox_->setVisible(showScaleStep);
+    scaleStepColLabel_->setVisible(showScaleStep);
+    scaleStepColSpinBox_->setVisible(showScaleStep);
+
+    emit parameterChanged();
+}
+
+void ShapeMatchParamPanel::onScaleStepRowChanged(double value)
+{
+    if (!tool_) return;
+    tool_->setScaleStepRow(value);
+    emit parameterChanged();
+}
+
+void ShapeMatchParamPanel::onScaleStepColChanged(double value)
+{
+    if (!tool_) return;
+    tool_->setScaleStepCol(value);
+    emit parameterChanged();
+}
+
+void ShapeMatchParamPanel::onUseXLDDisplayChanged(int state)
+{
+    if (!tool_) return;
+    tool_->setUseXLDDisplay(state == Qt::Checked);
+    emit parameterChanged();
+}
+
 void ShapeMatchParamPanel::onLoadModelClicked()
 {
     if (!tool_) return;
@@ -373,6 +505,48 @@ QString ShapeMatchParamPanel::getModelPath(bool forSave)
     }
 
     return path;
+}
+
+void ShapeMatchParamPanel::onModelLibraryClicked()
+{
+    if (!tool_) return;
+
+    // 设置模板库路径（默认为用户文档目录下的VisionForge/ShapeModels）
+    Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
+    QString defaultLibraryPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                                + "/VisionForge/ShapeModels";
+
+    if (manager.getLibraryPath().isEmpty()) {
+        manager.loadLibrary(defaultLibraryPath);
+    }
+
+    // 打开模板库对话框
+    ShapeModelLibraryDialog dialog(this);
+    dialog.setLibraryPath(manager.getLibraryPath());
+
+    // 连接信号
+    connect(&dialog, &ShapeModelLibraryDialog::modelSelected,
+            [this, &manager](const QString& modelId) {
+                // 加载选中的模板
+                QString modelPath = manager.getModel(modelId)->filePath;
+                QDir dir(manager.getLibraryPath());
+                QString fullPath = dir.filePath(modelPath);
+
+                if (tool_->loadModel(fullPath)) {
+                    // 增加使用计数
+                    manager.incrementUsage(modelId);
+
+                    updateUI();
+                    emit parameterChanged();
+
+                    QMessageBox::information(this, "成功",
+                        QString("已加载模板: %1").arg(manager.getModel(modelId)->name));
+                } else {
+                    QMessageBox::warning(this, "失败", "模板加载失败");
+                }
+            });
+
+    dialog.exec();
 }
 
 } // namespace UI

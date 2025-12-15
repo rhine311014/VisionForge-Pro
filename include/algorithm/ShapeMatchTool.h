@@ -31,6 +31,15 @@ class ShapeMatchTool : public VisionTool
     Q_OBJECT
 
 public:
+    /**
+     * @brief 匹配类型
+     */
+    enum MatchType {
+        Standard,       // 标准匹配（仅旋转）
+        Scaled,         // 缩放匹配（旋转+缩放）
+        Anisotropic     // 仿射匹配（旋转+各向异性缩放）
+    };
+
     explicit ShapeMatchTool(QObject* parent = nullptr);
     ~ShapeMatchTool() override;
 
@@ -111,6 +120,15 @@ public:
     void setUseXLDDisplay(bool use) { useXLDDisplay_ = use; emit paramChanged(); }
     bool getUseXLDDisplay() const { return useXLDDisplay_; }
 
+    void setMatchType(MatchType type) { matchType_ = type; emit paramChanged(); }
+    MatchType getMatchType() const { return matchType_; }
+
+    void setScaleStepRow(double step) { scaleStepRow_ = step; emit paramChanged(); }
+    double getScaleStepRow() const { return scaleStepRow_; }
+
+    void setScaleStepCol(double step) { scaleStepCol_ = step; emit paramChanged(); }
+    double getScaleStepCol() const { return scaleStepCol_; }
+
 private:
 #ifdef _WIN32
     /**
@@ -140,6 +158,7 @@ private:
     QString modelPath_;         // 模板文件路径
 
     // 匹配参数
+    MatchType matchType_;       // 匹配类型
     double minScore_;           // 最小匹配分数 (0.0-1.0)
     int numMatches_;            // 查找匹配数量 (0=全部)
     double angleStart_;         // 起始角度 (弧度)
@@ -147,6 +166,8 @@ private:
     int minContrast_;           // 最小对比度
     double scaleMin_;           // 最小缩放
     double scaleMax_;           // 最大缩放
+    double scaleStepRow_;       // 行方向缩放步长（仿射匹配用）
+    double scaleStepCol_;       // 列方向缩放步长（仿射匹配用）
     bool useXLDDisplay_;        // 是否使用XLD轮廓显示
 
     // 模板信息

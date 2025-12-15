@@ -15,6 +15,8 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QGroupBox>
+#include <QCheckBox>
+#include <QComboBox>
 
 namespace VisionForge {
 
@@ -59,10 +61,15 @@ private slots:
     void onAngleRangeChanged();
     void onContrastChanged(int value);
     void onScaleRangeChanged();
+    void onMatchTypeChanged(int index);
+    void onScaleStepRowChanged(double value);
+    void onScaleStepColChanged(double value);
+    void onUseXLDDisplayChanged(int state);
     void onLoadModelClicked();
     void onSaveModelClicked();
     void onTrainModelClicked();
     void onClearModelClicked();
+    void onModelLibraryClicked();
 
 private:
     void createUI();
@@ -73,6 +80,7 @@ private:
     Algorithm::ShapeMatchTool* tool_;
 
     // 匹配参数
+    QComboBox* matchTypeCombo_;
     QDoubleSpinBox* minScoreSpinBox_;
     QSlider* minScoreSlider_;
     QSpinBox* numMatchesSpinBox_;
@@ -81,6 +89,13 @@ private:
     QSpinBox* minContrastSpinBox_;
     QDoubleSpinBox* scaleMinSpinBox_;
     QDoubleSpinBox* scaleMaxSpinBox_;
+    QLabel* scaleStepRowLabel_;
+    QDoubleSpinBox* scaleStepRowSpinBox_;
+    QLabel* scaleStepColLabel_;
+    QDoubleSpinBox* scaleStepColSpinBox_;
+
+    // 显示选项
+    QCheckBox* useXLDDisplayCheckBox_;
 
     // 模板管理
     QLineEdit* modelPathEdit_;
@@ -88,6 +103,7 @@ private:
     QPushButton* saveModelBtn_;
     QPushButton* trainModelBtn_;
     QPushButton* clearModelBtn_;
+    QPushButton* modelLibraryBtn_;
     QLabel* modelStatusLabel_;
 };
 

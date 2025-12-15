@@ -97,6 +97,30 @@ public:
      */
     Base::ImageData::Ptr getImage() const { return currentImage_; }
 
+    // ========== XLD轮廓显示接口 ==========
+
+#ifdef _WIN32
+    /**
+     * @brief 添加XLD轮廓显示
+     * @param contour XLD轮廓对象
+     * @param color 显示颜色（默认绿色）
+     */
+    void addXLDContour(const HXLDCont& contour, const QString& color = "green");
+
+    /**
+     * @brief 设置多个XLD轮廓
+     * @param contours XLD轮廓列表
+     * @param colors 颜色列表（可选，默认全部为绿色）
+     */
+    void setXLDContours(const QList<HXLDCont>& contours,
+                       const QStringList& colors = QStringList());
+
+    /**
+     * @brief 清除所有XLD轮廓
+     */
+    void clearXLDContours();
+#endif
+
     /**
      * @brief 设置缩放比例
      * @param scale 缩放比例（1.0 = 100%）

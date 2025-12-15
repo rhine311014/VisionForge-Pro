@@ -31,6 +31,7 @@ namespace Algorithm {
 ShapeMatchTool::ShapeMatchTool(QObject* parent)
     : VisionTool(parent)
     , modelLoaded_(false)
+    , matchType_(Standard)    // 默认标准匹配
     , minScore_(0.7)
     , numMatches_(1)
     , angleStart_(-0.39)      // -22.5度
@@ -38,6 +39,8 @@ ShapeMatchTool::ShapeMatchTool(QObject* parent)
     , minContrast_(10)
     , scaleMin_(0.9)
     , scaleMax_(1.1)
+    , scaleStepRow_(0.95)     // 行方向缩放步长
+    , scaleStepCol_(0.95)     // 列方向缩放步长
     , useXLDDisplay_(true)    // 默认使用XLD轮廓显示
     , modelWidth_(0)
     , modelHeight_(0)
@@ -205,17 +208,50 @@ bool ShapeMatchTool::process(const Base::ImageData::Ptr& input, ToolResult& outp
         // 转换图像
         HImage hImg = imageDataToHImage(input);
 
-        // 执行形状匹配
+        // 执行形状匹配（根据匹配类型选择API）
         HTuple row, col, angle, score;
+        HTuple scale, scaleRow, scaleCol;  // 缩放结果
 
-        FindShapeModel(hImg, shapeModel_,
-                      angleStart_, angleExtent_,
-                      minScore_, numMatches_,
-                      0.5,  // max_overlap
-                      "least_squares",  // sub_pixel
-                      0,  // num_levels
-                      0.9,  // greediness
-                      &row, &col, &angle, &score);
+        switch (matchType_) {
+        case Standard:
+            // 标准匹配（仅旋转）
+            FindShapeModel(hImg, shapeModel_,
+                          angleStart_, angleExtent_,
+                          minScore_, numMatches_,
+                          0.5,  // max_overlap
+                          "least_squares",  // sub_pixel
+                          0,  // num_levels
+                          0.9,  // greediness
+                          &row, &col, &angle, &score);
+            break;
+
+        case Scaled:
+            // 缩放匹配（旋转+各向同性缩放）
+            FindScaledShapeModel(hImg, shapeModel_,
+                                angleStart_, angleExtent_,
+                                scaleMin_, scaleMax_,
+                                minScore_, numMatches_,
+                                0.5,  // max_overlap
+                                "least_squares",  // sub_pixel
+                                0,  // num_levels
+                                0.9,  // greediness
+                                &row, &col, &angle, &scale, &score);
+            break;
+
+        case Anisotropic:
+            // 仿射匹配（旋转+各向异性缩放）
+            FindAnisoShapeModel(hImg, shapeModel_,
+                               angleStart_, angleExtent_,
+                               scaleMin_, scaleMax_,  // 行方向缩放范围
+                               scaleMin_, scaleMax_,  // 列方向缩放范围
+                               minScore_, numMatches_,
+                               0.5,  // max_overlap
+                               "least_squares",  // sub_pixel
+                               0,  // num_levels
+                               0.9,  // greediness
+                               &row, &col, &angle, &scaleRow, &scaleCol, &score);
+            break;
+        }
 
         int numFound = row.Length();
 
@@ -384,6 +420,7 @@ QJsonObject ShapeMatchTool::serializeParams() const
 {
     QJsonObject json;
     json["model_path"] = modelPath_;
+    json["match_type"] = static_cast<int>(matchType_);
     json["min_score"] = minScore_;
     json["num_matches"] = numMatches_;
     json["angle_start"] = angleStart_;
@@ -391,6 +428,8 @@ QJsonObject ShapeMatchTool::serializeParams() const
     json["min_contrast"] = minContrast_;
     json["scale_min"] = scaleMin_;
     json["scale_max"] = scaleMax_;
+    json["scale_step_row"] = scaleStepRow_;
+    json["scale_step_col"] = scaleStepCol_;
     json["use_xld_display"] = useXLDDisplay_;
     return json;
 }
@@ -398,6 +437,7 @@ QJsonObject ShapeMatchTool::serializeParams() const
 void ShapeMatchTool::deserializeParams(const QJsonObject& json)
 {
     modelPath_ = json.value("model_path").toString();
+    matchType_ = static_cast<MatchType>(json.value("match_type").toInt(Standard));
     minScore_ = json.value("min_score").toDouble(0.7);
     numMatches_ = json.value("num_matches").toInt(1);
     angleStart_ = json.value("angle_start").toDouble(-0.39);
@@ -405,6 +445,8 @@ void ShapeMatchTool::deserializeParams(const QJsonObject& json)
     minContrast_ = json.value("min_contrast").toInt(10);
     scaleMin_ = json.value("scale_min").toDouble(0.9);
     scaleMax_ = json.value("scale_max").toDouble(1.1);
+    scaleStepRow_ = json.value("scale_step_row").toDouble(0.95);
+    scaleStepCol_ = json.value("scale_step_col").toDouble(0.95);
     useXLDDisplay_ = json.value("use_xld_display").toBool(true);
 
     // 如果有模板路径，尝试加载

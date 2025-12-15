@@ -20,6 +20,7 @@ if(USE_HALCON)
         HalconDisplayWorker.cpp
         HalconUtils.cpp
         ShapeMatchParamPanel.cpp
+        ShapeModelLibraryDialog.cpp
     )
 endif()
 
@@ -42,6 +43,7 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/ui/HalconDisplayWorker.h
         ${CMAKE_SOURCE_DIR}/include/ui/HalconUtils.h
         ${CMAKE_SOURCE_DIR}/include/ui/ShapeMatchParamPanel.h
+        ${CMAKE_SOURCE_DIR}/include/ui/ShapeModelLibraryDialog.h
     )
 endif()
 

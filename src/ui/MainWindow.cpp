@@ -14,6 +14,10 @@
 #include <opencv2/opencv.hpp>
 #include <chrono>
 
+#ifdef _WIN32
+#include "algorithm/HalconObjectWrapper.h"
+#endif
+
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
 #ifdef USE_HALCON
 #define IMAGEVIEWER_CLASS HalconImageViewer
@@ -250,6 +254,31 @@ void MainWindow::onRunSingle()
         if (result.outputImage) {
             currentImage_ = result.outputImage;
             imageViewer_->setImage(currentImage_);
+
+            // 处理displayObjects - XLD轮廓显示
+#ifdef _WIN32
+            if (!result.displayObjects.isEmpty() &&
+                result.displayObjects.contains("match_contours")) {
+                QVariant objVariant = result.displayObjects["match_contours"];
+                if (objVariant.canConvert<Algorithm::HalconObjectPtr>()) {
+                    Algorithm::HalconObjectPtr objPtr =
+                        objVariant.value<Algorithm::HalconObjectPtr>();
+
+                    if (objPtr && objPtr->type() == Algorithm::HalconObjectWrapper::XLD_Contour) {
+                        Algorithm::XLDContourPtr xldPtr =
+                            qSharedPointerCast<Algorithm::XLDContourWrapper>(objPtr);
+
+                        QList<HXLDCont> contours;
+                        contours.append(xldPtr->contours());
+                        imageViewer_->setXLDContours(contours);
+                    }
+                }
+            } else {
+                // 清除之前的XLD显示
+                imageViewer_->clearXLDContours();
+            }
+#endif
+
             statusLabel_->setText(QString("工具 \"%1\" 处理完成").arg(tool->displayName()));
         }
     } else {
@@ -725,6 +754,7 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
 
     double totalExecutionTime = 0.0;
     QString toolChainDesc;
+    QVariantMap lastDisplayObjects;  // 保存最后一个工具的displayObjects
 
     for (Algorithm::VisionTool* tool : tools) {
         if (!tool->isEnabled()) {
@@ -766,11 +796,40 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
         if (toolResult.outputImage) {
             result = toolResult.outputImage;
         }
+
+        // 保存displayObjects（如果有）
+        if (!toolResult.displayObjects.isEmpty()) {
+            lastDisplayObjects = toolResult.displayObjects;
+        }
     }
 
     // 更新当前图像
     currentImage_ = result;
     imageViewer_->setImage(currentImage_);
+
+    // 处理displayObjects - XLD轮廓显示
+#ifdef _WIN32
+    if (!lastDisplayObjects.isEmpty() &&
+        lastDisplayObjects.contains("match_contours")) {
+        QVariant objVariant = lastDisplayObjects["match_contours"];
+        if (objVariant.canConvert<Algorithm::HalconObjectPtr>()) {
+            Algorithm::HalconObjectPtr objPtr =
+                objVariant.value<Algorithm::HalconObjectPtr>();
+
+            if (objPtr && objPtr->type() == Algorithm::HalconObjectWrapper::XLD_Contour) {
+                Algorithm::XLDContourPtr xldPtr =
+                    qSharedPointerCast<Algorithm::XLDContourWrapper>(objPtr);
+
+                QList<HXLDCont> contours;
+                contours.append(xldPtr->contours());
+                imageViewer_->setXLDContours(contours);
+            }
+        }
+    } else {
+        // 清除之前的XLD显示
+        imageViewer_->clearXLDContours();
+    }
+#endif
 
     // 添加到历史记录
     QString description = toolChainDesc.isEmpty() ? "原始图像" : QString("处理结果 (%1)").arg(toolChainDesc);

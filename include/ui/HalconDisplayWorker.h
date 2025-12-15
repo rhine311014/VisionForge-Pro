@@ -56,6 +56,17 @@ public:
     void requestClearWindow();
 
     /**
+     * @brief 设置XLD轮廓对象（由主线程调用）
+     */
+    void setXLDContours(const QList<HXLDCont>& contours,
+                       const QStringList& colors = QStringList());
+
+    /**
+     * @brief 清除所有XLD轮廓
+     */
+    void clearXLDContours();
+
+    /**
      * @brief 停止线程
      */
     void stop();
@@ -94,6 +105,8 @@ private:
 #ifdef _WIN32
     HTuple windowHandle_;               // Halcon窗口句柄
     HImage currentHImage_;              // 当前Halcon图像
+    QList<HXLDCont> xldContours_;       // XLD轮廓列表
+    QStringList xldColors_;             // XLD轮廓颜色列表
 #endif
 
     Base::ImageData::Ptr pendingImage_; // 待显示的图像
@@ -104,6 +117,7 @@ private:
     bool stopRequested_;                // 停止标志
     bool hasNewImage_;                  // 有新图像标志
     bool clearRequested_;               // 清空请求标志
+    bool hasXLDUpdate_;                 // XLD轮廓更新标志
 
     bool windowHandleSet_;              // 窗口句柄是否已设置
 };

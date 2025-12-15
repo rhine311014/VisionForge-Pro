@@ -30,6 +30,7 @@ HalconDisplayWorker::HalconDisplayWorker(QObject* parent)
     , stopRequested_(false)
     , hasNewImage_(false)
     , clearRequested_(false)
+    , hasXLDUpdate_(false)
     , windowHandleSet_(false)
 {
 }
@@ -70,6 +71,45 @@ void HalconDisplayWorker::requestClearWindow()
     condition_.wakeOne();
 }
 
+void HalconDisplayWorker::setXLDContours(const QList<HXLDCont>& contours,
+                                         const QStringList& colors)
+{
+#ifdef _WIN32
+    QMutexLocker locker(&mutex_);
+    xldContours_ = contours;
+
+    // 如果没有提供颜色，使用默认绿色
+    if (colors.isEmpty()) {
+        xldColors_.clear();
+        for (int i = 0; i < contours.size(); i++) {
+            xldColors_.append("green");
+        }
+    } else {
+        xldColors_ = colors;
+        // 确保颜色数量与轮廓数量匹配
+        while (xldColors_.size() < contours.size()) {
+            xldColors_.append("green");
+        }
+    }
+
+    hasXLDUpdate_ = true;
+    condition_.wakeOne();
+    LOG_DEBUG(QString("HalconDisplayWorker: 设置 %1 个XLD轮廓").arg(contours.size()));
+#endif
+}
+
+void HalconDisplayWorker::clearXLDContours()
+{
+#ifdef _WIN32
+    QMutexLocker locker(&mutex_);
+    xldContours_.clear();
+    xldColors_.clear();
+    hasXLDUpdate_ = true;
+    condition_.wakeOne();
+    LOG_DEBUG("HalconDisplayWorker: 清除所有XLD轮廓");
+#endif
+}
+
 void HalconDisplayWorker::stop()
 {
     QMutexLocker locker(&mutex_);
@@ -85,7 +125,7 @@ void HalconDisplayWorker::run()
         mutex_.lock();
 
         // 等待新任务或停止信号
-        while (!stopRequested_ && !hasNewImage_ && !clearRequested_) {
+        while (!stopRequested_ && !hasNewImage_ && !clearRequested_ && !hasXLDUpdate_) {
             condition_.wait(&mutex_);
         }
 
@@ -102,13 +142,17 @@ void HalconDisplayWorker::run()
             continue;
         }
 
-        // 处理图像显示
-        if (hasNewImage_) {
+        // 处理图像显示或XLD更新
+        if (hasNewImage_ || hasXLDUpdate_) {
             Base::ImageData::Ptr image = pendingImage_;
             hasNewImage_ = false;
+            hasXLDUpdate_ = false;
             mutex_.unlock();
 
             if (image && !image->isEmpty()) {
+                performDisplay();
+            } else if (currentHImage_.IsInitialized()) {
+                // 只有XLD更新，重新显示当前图像
                 performDisplay();
             }
             continue;
@@ -158,10 +202,28 @@ void HalconDisplayWorker::performDisplay()
         ClearWindow(windowHandle);
         DispObj(hImg, windowHandle);
 
-        // 保存当前图像
+        // 拷贝XLD轮廓数据（在锁内）
+        QList<HXLDCont> xldCopy;
+        QStringList colorsCopy;
         {
             QMutexLocker locker(&mutex_);
             currentHImage_ = hImg;
+            xldCopy = xldContours_;
+            colorsCopy = xldColors_;
+        }
+        // 锁已释放
+
+        // 显示所有XLD轮廓（在锁外执行，避免死锁）
+        for (int i = 0; i < xldCopy.size(); i++) {
+            try {
+                SetColor(windowHandle, colorsCopy[i].toStdString().c_str());
+                SetLineWidth(windowHandle, 2);
+                DispObj(xldCopy[i], windowHandle);
+            }
+            catch (const HException& e) {
+                LOG_ERROR(QString("显示XLD轮廓失败 [%1]: %2")
+                    .arg(i).arg(e.ErrorMessage().Text()));
+            }
         }
 
         emit imageDisplayed();

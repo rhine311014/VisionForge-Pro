@@ -141,6 +141,34 @@ void HalconImageViewer::clearImage()
     update();
 }
 
+#ifdef _WIN32
+void HalconImageViewer::addXLDContour(const HXLDCont& contour, const QString& color)
+{
+    if (displayWorker_) {
+        QList<HXLDCont> contours;
+        contours.append(contour);
+        QStringList colors;
+        colors.append(color);
+        displayWorker_->setXLDContours(contours, colors);
+    }
+}
+
+void HalconImageViewer::setXLDContours(const QList<HXLDCont>& contours,
+                                       const QStringList& colors)
+{
+    if (displayWorker_) {
+        displayWorker_->setXLDContours(contours, colors);
+    }
+}
+
+void HalconImageViewer::clearXLDContours()
+{
+    if (displayWorker_) {
+        displayWorker_->clearXLDContours();
+    }
+}
+#endif
+
 void HalconImageViewer::setScale(double scale)
 {
     scale = qBound(MIN_SCALE, scale, MAX_SCALE);
@@ -562,15 +590,20 @@ void HalconImageViewer::mouseReleaseEvent(QMouseEvent* event)
 
 void HalconImageViewer::paintEvent(QPaintEvent* event)
 {
-    QWidget::paintEvent(event);
-
-    // Halcon会自己绘制，这里只需要在初始化前显示提示
+    // 未初始化时，显示提示信息
     if (!halconWindowInitialized_) {
+        QWidget::paintEvent(event);
         QPainter painter(this);
         painter.fillRect(rect(), Qt::black);
         painter.setPen(Qt::white);
         painter.drawText(rect(), Qt::AlignCenter, "正在初始化Halcon窗口...");
+        event->accept();
+        return;
     }
+
+    // Halcon窗口已初始化，完全不绘制，让Halcon自己处理
+    // 不调用任何绘制函数，避免覆盖Halcon窗口
+    event->accept();
 }
 
 void HalconImageViewer::onInitTimer()
@@ -598,26 +631,42 @@ void HalconImageViewer::initHalconWindow()
 
 #ifdef _WIN32
     try {
+        LOG_DEBUG("开始初始化Halcon窗口...");
+
+        // 检查窗口是否可见和有效尺寸
+        if (!isVisible() || width() <= 0 || height() <= 0) {
+            LOG_WARNING(QString("窗口尺寸无效或不可见，延迟初始化: %1x%2, visible=%3")
+                .arg(width()).arg(height()).arg(isVisible()));
+            return;
+        }
+
         // 获取Qt窗口句柄
+        LOG_DEBUG("获取Qt窗口句柄...");
         WId winId = this->winId();
 
         // 获取设备像素比，处理High DPI显示
         qreal dpr = devicePixelRatio();
         int scaledWidth = static_cast<int>(width() * dpr);
         int scaledHeight = static_cast<int>(height() * dpr);
+        LOG_DEBUG(QString("窗口尺寸: %1x%2 (DPR: %3)").arg(scaledWidth).arg(scaledHeight).arg(dpr));
 
         // 创建Halcon窗口（使用缩放后的尺寸）
+        LOG_DEBUG("调用OpenWindow创建Halcon窗口...");
         OpenWindow(0, 0, scaledWidth, scaledHeight, (Hlong)winId, "visible", "", &windowHandle_);
+        LOG_DEBUG("OpenWindow调用成功");
 
         // 使用工具类初始化窗口配置（UTF-8、颜色模式、字体、线宽等）
+        LOG_DEBUG("初始化Halcon窗口配置...");
         HalconUtils::InitializeWindow(windowHandle_);
 
         // 设置显示区域
+        LOG_DEBUG("设置显示区域...");
         SetPart(windowHandle_, 0, 0, -1, -1);
 
         halconWindowInitialized_ = true;
 
         // 将窗口句柄传递给显示线程
+        LOG_DEBUG("设置显示工作线程窗口句柄...");
         if (displayWorker_) {
             displayWorker_->setWindowHandle(windowHandle_);
         }
@@ -625,14 +674,20 @@ void HalconImageViewer::initHalconWindow()
         LOG_INFO(QString("Halcon窗口初始化成功: %1x%2 (DPR: %3, 含UTF-8支持、字体配置)")
             .arg(scaledWidth).arg(scaledHeight).arg(dpr));
 
+        // 触发重绘，移除"正在初始化"提示
+        update();
+
         // 如果已经有图像，显示它
         if (currentImage_) {
+            LOG_DEBUG("发送待显示图像到工作线程...");
             displayWorker_->requestDisplayImage(currentImage_);
         }
     }
     catch (HException& e) {
         LOG_ERROR(QString("初始化Halcon窗口失败: %1").arg(e.ErrorMessage().Text()));
         halconWindowInitialized_ = false;
+        // 触发重绘，显示错误状态
+        update();
     }
 #endif
 }
