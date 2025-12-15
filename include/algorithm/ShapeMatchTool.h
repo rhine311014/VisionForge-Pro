@@ -120,7 +120,12 @@ public:
     void setUseXLDDisplay(bool use) { useXLDDisplay_ = use; emit paramChanged(); }
     bool getUseXLDDisplay() const { return useXLDDisplay_; }
 
-    void setMatchType(MatchType type) { matchType_ = type; emit paramChanged(); }
+    void setMatchType(MatchType type) {
+        if (matchType_ != type) {
+            matchType_ = type;
+            emit paramChanged();
+        }
+    }
     MatchType getMatchType() const { return matchType_; }
 
     void setScaleStepRow(double step) { scaleStepRow_ = step; emit paramChanged(); }

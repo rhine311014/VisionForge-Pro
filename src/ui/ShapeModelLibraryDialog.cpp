@@ -22,8 +22,13 @@ namespace UI {
 
 ModelListItemWidget::ModelListItemWidget(Algorithm::ShapeModelInfoPtr info, QWidget* parent)
     : QWidget(parent)
-    , modelId_(info->id)
+    , modelId_(info ? info->id : QString())
+    , thumbnailLabel_(nullptr)
+    , nameLabel_(nullptr)
+    , infoLabel_(nullptr)
 {
+    if (!info) return;
+
     QHBoxLayout* layout = new QHBoxLayout(this);
     layout->setContentsMargins(5, 5, 5, 5);
     layout->setSpacing(10);
@@ -34,9 +39,15 @@ ModelListItemWidget::ModelListItemWidget(Algorithm::ShapeModelInfoPtr info, QWid
     thumbnailLabel_->setScaledContents(true);
     thumbnailLabel_->setStyleSheet("border: 1px solid #cccccc; background: black;");
 
-    QImage thumbnail = Algorithm::ShapeModelManager::instance().getThumbnail(info->id);
-    if (!thumbnail.isNull()) {
-        thumbnailLabel_->setPixmap(QPixmap::fromImage(thumbnail));
+    try {
+        QImage thumbnail = Algorithm::ShapeModelManager::instance().getThumbnail(info->id);
+        if (!thumbnail.isNull()) {
+            thumbnailLabel_->setPixmap(QPixmap::fromImage(thumbnail));
+        } else {
+            thumbnailLabel_->setText("无图");
+        }
+    } catch (...) {
+        thumbnailLabel_->setText("错误");
     }
 
     layout->addWidget(thumbnailLabel_);
@@ -55,7 +66,7 @@ ModelListItemWidget::ModelListItemWidget(Algorithm::ShapeModelInfoPtr info, QWid
     infoLabel_->setStyleSheet("color: #666666; font-size: 9pt;");
     QString infoText = QString("使用次数: %1 | 创建: %2")
         .arg(info->usageCount)
-        .arg(info->createTime.toString("yyyy-MM-dd"));
+        .arg(info->createTime.isValid() ? info->createTime.toString("yyyy-MM-dd") : "未知");
     infoLabel_->setText(infoText);
 
     textLayout->addWidget(nameLabel_);
@@ -242,18 +253,45 @@ QString ShapeModelLibraryDialog::getSelectedModelPath() const
 
 void ShapeModelLibraryDialog::onImportClicked()
 {
-    QStringList filePaths = QFileDialog::getOpenFileNames(this,
+    LOG_DEBUG("开始导入模板...");
+
+    QString filePath = QFileDialog::getOpenFileName(this,
         "导入模板", QDir::homePath(), "Halcon模板文件 (*.shm);;所有文件 (*.*)");
 
-    if (filePaths.isEmpty()) {
+    if (filePath.isEmpty()) {
+        LOG_DEBUG("用户取消了文件选择");
         return;
     }
 
-    Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
-    int count = manager.importModels(filePaths);
+    LOG_DEBUG(QString("选择了文件: %1").arg(filePath));
 
-    QMessageBox::information(this, "导入完成",
-        QString("成功导入 %1 个模板").arg(count));
+    Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
+
+    // 临时断开信号，避免导入过程中触发更新
+    disconnect(&manager, &Algorithm::ShapeModelManager::modelAdded,
+               this, &ShapeModelLibraryDialog::onModelAdded);
+
+    int count = 0;
+    try {
+        count = manager.importModels(QStringList() << filePath);
+        LOG_DEBUG(QString("导入完成，成功 %1 个").arg(count));
+    } catch (...) {
+        LOG_ERROR("导入模板时发生异常");
+    }
+
+    // 重新连接信号
+    connect(&manager, &Algorithm::ShapeModelManager::modelAdded,
+            this, &ShapeModelLibraryDialog::onModelAdded);
+
+    // 手动刷新列表
+    loadModels();
+
+    if (count > 0) {
+        QMessageBox::information(this, "导入完成",
+            QString("成功导入 %1 个模板").arg(count));
+    } else {
+        QMessageBox::warning(this, "导入失败", "模板导入失败，请检查文件是否有效");
+    }
 }
 
 void ShapeModelLibraryDialog::onExportClicked()
@@ -336,6 +374,10 @@ void ShapeModelLibraryDialog::onModelSelectionChanged()
 void ShapeModelLibraryDialog::onModelDoubleClicked(QListWidgetItem* item)
 {
     if (item && !currentModelId_.isEmpty()) {
+        // 断开管理器信号连接，避免关闭过程中触发更新
+        Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
+        disconnect(&manager, nullptr, this, nullptr);
+
         emit modelSelected(currentModelId_);
         accept();
     }
@@ -344,6 +386,10 @@ void ShapeModelLibraryDialog::onModelDoubleClicked(QListWidgetItem* item)
 void ShapeModelLibraryDialog::onUseModelClicked()
 {
     if (!currentModelId_.isEmpty()) {
+        // 断开管理器信号连接，避免关闭过程中触发更新
+        Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
+        disconnect(&manager, nullptr, this, nullptr);
+
         emit modelSelected(currentModelId_);
         accept();
     }
@@ -370,22 +416,40 @@ void ShapeModelLibraryDialog::onModelRemoved(const QString& modelId)
 
 void ShapeModelLibraryDialog::loadModels()
 {
+    if (!modelList_) return;
+
     modelList_->clear();
 
     Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
+
+    if (!searchEdit_) return;
     QString keyword = searchEdit_->text().trimmed();
 
-    std::vector<Algorithm::ShapeModelInfoPtr> models = keyword.isEmpty()
-        ? manager.getAllModels()
-        : manager.searchModels(keyword);
+    std::vector<Algorithm::ShapeModelInfoPtr> models;
+    try {
+        models = keyword.isEmpty()
+            ? manager.getAllModels()
+            : manager.searchModels(keyword);
+    } catch (...) {
+        LOG_ERROR("获取模板列表时发生异常");
+        return;
+    }
+
+    LOG_DEBUG(QString("加载模板列表，共 %1 个").arg(models.size()));
 
     for (const auto& info : models) {
-        QListWidgetItem* item = new QListWidgetItem(modelList_);
-        ModelListItemWidget* widget = new ModelListItemWidget(info, modelList_);
+        if (!info) continue;
 
-        item->setSizeHint(widget->sizeHint());
-        modelList_->addItem(item);
-        modelList_->setItemWidget(item, widget);
+        try {
+            QListWidgetItem* item = new QListWidgetItem();
+            ModelListItemWidget* widget = new ModelListItemWidget(info, modelList_);
+
+            item->setSizeHint(widget->sizeHint());
+            modelList_->addItem(item);
+            modelList_->setItemWidget(item, widget);
+        } catch (...) {
+            LOG_ERROR(QString("创建模板列表项失败: %1").arg(info->name));
+        }
     }
 }
 

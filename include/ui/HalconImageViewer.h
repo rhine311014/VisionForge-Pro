@@ -383,6 +383,7 @@ private:
     QColor roiColor_;                   // ROI颜色
     int roiLineWidth_;                  // ROI线宽
     bool isDrawing_;                    // 是否正在绘制
+    bool isDrawingROI_;                 // 是否正在绘制ROI到窗口（防止重入）
 
     // 缩放步进
     static constexpr double ZOOM_STEP = 1.2;        // 缩放步进

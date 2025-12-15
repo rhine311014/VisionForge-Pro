@@ -82,6 +82,7 @@ private slots:
 
     // 工具链
     void onToolSelectionChanged(Algorithm::VisionTool* tool);
+    void onToolDoubleClicked(Algorithm::VisionTool* tool);
     void onParameterChanged();
 
     // 图像查看器

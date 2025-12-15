@@ -90,8 +90,10 @@ bool ShapeMatchTool::loadModel(const QString& modelPath)
             return false;
         }
 
-        // 读取模板
-        ReadShapeModel(modelPath.toStdString().c_str(), &shapeModel_);
+        // 读取模板（使用本地编码支持中文路径）
+        // Halcon 在 Windows 上使用 ANSI 编码
+        QByteArray localPath = modelPath.toLocal8Bit();
+        ReadShapeModel(localPath.constData(), &shapeModel_);
 
         modelLoaded_ = true;
         modelPath_ = modelPath;
@@ -171,8 +173,9 @@ bool ShapeMatchTool::saveModel(const QString& modelPath)
             return false;
         }
 
-        // 保存模板
-        WriteShapeModel(shapeModel_, modelPath.toStdString().c_str());
+        // 保存模板（使用本地编码支持中文路径）
+        QByteArray localPath = modelPath.toLocal8Bit();
+        WriteShapeModel(shapeModel_, localPath.constData());
 
         modelPath_ = modelPath;
 

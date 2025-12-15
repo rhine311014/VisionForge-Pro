@@ -85,6 +85,12 @@ signals:
     void toolSelectionChanged(Algorithm::VisionTool* tool);
 
     /**
+     * @brief 工具双击信号（用于弹出参数编辑对话框）
+     * @param tool 双击的工具
+     */
+    void toolDoubleClicked(Algorithm::VisionTool* tool);
+
+    /**
      * @brief 请求添加工具信号
      */
     void addToolRequested();

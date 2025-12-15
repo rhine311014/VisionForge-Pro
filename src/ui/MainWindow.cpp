@@ -6,7 +6,9 @@
 #include "ui/MainWindow.h"
 #include "ui/Theme.h"
 #include "algorithm/ToolFactory.h"
+#include "algorithm/ShapeMatchTool.h"
 #include "base/Logger.h"
+#include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QInputDialog>
@@ -16,6 +18,7 @@
 
 #ifdef _WIN32
 #include "algorithm/HalconObjectWrapper.h"
+#include "ui/ShapeMatchToolDialog.h"
 #endif
 
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
@@ -119,9 +122,22 @@ void MainWindow::onOpenImage()
         return;
     }
 
-    cv::Mat mat = cv::imread(fileName.toStdString());
+    // 使用Qt读取文件（支持中文路径），然后用OpenCV解码
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "错误", "无法打开图像文件");
+        return;
+    }
+
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    // 使用OpenCV解码图像数据
+    std::vector<uchar> buffer(fileData.begin(), fileData.end());
+    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
+
     if (mat.empty()) {
-        QMessageBox::warning(this, "错误", "无法加载图像文件");
+        QMessageBox::warning(this, "错误", "无法解码图像文件");
         return;
     }
 
@@ -381,6 +397,61 @@ void MainWindow::onToolSelectionChanged(Algorithm::VisionTool* tool)
 {
     toolParameterPanel_->setTool(tool);
     updateActions();
+}
+
+void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
+{
+    if (!tool) return;
+
+#ifdef _WIN32
+    // 检查是否是形状匹配工具
+    Algorithm::ShapeMatchTool* shapeMatchTool =
+        dynamic_cast<Algorithm::ShapeMatchTool*>(tool);
+
+    if (shapeMatchTool) {
+        // 弹出形状匹配工具对话框
+        ShapeMatchToolDialog dialog(shapeMatchTool, this);
+
+        // 设置当前图像
+        if (currentImage_) {
+            dialog.setImage(currentImage_);
+        }
+
+        // 连接训练请求信号
+        connect(&dialog, &ShapeMatchToolDialog::trainModelRequested, this, [this, shapeMatchTool]() {
+            // 获取ROI区域并训练
+            std::vector<ROIShapePtr> rois = imageViewer_->getROIs();
+            if (!rois.empty() && currentImage_) {
+                ROIShapePtr roi = rois.front();
+                QRectF rect = roi->boundingRect();
+
+                // 训练模板
+                if (shapeMatchTool->trainModel(currentImage_,
+                    static_cast<int>(rect.top()),
+                    static_cast<int>(rect.left()),
+                    static_cast<int>(rect.bottom()),
+                    static_cast<int>(rect.right()))) {
+                    LOG_INFO("模板训练成功");
+                    statusLabel_->setText("模板训练成功");
+                } else {
+                    QMessageBox::warning(this, "训练失败", "模板训练失败，请检查ROI区域");
+                }
+            }
+        });
+
+        if (dialog.exec() == QDialog::Accepted) {
+            // 参数已应用
+            statusLabel_->setText("工具参数已更新");
+            updateActions();
+        }
+    } else {
+        // 其他工具类型，显示提示
+        QMessageBox::information(this, "提示",
+            QString("工具 \"%1\" 暂不支持高级参数编辑对话框").arg(tool->displayName()));
+    }
+#else
+    QMessageBox::information(this, "提示", "此功能需要Halcon支持");
+#endif
 }
 
 void MainWindow::onParameterChanged()
@@ -681,6 +752,8 @@ void MainWindow::connectSignals()
     // 工具链信号
     connect(toolChainPanel_, &ToolChainPanel::toolSelectionChanged,
             this, &MainWindow::onToolSelectionChanged);
+    connect(toolChainPanel_, &ToolChainPanel::toolDoubleClicked,
+            this, &MainWindow::onToolDoubleClicked);
     connect(toolChainPanel_, &ToolChainPanel::addToolRequested,
             this, &MainWindow::onAddTool);
     connect(toolChainPanel_, &ToolChainPanel::removeToolRequested,

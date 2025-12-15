@@ -206,8 +206,11 @@ void ToolParameterPanel::refreshUI()
         return;
     }
 
-    // 阻塞信号避免循环触发
-    blockSignals(true);
+    // 阻塞所有子控件的信号，避免循环触发
+    enabledCheckBox_->blockSignals(true);
+    displayNameEdit_->blockSignals(true);
+    if (convertModeCombo_) convertModeCombo_->blockSignals(true);
+    if (channelCombo_) channelCombo_->blockSignals(true);
 
     // 刷新通用参数
     enabledCheckBox_->setChecked(currentTool_->isEnabled());
@@ -243,7 +246,11 @@ void ToolParameterPanel::refreshUI()
         }
     }
 
-    blockSignals(false);
+    // 恢复所有子控件的信号
+    enabledCheckBox_->blockSignals(false);
+    displayNameEdit_->blockSignals(false);
+    if (convertModeCombo_) convertModeCombo_->blockSignals(false);
+    if (channelCombo_) channelCombo_->blockSignals(false);
 }
 
 #ifdef _WIN32

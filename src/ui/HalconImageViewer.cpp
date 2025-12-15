@@ -10,6 +10,7 @@
 #include <QWheelEvent>
 #include <QPainter>
 #include <QShowEvent>
+#include <QTimer>
 #include <cmath>
 
 // 解决Halcon与OpenCV/STL的宏冲突
@@ -51,6 +52,7 @@ HalconImageViewer::HalconImageViewer(QWidget* parent)
     , roiColor_(Qt::green)
     , roiLineWidth_(2)
     , isDrawing_(false)
+    , isDrawingROI_(false)
 {
     // 设置窗口属性
     setMinimumSize(200, 200);
@@ -282,6 +284,10 @@ void HalconImageViewer::setFitMode(FitMode mode)
 
 void HalconImageViewer::setInteractionMode(InteractionMode mode)
 {
+    LOG_DEBUG(QString("设置交互模式: %1, currentImage_=%2")
+        .arg(static_cast<int>(mode))
+        .arg(currentImage_ ? "有效" : "空"));
+
     interactionMode_ = mode;
 
     // 切换模式时取消当前绘制
@@ -414,7 +420,13 @@ void HalconImageViewer::wheelEvent(QWheelEvent* event)
 
 void HalconImageViewer::mousePressEvent(QMouseEvent* event)
 {
+    LOG_DEBUG(QString("鼠标按下: button=%1, interactionMode_=%2, currentImage_=%3")
+        .arg(static_cast<int>(event->button()))
+        .arg(static_cast<int>(interactionMode_))
+        .arg(currentImage_ ? "有效" : "空"));
+
     if (!currentImage_) {
+        LOG_DEBUG("mousePressEvent: currentImage_为空，忽略事件");
         return;
     }
 
@@ -614,8 +626,11 @@ void HalconImageViewer::onInitTimer()
 void HalconImageViewer::onImageDisplayed()
 {
     // 图像显示完成后，在主线程绘制ROI
-    QMutexLocker locker(&displayMutex_);
-    drawROIs();
+    // 不使用mutex，因为这个函数已经在主线程中执行
+    // 只有在非绘制状态时才绘制ROI，避免与鼠标事件冲突
+    if (!isDrawing_) {
+        drawROIs();
+    }
 }
 
 void HalconImageViewer::onDisplayError(const QString& errorMsg)
@@ -710,10 +725,20 @@ void HalconImageViewer::closeHalconWindow()
 
 void HalconImageViewer::updateDisplay()
 {
-    // 图像显示交给子线程处理
-    // 这个函数现在主要用于ROI更新
-    QMutexLocker locker(&displayMutex_);
-    drawROIs();
+    // 在绘制过程中，不要频繁调用Halcon的绘制函数
+    // 只有在完成ROI绘制后才调用drawROIs()
+    // 这是为了避免主线程和显示线程同时访问Halcon窗口导致崩溃
+
+    // 如果正在绘制中，只更新Qt界面，不调用Halcon绘制
+    if (isDrawing_) {
+        update();  // 触发paintEvent，但由于Halcon已初始化，不会绘制任何东西
+        return;
+    }
+
+    // 非绘制状态下，请求显示线程重新显示图像（会自动绘制ROI）
+    if (currentImage_ && displayWorker_ && halconWindowInitialized_) {
+        displayWorker_->requestDisplayImage(currentImage_);
+    }
 }
 
 void HalconImageViewer::updateImagePart()
@@ -816,20 +841,48 @@ void HalconImageViewer::drawROIs()
         return;
     }
 
+    // 如果没有ROI需要绘制，直接返回
+    if (rois_.empty() && !currentROI_) {
+        return;
+    }
+
+    // 防止重入 - 如果正在绘制ROI，跳过
+    if (isDrawingROI_) {
+        LOG_DEBUG("drawROIs: 正在绘制中，跳过");
+        return;
+    }
+
+    isDrawingROI_ = true;
+
     try {
+        LOG_DEBUG(QString("drawROIs: 开始绘制, rois_数量=%1, currentROI_=%2")
+            .arg(rois_.size()).arg(currentROI_ ? "有效" : "空"));
+
         // 绘制所有ROI
         for (const auto& roi : rois_) {
-            drawROI(roi);
+            if (roi) {
+                drawROI(roi);
+            }
         }
 
         // 绘制正在绘制的ROI
         if (isDrawing_ && currentROI_) {
             drawROI(currentROI_);
         }
+
+        LOG_DEBUG("drawROIs: 绘制完成");
     }
     catch (HException& e) {
         LOG_ERROR(QString("绘制ROI失败: %1").arg(e.ErrorMessage().Text()));
     }
+    catch (std::exception& e) {
+        LOG_ERROR(QString("绘制ROI失败(std): %1").arg(e.what()));
+    }
+    catch (...) {
+        LOG_ERROR("绘制ROI失败: 未知异常");
+    }
+
+    isDrawingROI_ = false;
 #endif
 }
 
@@ -837,33 +890,105 @@ void HalconImageViewer::drawROI(const ROIShapePtr& roi)
 {
 #ifdef _WIN32
     if (!roi || !halconWindowInitialized_ || windowHandle_.Length() == 0) {
+        LOG_DEBUG("drawROI: 无效参数，跳过绘制");
         return;
     }
 
     try {
+        LOG_DEBUG(QString("drawROI: 开始绘制ROI类型=%1").arg(static_cast<int>(roi->getType())));
+
         // 设置绘图属性
         QColor color = roi->getColor();
         if (roi == selectedROI_) {
             color = Qt::yellow;  // 选中的ROI用黄色
         }
 
-        QString colorStr = QString("rgb(%1,%2,%3)")
-            .arg(color.red())
-            .arg(color.green())
-            .arg(color.blue());
+        // 使用Halcon预定义颜色名以确保兼容性
+        const char* colorName = "green";
+        if (color == Qt::yellow) {
+            colorName = "yellow";
+        } else if (color == Qt::red) {
+            colorName = "red";
+        } else if (color == Qt::blue) {
+            colorName = "blue";
+        }
 
-        SetColor(windowHandle_, colorStr.toStdString().c_str());
-        SetDraw(windowHandle_, "margin");
+        SetColor(windowHandle_, colorName);
         SetLineWidth(windowHandle_, roi->getLineWidth());
 
-        // 转换为HRegion并显示
-        HRegion region = roiToHRegion(roi);
-        if (region.IsInitialized() && region.CountObj() > 0) {
-            DispObj(region, windowHandle_);
+        // 直接使用Halcon绘图函数，而不是通过HRegion
+        switch (roi->getType()) {
+        case ROIType::Rectangle: {
+            auto rect = std::dynamic_pointer_cast<ROIRectangle>(roi);
+            if (rect) {
+                QRect r = rect->getRect();
+                if (r.width() > 0 && r.height() > 0) {
+                    LOG_DEBUG(QString("绘制矩形: row1=%1, col1=%2, row2=%3, col2=%4")
+                        .arg(r.top()).arg(r.left()).arg(r.bottom()).arg(r.right()));
+                    DispRectangle1(windowHandle_, r.top(), r.left(), r.bottom(), r.right());
+                }
+            }
+            break;
         }
+        case ROIType::Circle: {
+            auto circle = std::dynamic_pointer_cast<ROICircle>(roi);
+            if (circle && circle->getRadius() > 0) {
+                QPoint center = circle->getCenter();
+                DispCircle(windowHandle_, center.y(), center.x(), circle->getRadius());
+            }
+            break;
+        }
+        case ROIType::Ellipse: {
+            auto ellipse = std::dynamic_pointer_cast<ROIEllipse>(roi);
+            if (ellipse) {
+                QRect r = ellipse->getRect();
+                if (r.width() > 0 && r.height() > 0) {
+                    QPoint center = r.center();
+                    double rx = r.width() / 2.0;
+                    double ry = r.height() / 2.0;
+                    DispEllipse(windowHandle_, center.y(), center.x(), 0.0, ry, rx);
+                }
+            }
+            break;
+        }
+        case ROIType::Line: {
+            auto line = std::dynamic_pointer_cast<ROILine>(roi);
+            if (line) {
+                QPoint p1 = line->getStart();
+                QPoint p2 = line->getEnd();
+                if (p1 != p2) {
+                    DispLine(windowHandle_, p1.y(), p1.x(), p2.y(), p2.x());
+                }
+            }
+            break;
+        }
+        case ROIType::Point: {
+            auto point = std::dynamic_pointer_cast<ROIPoint>(roi);
+            if (point) {
+                QPoint pos = point->getPoint();
+                // 用十字表示点
+                DispCross(windowHandle_, pos.y(), pos.x(), 10.0, 0.0);
+            }
+            break;
+        }
+        case ROIType::Polygon: {
+            // 多边形使用HRegion方式
+            HRegion region = roiToHRegion(roi);
+            SetDraw(windowHandle_, "margin");
+            DispObj(region, windowHandle_);
+            break;
+        }
+        default:
+            break;
+        }
+
+        LOG_DEBUG("drawROI: 绘制成功");
     }
     catch (HException& e) {
         LOG_ERROR(QString("绘制ROI失败: %1").arg(e.ErrorMessage().Text()));
+    }
+    catch (...) {
+        LOG_ERROR("绘制ROI失败: 未知异常");
     }
 #endif
 }
@@ -879,18 +1004,29 @@ HRegion HalconImageViewer::roiToHRegion(const ROIShapePtr& roi)
         switch (roi->getType()) {
         case ROIType::Rectangle: {
             auto rect = std::dynamic_pointer_cast<ROIRectangle>(roi);
+            if (!rect) return HRegion();
             QRect r = rect->getRect();
+            // 验证矩形有效性
+            if (r.width() <= 0 || r.height() <= 0) {
+                return HRegion();
+            }
+            LOG_DEBUG(QString("创建矩形HRegion: top=%1, left=%2, bottom=%3, right=%4")
+                .arg(r.top()).arg(r.left()).arg(r.bottom()).arg(r.right()));
             return HRegion(r.top(), r.left(), r.bottom(), r.right());
         }
         case ROIType::Circle: {
             auto circle = std::dynamic_pointer_cast<ROICircle>(roi);
+            if (!circle) return HRegion();
             QPoint center = circle->getCenter();
             double radius = circle->getRadius();
+            if (radius <= 0) return HRegion();
             return HRegion(center.y(), center.x(), radius);
         }
         case ROIType::Ellipse: {
             auto ellipse = std::dynamic_pointer_cast<ROIEllipse>(roi);
+            if (!ellipse) return HRegion();
             QRect r = ellipse->getRect();
+            if (r.width() <= 0 || r.height() <= 0) return HRegion();
             QPoint center = r.center();
             double rx = r.width() / 2.0;
             double ry = r.height() / 2.0;
@@ -898,6 +1034,7 @@ HRegion HalconImageViewer::roiToHRegion(const ROIShapePtr& roi)
         }
         case ROIType::Polygon: {
             auto polygon = std::dynamic_pointer_cast<ROIPolygon>(roi);
+            if (!polygon) return HRegion();
             QPolygon poly = polygon->getPolygon();
 
             if (poly.size() < 3) {
@@ -916,8 +1053,10 @@ HRegion HalconImageViewer::roiToHRegion(const ROIShapePtr& roi)
         }
         case ROIType::Line: {
             auto line = std::dynamic_pointer_cast<ROILine>(roi);
+            if (!line) return HRegion();
             QPoint p1 = line->getStart();
             QPoint p2 = line->getEnd();
+            if (p1 == p2) return HRegion();  // 无效线段
 
             // 用GenRegionLine生成线段区域
             HRegion region;
@@ -926,6 +1065,7 @@ HRegion HalconImageViewer::roiToHRegion(const ROIShapePtr& roi)
         }
         case ROIType::Point: {
             auto point = std::dynamic_pointer_cast<ROIPoint>(roi);
+            if (!point) return HRegion();
             QPoint pos = point->getPoint();
 
             // 用一个小圆表示点
@@ -957,6 +1097,9 @@ ROIShapePtr HalconImageViewer::findROIAt(const QPoint& imagePos)
 
 void HalconImageViewer::finishCurrentROI()
 {
+    LOG_DEBUG(QString("finishCurrentROI: currentROI_=%1")
+        .arg(currentROI_ ? "有效" : "空"));
+
     if (currentROI_) {
         // 验证ROI有效性
         bool valid = false;
@@ -964,28 +1107,27 @@ void HalconImageViewer::finishCurrentROI()
         switch (currentROI_->getType()) {
         case ROIType::Rectangle: {
             auto rect = std::dynamic_pointer_cast<ROIRectangle>(currentROI_);
-            valid = rect->getRect().width() > 0 && rect->getRect().height() > 0;
+            valid = rect && rect->getRect().width() > 0 && rect->getRect().height() > 0;
             break;
         }
         case ROIType::Circle: {
             auto circle = std::dynamic_pointer_cast<ROICircle>(currentROI_);
-            valid = circle->getRadius() > 0;
+            valid = circle && circle->getRadius() > 0;
             break;
         }
         case ROIType::Ellipse: {
             auto ellipse = std::dynamic_pointer_cast<ROIEllipse>(currentROI_);
-            QRect r = ellipse->getRect();
-            valid = r.width() > 0 && r.height() > 0;
+            valid = ellipse && ellipse->getRect().width() > 0 && ellipse->getRect().height() > 0;
             break;
         }
         case ROIType::Polygon: {
             auto polygon = std::dynamic_pointer_cast<ROIPolygon>(currentROI_);
-            valid = polygon->getPolygon().size() >= 3;
+            valid = polygon && polygon->getPolygon().size() >= 3;
             break;
         }
         case ROIType::Line: {
             auto line = std::dynamic_pointer_cast<ROILine>(currentROI_);
-            valid = line->getStart() != line->getEnd();
+            valid = line && line->getStart() != line->getEnd();
             break;
         }
         case ROIType::Point:
@@ -993,15 +1135,20 @@ void HalconImageViewer::finishCurrentROI()
             break;
         }
 
-        if (valid) {
-            rois_.push_back(currentROI_);
-            emit roiCreated(currentROI_);
-            LOG_DEBUG(QString("创建ROI: 类型=%1").arg(static_cast<int>(currentROI_->getType())));
-        }
-
+        ROIShapePtr completedROI = currentROI_;
         currentROI_ = nullptr;
         isDrawing_ = false;
-        updateDisplay();
+
+        if (valid) {
+            rois_.push_back(completedROI);
+            emit roiCreated(completedROI);
+            LOG_DEBUG(QString("创建ROI: 类型=%1").arg(static_cast<int>(completedROI->getType())));
+        }
+
+        // 使用延迟调用来更新显示，避免与显示线程竞争
+        QTimer::singleShot(50, this, [this]() {
+            updateDisplay();
+        });
     }
 }
 

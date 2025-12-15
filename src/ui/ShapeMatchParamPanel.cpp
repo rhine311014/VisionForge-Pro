@@ -7,10 +7,12 @@
 #include "ui/ShapeModelLibraryDialog.h"
 #include "algorithm/ShapeMatchTool.h"
 #include "algorithm/ShapeModelManager.h"
+#include "base/Logger.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <cmath>
@@ -21,6 +23,27 @@ namespace UI {
 ShapeMatchParamPanel::ShapeMatchParamPanel(Algorithm::ShapeMatchTool* tool, QWidget* parent)
     : QWidget(parent)
     , tool_(tool)
+    , matchTypeCombo_(nullptr)
+    , minScoreSpinBox_(nullptr)
+    , minScoreSlider_(nullptr)
+    , numMatchesSpinBox_(nullptr)
+    , angleStartSpinBox_(nullptr)
+    , angleExtentSpinBox_(nullptr)
+    , minContrastSpinBox_(nullptr)
+    , scaleMinSpinBox_(nullptr)
+    , scaleMaxSpinBox_(nullptr)
+    , scaleStepRowLabel_(nullptr)
+    , scaleStepRowSpinBox_(nullptr)
+    , scaleStepColLabel_(nullptr)
+    , scaleStepColSpinBox_(nullptr)
+    , useXLDDisplayCheckBox_(nullptr)
+    , modelPathEdit_(nullptr)
+    , loadModelBtn_(nullptr)
+    , saveModelBtn_(nullptr)
+    , trainModelBtn_(nullptr)
+    , clearModelBtn_(nullptr)
+    , modelLibraryBtn_(nullptr)
+    , modelStatusLabel_(nullptr)
 {
     createUI();
     connectSignals();
@@ -336,14 +359,18 @@ void ShapeMatchParamPanel::onMinScoreChanged(double value)
     minScoreSlider_->setValue(static_cast<int>(value * 100));
     minScoreSlider_->blockSignals(false);
 
+    tool_->blockSignals(true);
     tool_->setMinScore(value);
+    tool_->blockSignals(false);
     emit parameterChanged();
 }
 
 void ShapeMatchParamPanel::onNumMatchesChanged(int value)
 {
     if (!tool_) return;
+    tool_->blockSignals(true);
     tool_->setNumMatches(value);
+    tool_->blockSignals(false);
     emit parameterChanged();
 }
 
@@ -355,8 +382,10 @@ void ShapeMatchParamPanel::onAngleRangeChanged()
     double extentDeg = angleExtentSpinBox_->value();
 
     // 转换为弧度
+    tool_->blockSignals(true);
     tool_->setAngleStart(startDeg * M_PI / 180.0);
     tool_->setAngleExtent(extentDeg * M_PI / 180.0);
+    tool_->blockSignals(false);
 
     emit parameterChanged();
 }
@@ -364,7 +393,9 @@ void ShapeMatchParamPanel::onAngleRangeChanged()
 void ShapeMatchParamPanel::onContrastChanged(int value)
 {
     if (!tool_) return;
+    tool_->blockSignals(true);
     tool_->setMinContrast(value);
+    tool_->blockSignals(false);
     emit parameterChanged();
 }
 
@@ -381,8 +412,10 @@ void ShapeMatchParamPanel::onScaleRangeChanged()
         return;
     }
 
+    tool_->blockSignals(true);
     tool_->setScaleMin(scaleMin);
     tool_->setScaleMax(scaleMax);
+    tool_->blockSignals(false);
 
     emit parameterChanged();
 }
@@ -390,11 +423,19 @@ void ShapeMatchParamPanel::onScaleRangeChanged()
 void ShapeMatchParamPanel::onMatchTypeChanged(int index)
 {
     if (!tool_) return;
+    // 检查索引有效性
+    if (index < 0 || index > 2) return;
+    // 检查控件有效性
+    if (!scaleStepRowLabel_ || !scaleStepRowSpinBox_ ||
+        !scaleStepColLabel_ || !scaleStepColSpinBox_) return;
 
     Algorithm::ShapeMatchTool::MatchType matchType =
         static_cast<Algorithm::ShapeMatchTool::MatchType>(index);
 
+    // 阻塞tool信号，避免触发外部组件更新导致递归
+    tool_->blockSignals(true);
     tool_->setMatchType(matchType);
+    tool_->blockSignals(false);
 
     // 根据匹配类型显示/隐藏缩放步长参数
     bool showScaleStep = (matchType == Algorithm::ShapeMatchTool::Anisotropic);
@@ -409,21 +450,27 @@ void ShapeMatchParamPanel::onMatchTypeChanged(int index)
 void ShapeMatchParamPanel::onScaleStepRowChanged(double value)
 {
     if (!tool_) return;
+    tool_->blockSignals(true);
     tool_->setScaleStepRow(value);
+    tool_->blockSignals(false);
     emit parameterChanged();
 }
 
 void ShapeMatchParamPanel::onScaleStepColChanged(double value)
 {
     if (!tool_) return;
+    tool_->blockSignals(true);
     tool_->setScaleStepCol(value);
+    tool_->blockSignals(false);
     emit parameterChanged();
 }
 
 void ShapeMatchParamPanel::onUseXLDDisplayChanged(int state)
 {
     if (!tool_) return;
+    tool_->blockSignals(true);
     tool_->setUseXLDDisplay(state == Qt::Checked);
+    tool_->blockSignals(false);
     emit parameterChanged();
 }
 
@@ -511,42 +558,101 @@ void ShapeMatchParamPanel::onModelLibraryClicked()
 {
     if (!tool_) return;
 
+    LOG_DEBUG("onModelLibraryClicked: 开始");
+
     // 设置模板库路径（默认为用户文档目录下的VisionForge/ShapeModels）
     Algorithm::ShapeModelManager& manager = Algorithm::ShapeModelManager::instance();
     QString defaultLibraryPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
                                 + "/VisionForge/ShapeModels";
 
     if (manager.getLibraryPath().isEmpty()) {
+        LOG_DEBUG("onModelLibraryClicked: 加载模板库");
         manager.loadLibrary(defaultLibraryPath);
     }
+
+    LOG_DEBUG("onModelLibraryClicked: 创建对话框");
 
     // 打开模板库对话框
     ShapeModelLibraryDialog dialog(this);
     dialog.setLibraryPath(manager.getLibraryPath());
 
-    // 连接信号
-    connect(&dialog, &ShapeModelLibraryDialog::modelSelected,
-            [this, &manager](const QString& modelId) {
-                // 加载选中的模板
-                QString modelPath = manager.getModel(modelId)->filePath;
-                QDir dir(manager.getLibraryPath());
-                QString fullPath = dir.filePath(modelPath);
+    LOG_DEBUG("onModelLibraryClicked: 执行对话框");
 
-                if (tool_->loadModel(fullPath)) {
-                    // 增加使用计数
+    // 执行对话框，等待用户选择
+    int result = dialog.exec();
+
+    LOG_DEBUG(QString("onModelLibraryClicked: 对话框返回 %1").arg(result));
+
+    if (result == QDialog::Accepted) {
+        LOG_DEBUG("onModelLibraryClicked: 用户接受了对话框");
+
+        // 获取选中的模板路径（在对话框关闭前获取）
+        QString modelPath = dialog.getSelectedModelPath();
+        QString modelId = dialog.getSelectedModelId();
+
+        LOG_DEBUG(QString("onModelLibraryClicked: 获取的路径=%1, ID=%2").arg(modelPath).arg(modelId));
+
+        if (modelPath.isEmpty()) {
+            LOG_WARNING("onModelLibraryClicked: 模板路径为空");
+            QMessageBox::warning(this, "警告", "未能获取模板路径");
+            return;
+        }
+
+        // 检查文件是否存在
+        QFileInfo fileInfo(modelPath);
+        if (!fileInfo.exists()) {
+            LOG_ERROR(QString("onModelLibraryClicked: 模板文件不存在: %1").arg(modelPath));
+            QMessageBox::warning(this, "错误", QString("模板文件不存在:\n%1").arg(modelPath));
+            return;
+        }
+
+        LOG_DEBUG("onModelLibraryClicked: 开始加载模板");
+
+        // 阻塞工具信号，避免加载过程中触发更新
+        tool_->blockSignals(true);
+
+        bool loadSuccess = false;
+        try {
+            loadSuccess = tool_->loadModel(modelPath);
+            LOG_DEBUG(QString("onModelLibraryClicked: 加载结果=%1").arg(loadSuccess));
+        } catch (const std::exception& e) {
+            LOG_ERROR(QString("加载模板时发生异常: %1").arg(e.what()));
+        } catch (...) {
+            LOG_ERROR("加载模板时发生未知异常");
+        }
+
+        tool_->blockSignals(false);
+
+        LOG_DEBUG("onModelLibraryClicked: 准备更新UI");
+
+        if (loadSuccess) {
+            // 增加使用计数
+            if (!modelId.isEmpty()) {
+                try {
                     manager.incrementUsage(modelId);
-
-                    updateUI();
-                    emit parameterChanged();
-
-                    QMessageBox::information(this, "成功",
-                        QString("已加载模板: %1").arg(manager.getModel(modelId)->name));
-                } else {
-                    QMessageBox::warning(this, "失败", "模板加载失败");
+                } catch (...) {
+                    LOG_WARNING("增加使用计数时发生异常");
                 }
-            });
+            }
 
-    dialog.exec();
+            LOG_DEBUG("onModelLibraryClicked: 调用 updateUI");
+            updateUI();
+
+            LOG_DEBUG("onModelLibraryClicked: 发送 parameterChanged 信号");
+            emit parameterChanged();
+
+            auto modelInfo = manager.getModel(modelId);
+            QString modelName = modelInfo ? modelInfo->name : "模板";
+
+            LOG_DEBUG("onModelLibraryClicked: 显示成功消息");
+            QMessageBox::information(this, "成功",
+                QString("已加载模板: %1").arg(modelName));
+        } else {
+            QMessageBox::warning(this, "失败", "模板加载失败");
+        }
+    }
+
+    LOG_DEBUG("onModelLibraryClicked: 结束");
 }
 
 } // namespace UI

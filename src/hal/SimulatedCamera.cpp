@@ -9,6 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
+#include <QFile>
 #include <QFileInfo>
 #include <QThread>
 
@@ -122,15 +123,22 @@ Base::ImageData::Ptr SimulatedCamera::grabImage(int timeoutMs)
 
     case ImageFile:
         if (!singleImagePath_.isEmpty()) {
-            cv::Mat mat = cv::imread(singleImagePath_.toStdString());
-            if (!mat.empty()) {
-                // 调整大小到配置的分辨率
-                if (mat.cols != config_.width || mat.rows != config_.height) {
-                    cv::resize(mat, mat, cv::Size(config_.width, config_.height));
+            // 使用Qt读取文件（支持中文路径），然后用OpenCV解码
+            QFile file(singleImagePath_);
+            if (file.open(QIODevice::ReadOnly)) {
+                QByteArray fileData = file.readAll();
+                file.close();
+                std::vector<uchar> buffer(fileData.begin(), fileData.end());
+                cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
+                if (!mat.empty()) {
+                    // 调整大小到配置的分辨率
+                    if (mat.cols != config_.width || mat.rows != config_.height) {
+                        cv::resize(mat, mat, cv::Size(config_.width, config_.height));
+                    }
+                    // 应用增益和曝光
+                    mat = applyGainAndExposure(mat);
+                    image = std::make_shared<Base::ImageData>(mat);
                 }
-                // 应用增益和曝光
-                mat = applyGainAndExposure(mat);
-                image = std::make_shared<Base::ImageData>(mat);
             }
         }
         break;
@@ -335,9 +343,21 @@ Base::ImageData::Ptr SimulatedCamera::loadNextImage()
     QString imagePath = imageSequence_[currentIndex_];
     currentIndex_ = (currentIndex_ + 1) % imageSequence_.size();
 
-    cv::Mat mat = cv::imread(imagePath.toStdString());
+    // 使用Qt读取文件（支持中文路径），然后用OpenCV解码
+    QFile file(imagePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        LOG_WARNING(QString("无法打开图片文件: %1").arg(imagePath));
+        return generateTestPattern(testPatternType_);
+    }
+
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    std::vector<uchar> buffer(fileData.begin(), fileData.end());
+    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
+
     if (mat.empty()) {
-        LOG_WARNING(QString("无法加载图片: %1").arg(imagePath));
+        LOG_WARNING(QString("无法解码图片: %1").arg(imagePath));
         return generateTestPattern(testPatternType_);
     }
 

@@ -49,6 +49,17 @@ ToolChainPanel::ToolChainPanel(QWidget* parent)
     toolList_->setSelectionMode(QAbstractItemView::SingleSelection);
     connect(toolList_, &QListWidget::currentItemChanged,
             this, &ToolChainPanel::onCurrentItemChanged);
+
+    // 双击打开参数编辑对话框
+    connect(toolList_, &QListWidget::itemDoubleClicked,
+            this, [this](QListWidgetItem* item) {
+                Q_UNUSED(item);
+                Algorithm::VisionTool* tool = getCurrentTool();
+                if (tool) {
+                    emit toolDoubleClicked(tool);
+                }
+            });
+
     mainLayout_->addWidget(toolList_);
 
     updateActions();
