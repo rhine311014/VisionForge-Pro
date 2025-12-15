@@ -6,6 +6,7 @@
 #include "algorithm/GrayTool.h"
 #include "base/Logger.h"
 #include "base/ImageMemoryPool.h"
+#include "base/PerformanceMonitor.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 
@@ -59,26 +60,31 @@ bool GrayTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         // 执行转换
         cv::Mat grayMat;
 
-        switch (convertMode_) {
-        case Average:
-            grayMat = convertAverage(inputMat);
-            break;
+        {
+            // 性能计时
+            PERF_TIMER("GrayTool::convert");
 
-        case Weighted:
-            grayMat = convertWeighted(inputMat);
-            break;
+            switch (convertMode_) {
+            case Average:
+                grayMat = convertAverage(inputMat);
+                break;
 
-        case Desaturation:
-            grayMat = convertDesaturation(inputMat);
-            break;
+            case Weighted:
+                grayMat = convertWeighted(inputMat);
+                break;
 
-        case SingleChannel:
-            grayMat = convertSingleChannel(inputMat);
-            break;
+            case Desaturation:
+                grayMat = convertDesaturation(inputMat);
+                break;
 
-        default:
-            grayMat = convertWeighted(inputMat);
-            break;
+            case SingleChannel:
+                grayMat = convertSingleChannel(inputMat);
+                break;
+
+            default:
+                grayMat = convertWeighted(inputMat);
+                break;
+            }
         }
 
         // 创建输出图像
@@ -189,6 +195,10 @@ cv::Mat GrayTool::convertDesaturation(const cv::Mat& input)
 {
     cv::Mat gray(input.rows, input.cols, CV_8UC1);
 
+#ifdef USE_OPENMP
+    // OpenMP并行化加速
+    #pragma omp parallel for
+#endif
     for (int y = 0; y < input.rows; ++y) {
         for (int x = 0; x < input.cols; ++x) {
             cv::Vec3b pixel = input.at<cv::Vec3b>(y, x);

@@ -40,6 +40,11 @@ target_link_libraries(VisionForgeAlgorithm PUBLIC
     ${OpenCV_LIBS}
 )
 
+# OpenMP支持（可选）
+if(USE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(VisionForgeAlgorithm PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 # 设置属性
 set_target_properties(VisionForgeAlgorithm PROPERTIES
     CXX_STANDARD 17

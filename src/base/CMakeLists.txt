@@ -9,6 +9,8 @@ set(BASE_SOURCES
     ImageMemoryPool.cpp
     Logger.cpp
     ConfigManager.cpp
+    PerformanceMonitor.cpp
+    GPUAccelerator.cpp
 )
 
 # 收集头文件
@@ -18,6 +20,8 @@ set(BASE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/base/ImageMemoryPool.h
     ${CMAKE_SOURCE_DIR}/include/base/Logger.h
     ${CMAKE_SOURCE_DIR}/include/base/ConfigManager.h
+    ${CMAKE_SOURCE_DIR}/include/base/PerformanceMonitor.h
+    ${CMAKE_SOURCE_DIR}/include/base/GPUAccelerator.h
 )
 
 # 创建基础设施层静态库

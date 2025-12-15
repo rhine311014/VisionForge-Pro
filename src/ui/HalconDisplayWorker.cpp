@@ -123,37 +123,54 @@ void HalconDisplayWorker::run()
 void HalconDisplayWorker::performDisplay()
 {
 #ifdef _WIN32
-    QMutexLocker locker(&mutex_);
+    // 在锁外准备数据，减少锁持有时间
+    HTuple windowHandle;
+    Base::ImageData::Ptr imageCopy;
 
-    if (!windowHandleSet_ || windowHandle_.Length() == 0) {
-        emit displayError("窗口句柄未设置");
-        return;
-    }
+    // 快速获取数据副本
+    {
+        QMutexLocker locker(&mutex_);
 
-    if (!pendingImage_ || pendingImage_->isEmpty()) {
-        return;
+        if (!windowHandleSet_ || windowHandle_.Length() == 0) {
+            emit displayError("窗口句柄未设置");
+            return;
+        }
+
+        if (!pendingImage_ || pendingImage_->isEmpty()) {
+            return;
+        }
+
+        windowHandle = windowHandle_;
+        imageCopy = pendingImage_;  // 共享指针拷贝（轻量）
     }
+    // 锁已释放，后续操作不持有锁
 
     try {
-        // 转换图像格式
-        currentHImage_ = imageDataToHImage(pendingImage_);
+        // 转换图像格式（耗时操作，在锁外执行）
+        HImage hImg = imageDataToHImage(imageCopy);
 
-        if (!currentHImage_.IsInitialized() || currentHImage_.CountObj() == 0) {
+        if (!hImg.IsInitialized() || hImg.CountObj() == 0) {
             emit displayError("图像转换失败");
             return;
         }
 
-        // 显示图像
-        ClearWindow(windowHandle_);
-        DispObj(currentHImage_, windowHandle_);
+        // 显示图像（Halcon操作，在锁外执行）
+        ClearWindow(windowHandle);
+        DispObj(hImg, windowHandle);
+
+        // 保存当前图像
+        {
+            QMutexLocker locker(&mutex_);
+            currentHImage_ = hImg;
+        }
 
         emit imageDisplayed();
 
         LOG_DEBUG(QString("HalconDisplayWorker: 图像已显示 (%1x%2)")
-            .arg(pendingImage_->width())
-            .arg(pendingImage_->height()));
+            .arg(imageCopy->width())
+            .arg(imageCopy->height()));
     }
-    catch (HException& e) {
+    catch (const HException& e) {
         QString errorMsg = QString("Halcon显示异常: %1").arg(e.ErrorMessage().Text());
         LOG_ERROR(errorMsg);
         emit displayError(errorMsg);
@@ -164,17 +181,25 @@ void HalconDisplayWorker::performDisplay()
 void HalconDisplayWorker::performClear()
 {
 #ifdef _WIN32
-    QMutexLocker locker(&mutex_);
+    HTuple windowHandle;
 
-    if (!windowHandleSet_ || windowHandle_.Length() == 0) {
-        return;
+    // 快速获取窗口句柄副本
+    {
+        QMutexLocker locker(&mutex_);
+
+        if (!windowHandleSet_ || windowHandle_.Length() == 0) {
+            return;
+        }
+
+        windowHandle = windowHandle_;
     }
+    // 锁已释放
 
     try {
-        ClearWindow(windowHandle_);
+        ClearWindow(windowHandle);
         LOG_DEBUG("HalconDisplayWorker: 窗口已清空");
     }
-    catch (HException& e) {
+    catch (const HException& e) {
         LOG_ERROR(QString("清空窗口失败: %1").arg(e.ErrorMessage().Text()));
     }
 #endif

@@ -109,6 +109,7 @@ private:
     void createToolBars();
     void createDockWindows();
     void createStatusBar();
+    void addDockWidgetsToViewMenu();
     void connectSignals();
 
     void updateActions();

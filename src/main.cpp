@@ -9,6 +9,11 @@
 #include <QApplication>
 #include <QMessageBox>
 
+// Windows平台UTF-8控制台支持
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 // 基础设施层
 #include "base/Logger.h"
 #include "base/ConfigManager.h"
@@ -21,10 +26,28 @@ using namespace VisionForge::Base;
 using namespace VisionForge::UI;
 
 /**
+ * @brief 设置Windows控制台为UTF-8编码
+ */
+void setupConsoleEncoding()
+{
+#ifdef _WIN32
+    // 设置控制台代码页为UTF-8 (65001)
+    SetConsoleOutputCP(65001);
+    SetConsoleCP(65001);
+
+    // 注意：不使用_setmode(_O_U8TEXT)，因为Logger使用std::cout输出char*字符串
+    // 只设置控制台代码页，QString::toStdString()会自动转换为UTF-8
+#endif
+}
+
+/**
  * @brief 主函数
  */
 int main(int argc, char *argv[])
 {
+    // 首先设置控制台UTF-8编码（必须在任何输出之前）
+    setupConsoleEncoding();
+
     // 设置应用程序信息
     QApplication::setApplicationName("VisionForge Pro");
     QApplication::setApplicationVersion(VISIONFORGE_VERSION);

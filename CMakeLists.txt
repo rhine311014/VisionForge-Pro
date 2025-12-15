@@ -186,6 +186,42 @@ if(USE_TENSORRT)
     endif()
 endif()
 
+# 查找OpenMP（性能优化）
+option(USE_OPENMP "使用OpenMP并行化" ON)
+if(USE_OPENMP)
+    find_package(OpenMP QUIET)
+    if(OpenMP_CXX_FOUND)
+        message(STATUS "OpenMP: 已找到")
+        message(STATUS "OpenMP版本: ${OpenMP_CXX_VERSION}")
+        # 定义宏，表示启用了OpenMP
+        add_definitions(-DUSE_OPENMP)
+    else()
+        message(WARNING "OpenMP未找到，部分性能优化功能将不可用")
+        set(USE_OPENMP OFF)
+    endif()
+endif()
+
+# 查找CUDA（GPU加速）
+option(USE_CUDA "使用CUDA GPU加速" ON)
+if(USE_CUDA)
+    find_package(CUDA QUIET)
+    if(CUDA_FOUND)
+        # 检查OpenCV是否支持CUDA
+        if(OpenCV_CUDA_VERSION)
+            message(STATUS "CUDA GPU加速: 已启用")
+            message(STATUS "CUDA版本: ${CUDA_VERSION}")
+            message(STATUS "OpenCV CUDA版本: ${OpenCV_CUDA_VERSION}")
+            add_definitions(-DUSE_CUDA)
+        else()
+            message(WARNING "OpenCV未编译CUDA支持，GPU加速将不可用")
+            set(USE_CUDA OFF)
+        endif()
+    else()
+        message(WARNING "CUDA未找到，GPU加速将不可用")
+        set(USE_CUDA OFF)
+    endif()
+endif()
+
 # ============================================================
 # 包含目录
 # ============================================================
@@ -286,6 +322,8 @@ message(STATUS "配置选项:")
 message(STATUS "  USE_HALCON: ${USE_HALCON}")
 message(STATUS "  USE_ONNX_RUNTIME: ${USE_ONNX_RUNTIME}")
 message(STATUS "  USE_TENSORRT: ${USE_TENSORRT}")
+message(STATUS "  USE_OPENMP: ${USE_OPENMP}")
+message(STATUS "  USE_CUDA: ${USE_CUDA}")
 message(STATUS "  BUILD_TESTS: ${BUILD_TESTS}")
 message(STATUS "  BUILD_EXAMPLES: ${BUILD_EXAMPLES}")
 message(STATUS "===========================================")

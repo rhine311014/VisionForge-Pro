@@ -15,8 +15,8 @@ add_subdirectory(hal)
 # 算法层
 add_subdirectory(algorithm)
 
-# 核心业务层（待实现）
-# add_subdirectory(core)
+# 核心业务层
+add_subdirectory(core)
 
 # UI层
 add_subdirectory(ui)
@@ -52,6 +52,7 @@ target_link_libraries(VisionForge PRIVATE
     VisionForgeBase
     VisionForgeHAL
     VisionForgeAlgorithm
+    VisionForgeCore
     VisionForgeUI
 
     # Qt库

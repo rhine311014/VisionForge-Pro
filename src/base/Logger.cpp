@@ -98,6 +98,7 @@ bool Logger::setLogFile(const QString& filePath)
     }
 
     logStream_ = new QTextStream(logFile_);
+    logStream_->setEncoding(QStringConverter::Utf8);  // 显式设置UTF-8编码
     fileOutput_ = true;
 
     return true;

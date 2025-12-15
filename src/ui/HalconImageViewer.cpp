@@ -4,6 +4,7 @@
  */
 
 #include "ui/HalconImageViewer.h"
+#include "ui/HalconUtils.h"
 #include "base/Logger.h"
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -573,8 +574,10 @@ void HalconImageViewer::initHalconWindow()
         // 创建Halcon窗口
         OpenWindow(0, 0, width(), height(), (Hlong)winId, "visible", "", &windowHandle_);
 
-        // 设置窗口属性
-        SetWindowAttr("background_color", "black");
+        // 使用工具类初始化窗口配置（UTF-8、颜色模式、字体、线宽等）
+        HalconUtils::InitializeWindow(windowHandle_);
+
+        // 设置显示区域
         SetPart(windowHandle_, 0, 0, -1, -1);
 
         halconWindowInitialized_ = true;
@@ -584,7 +587,7 @@ void HalconImageViewer::initHalconWindow()
             displayWorker_->setWindowHandle(windowHandle_);
         }
 
-        LOG_INFO("Halcon窗口初始化成功");
+        LOG_INFO("Halcon窗口初始化成功（含UTF-8支持、字体配置）");
 
         // 如果已经有图像，显示它
         if (currentImage_) {

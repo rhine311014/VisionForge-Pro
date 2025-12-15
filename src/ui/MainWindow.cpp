@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget* parent)
     , isContinuousGrabbing_(false)
 {
     setWindowTitle("VisionForge Pro - 机器视觉检测平台");
-    resize(1280, 900);
+    resize(1600, 1000);  // 增大窗口尺寸，提供更多显示空间
 
     // 创建中央图像查看器
 #ifdef USE_HALCON
@@ -56,6 +56,9 @@ MainWindow::MainWindow(QWidget* parent)
     createMenus();
     createToolBars();
     createStatusBar();
+
+    // 在视图菜单中添加停靠窗口切换选项（必须在createDockWindows和createMenus之后）
+    addDockWidgetsToViewMenu();
 
     // 连接信号
     connectSignals();
@@ -512,6 +515,8 @@ void MainWindow::createDockWindows()
     // 工具链面板（左上）
     toolChainDock_ = new QDockWidget("工具链", this);
     toolChainDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    toolChainDock_->setMinimumWidth(200);
+    toolChainDock_->setMaximumWidth(350);
 
     toolChainPanel_ = new ToolChainPanel(this);
     toolChainDock_->setWidget(toolChainPanel_);
@@ -521,6 +526,8 @@ void MainWindow::createDockWindows()
     // 工具参数面板（右上）
     toolParameterDock_ = new QDockWidget("工具参数", this);
     toolParameterDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    toolParameterDock_->setMinimumWidth(200);
+    toolParameterDock_->setMaximumWidth(350);
 
     toolParameterPanel_ = new ToolParameterPanel(this);
     toolParameterDock_->setWidget(toolParameterPanel_);
@@ -530,6 +537,8 @@ void MainWindow::createDockWindows()
     // 结果数据面板（右下）
     resultTableDock_ = new QDockWidget("结果数据", this);
     resultTableDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
+    resultTableDock_->setMinimumWidth(200);
+    resultTableDock_->setMaximumWidth(350);
 
     resultTablePanel_ = new ResultTablePanel(this);
     resultTableDock_->setWidget(resultTablePanel_);
@@ -537,15 +546,24 @@ void MainWindow::createDockWindows()
     addDockWidget(Qt::RightDockWidgetArea, resultTableDock_);
     splitDockWidget(toolParameterDock_, resultTableDock_, Qt::Vertical);
 
-    // 历史记录面板（左下）
+    // 历史记录面板（左下）- 默认隐藏以节省空间
     historyDock_ = new QDockWidget("历史记录", this);
     historyDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
+    historyDock_->setMinimumWidth(200);
+    historyDock_->setMaximumWidth(350);
 
     historyPanel_ = new HistoryPanel(this);
     historyDock_->setWidget(historyPanel_);
 
     addDockWidget(Qt::LeftDockWidgetArea, historyDock_);
     splitDockWidget(toolChainDock_, historyDock_, Qt::Vertical);
+
+    // 默认隐藏历史记录面板，让图像窗口更大
+    historyDock_->hide();
+
+    // 设置停靠窗口的初始大小比例（让中央图像窗口占更多空间）
+    resizeDocks({toolChainDock_}, {250}, Qt::Horizontal);
+    resizeDocks({toolParameterDock_}, {250}, Qt::Horizontal);
 }
 
 void MainWindow::createStatusBar()
@@ -561,6 +579,18 @@ void MainWindow::createStatusBar()
 
     positionLabel_ = new QLabel("位置: --", this);
     statusBar()->addPermanentWidget(positionLabel_);
+}
+
+void MainWindow::addDockWidgetsToViewMenu()
+{
+    // 在视图菜单中添加分隔符和面板显示选项
+    viewMenu_->addSeparator();
+
+    // 添加停靠窗口的显示/隐藏切换选项
+    viewMenu_->addAction(toolChainDock_->toggleViewAction());
+    viewMenu_->addAction(toolParameterDock_->toggleViewAction());
+    viewMenu_->addAction(resultTableDock_->toggleViewAction());
+    viewMenu_->addAction(historyDock_->toggleViewAction());
 }
 
 void MainWindow::connectSignals()

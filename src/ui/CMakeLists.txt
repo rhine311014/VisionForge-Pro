@@ -15,7 +15,11 @@ set(UI_SOURCES
 
 # 如果启用Halcon，添加HalconImageViewer
 if(USE_HALCON)
-    list(APPEND UI_SOURCES HalconImageViewer.cpp HalconDisplayWorker.cpp)
+    list(APPEND UI_SOURCES
+        HalconImageViewer.cpp
+        HalconDisplayWorker.cpp
+        HalconUtils.cpp
+    )
 endif()
 
 # 收集头文件
@@ -35,6 +39,7 @@ if(USE_HALCON)
     list(APPEND UI_HEADERS
         ${CMAKE_SOURCE_DIR}/include/ui/HalconImageViewer.h
         ${CMAKE_SOURCE_DIR}/include/ui/HalconDisplayWorker.h
+        ${CMAKE_SOURCE_DIR}/include/ui/HalconUtils.h
     )
 endif()
 
