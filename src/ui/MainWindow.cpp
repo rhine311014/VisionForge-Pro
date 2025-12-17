@@ -24,6 +24,8 @@
 #include "ui/ShapeMatchToolDialog.h"
 #endif
 
+#include "ui/PLCConfigDialog.h"
+
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
 #ifdef USE_HALCON
 #define IMAGEVIEWER_CLASS HalconImageViewer
@@ -830,6 +832,14 @@ void MainWindow::createMenus()
     connect(continuousGrabAction_, &QAction::triggered, this, &MainWindow::onContinuousGrab);
     cameraMenu_->addAction(continuousGrabAction_);
 
+    // 通信菜单
+    commMenu_ = menuBar()->addMenu("通信(&M)");
+
+    plcConfigAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "PLC配置(&P)...", this);
+    plcConfigAction_->setStatusTip("配置PLC通信连接");
+    connect(plcConfigAction_, &QAction::triggered, this, &MainWindow::onPLCConfig);
+    commMenu_->addAction(plcConfigAction_);
+
     // 帮助菜单
     helpMenu_ = menuBar()->addMenu("帮助(&H)");
 
@@ -1241,6 +1251,14 @@ void MainWindow::onHistoryRecordSelected(const HistoryRecord& record)
         statusLabel_->setText(QString("已加载历史记录: %1").arg(record.description));
         updateStatusBar();
     }
+}
+
+// ========== PLC通信槽函数 ==========
+
+void MainWindow::onPLCConfig()
+{
+    PLCConfigDialog dialog(this);
+    dialog.exec();
 }
 
 } // namespace UI

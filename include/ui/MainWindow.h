@@ -112,6 +112,9 @@ private slots:
     // 连续采集
     void onContinuousTimer();
 
+    // PLC配置
+    void onPLCConfig();
+
 private:
     void createMenus();
     void createToolBars();
@@ -152,6 +155,7 @@ private:
     QMenu* toolMenu_;
     QMenu* roiMenu_;
     QMenu* cameraMenu_;
+    QMenu* commMenu_;    // 通信菜单
     QMenu* helpMenu_;
 
     // 工具栏
@@ -195,6 +199,9 @@ private:
     QAction* drawLineAction_;
     QAction* selectROIAction_;
     QAction* clearROIsAction_;
+
+    // PLC通信动作
+    QAction* plcConfigAction_;
 
     // 状态栏
     QLabel* statusLabel_;

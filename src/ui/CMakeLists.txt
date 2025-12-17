@@ -11,6 +11,7 @@ set(UI_SOURCES
     HistoryPanel.cpp
     MainWindow.cpp
     Theme.cpp
+    PLCConfigDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -36,6 +37,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/MainWindow.h
     ${CMAKE_SOURCE_DIR}/include/ui/ROI.h
     ${CMAKE_SOURCE_DIR}/include/ui/Theme.h
+    ${CMAKE_SOURCE_DIR}/include/ui/PLCConfigDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件
@@ -67,6 +69,7 @@ target_link_libraries(VisionForgeUI PUBLIC
     VisionForgeBase
     VisionForgeHAL
     VisionForgeAlgorithm
+    VisionForgeComm
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
