@@ -12,6 +12,7 @@ set(UI_SOURCES
     MainWindow.cpp
     Theme.cpp
     PLCConfigDialog.cpp
+    CameraConfigDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -38,6 +39,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/ROI.h
     ${CMAKE_SOURCE_DIR}/include/ui/Theme.h
     ${CMAKE_SOURCE_DIR}/include/ui/PLCConfigDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/CameraConfigDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件
@@ -82,6 +84,19 @@ if(USE_HALCON)
         halconcpp
         halcon
     )
+endif()
+
+# 如果启用海康相机，添加编译定义
+if(USE_HIKVISION_MVS)
+    target_compile_definitions(VisionForgeUI PRIVATE USE_HIKVISION_MVS)
+    target_include_directories(VisionForgeUI PRIVATE
+        ${HIKVISION_MVS_ROOT}/Development/Includes
+    )
+endif()
+
+# 如果启用Basler相机，添加编译定义
+if(USE_BASLER_PYLON)
+    target_compile_definitions(VisionForgeUI PRIVATE USE_BASLER_PYLON)
 endif()
 
 # 设置属性

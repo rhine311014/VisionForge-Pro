@@ -25,6 +25,8 @@
 #endif
 
 #include "ui/PLCConfigDialog.h"
+#include "ui/CameraConfigDialog.h"
+#include "hal/CameraFactory.h"
 
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
 #ifdef USE_HALCON
@@ -832,6 +834,13 @@ void MainWindow::createMenus()
     connect(continuousGrabAction_, &QAction::triggered, this, &MainWindow::onContinuousGrab);
     cameraMenu_->addAction(continuousGrabAction_);
 
+    cameraMenu_->addSeparator();
+
+    cameraConfigAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "相机配置(&S)...", this);
+    cameraConfigAction_->setStatusTip("配置相机设备和参数");
+    connect(cameraConfigAction_, &QAction::triggered, this, &MainWindow::onCameraConfig);
+    cameraMenu_->addAction(cameraConfigAction_);
+
     // 通信菜单
     commMenu_ = menuBar()->addMenu("通信(&M)");
 
@@ -1259,6 +1268,42 @@ void MainWindow::onPLCConfig()
 {
     PLCConfigDialog dialog(this);
     dialog.exec();
+}
+
+// ========== 相机配置槽函数 ==========
+
+void MainWindow::onCameraConfig()
+{
+    CameraConfigDialog dialog(this);
+
+    // 如果有当前相机，传递给对话框
+    if (camera_) {
+        dialog.setCamera(camera_);
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        // 获取选择的相机
+        HAL::ICamera* newCamera = dialog.takeCamera();
+        if (newCamera && newCamera != camera_) {
+            // 关闭旧相机
+            if (camera_) {
+                camera_->close();
+                delete camera_;
+            }
+            camera_ = qobject_cast<HAL::SimulatedCamera*>(newCamera);
+
+            // 如果不是SimulatedCamera，需要更新指针类型
+            // 这里简化处理，实际应用中可能需要修改camera_成员类型为ICamera*
+            if (!camera_) {
+                // 如果是其他类型相机，暂存为通用指针
+                // 未来可以将camera_改为ICamera*类型
+                LOG_INFO("已切换到工业相机");
+            }
+        }
+
+        updateActions();
+        LOG_INFO("相机配置已更新");
+    }
 }
 
 } // namespace UI

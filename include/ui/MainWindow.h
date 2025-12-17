@@ -20,6 +20,7 @@
 #include "ui/ResultTablePanel.h"
 #include "ui/HistoryPanel.h"
 #include "hal/SimulatedCamera.h"
+#include "hal/ICamera.h"
 #include "algorithm/VisionTool.h"
 #include <QMainWindow>
 #include <QMenuBar>
@@ -115,6 +116,9 @@ private slots:
     // PLC配置
     void onPLCConfig();
 
+    // 相机配置
+    void onCameraConfig();
+
 private:
     void createMenus();
     void createToolBars();
@@ -202,6 +206,9 @@ private:
 
     // PLC通信动作
     QAction* plcConfigAction_;
+
+    // 相机配置动作
+    QAction* cameraConfigAction_;
 
     // 状态栏
     QLabel* statusLabel_;

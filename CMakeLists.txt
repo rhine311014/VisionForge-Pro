@@ -99,6 +99,28 @@ if(USE_HALCON)
     message(STATUS "Halcon路径: ${HALCONROOT}")
 endif()
 
+# ============================================================
+# 工业相机SDK配置
+# ============================================================
+
+# 海康威视MVS SDK（可选）
+option(USE_HIKVISION_MVS "使用海康威视MVS SDK" OFF)
+if(USE_HIKVISION_MVS)
+    if(NOT DEFINED HIKVISION_MVS_ROOT)
+        set(HIKVISION_MVS_ROOT "D:/MVS" CACHE PATH "海康威视MVS SDK路径")
+    endif()
+    message(STATUS "海康MVS路径: ${HIKVISION_MVS_ROOT}")
+endif()
+
+# Basler Pylon SDK（可选）
+option(USE_BASLER_PYLON "使用Basler Pylon SDK" OFF)
+if(USE_BASLER_PYLON)
+    if(NOT DEFINED PYLON_ROOT)
+        set(PYLON_ROOT "C:/Program Files/Basler/pylon 6" CACHE PATH "Basler Pylon SDK路径")
+    endif()
+    message(STATUS "Basler Pylon路径: ${PYLON_ROOT}")
+endif()
+
 # ONNX Runtime路径（可选）
 option(USE_ONNX_RUNTIME "使用ONNX Runtime" OFF)
 if(USE_ONNX_RUNTIME)
@@ -156,6 +178,45 @@ if(USE_HALCON)
     else()
         message(WARNING "Halcon未找到: ${HALCONROOT}/include/halconcpp/HalconCpp.h")
         set(USE_HALCON OFF)
+    endif()
+endif()
+
+# 查找海康威视MVS SDK（可选）
+if(USE_HIKVISION_MVS)
+    # 海康MVS SDK实际路径结构：Development/Includes, Development/Libraries
+    set(HIKVISION_INCLUDE_DIR "${HIKVISION_MVS_ROOT}/Development/Includes")
+    set(HIKVISION_LIB_DIR_64 "${HIKVISION_MVS_ROOT}/Development/Libraries/win64")
+    set(HIKVISION_LIB_DIR_32 "${HIKVISION_MVS_ROOT}/Development/Libraries/win32")
+
+    if(EXISTS "${HIKVISION_INCLUDE_DIR}/MvCameraControl.h")
+        message(STATUS "海康威视MVS SDK: 已找到")
+        include_directories(${HIKVISION_INCLUDE_DIR})
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            link_directories(${HIKVISION_LIB_DIR_64})
+        else()
+            link_directories(${HIKVISION_LIB_DIR_32})
+        endif()
+        add_definitions(-DUSE_HIKVISION_MVS)
+    else()
+        message(WARNING "海康威视MVS SDK未找到: ${HIKVISION_INCLUDE_DIR}/MvCameraControl.h")
+        set(USE_HIKVISION_MVS OFF)
+    endif()
+endif()
+
+# 查找Basler Pylon SDK（可选）
+if(USE_BASLER_PYLON)
+    if(EXISTS "${PYLON_ROOT}/include/pylon/PylonIncludes.h")
+        message(STATUS "Basler Pylon SDK: 已找到")
+        include_directories(${PYLON_ROOT}/include)
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            link_directories(${PYLON_ROOT}/lib/x64)
+        else()
+            link_directories(${PYLON_ROOT}/lib/Win32)
+        endif()
+        add_definitions(-DUSE_BASLER_PYLON)
+    else()
+        message(WARNING "Basler Pylon SDK未找到: ${PYLON_ROOT}/include/pylon/PylonIncludes.h")
+        set(USE_BASLER_PYLON OFF)
     endif()
 endif()
 
@@ -320,6 +381,8 @@ include(CPack)
 message(STATUS "===========================================")
 message(STATUS "配置选项:")
 message(STATUS "  USE_HALCON: ${USE_HALCON}")
+message(STATUS "  USE_HIKVISION_MVS: ${USE_HIKVISION_MVS}")
+message(STATUS "  USE_BASLER_PYLON: ${USE_BASLER_PYLON}")
 message(STATUS "  USE_ONNX_RUNTIME: ${USE_ONNX_RUNTIME}")
 message(STATUS "  USE_TENSORRT: ${USE_TENSORRT}")
 message(STATUS "  USE_OPENMP: ${USE_OPENMP}")
