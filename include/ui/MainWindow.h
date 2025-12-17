@@ -58,8 +58,14 @@ public:
 private slots:
     // 文件菜单
     void onOpenImage();
+    void onOpenImageFolder();  // 打开图片文件夹
     void onSaveImage();
     void onExit();
+
+    // 图片序列导航
+    void onPreviousImage();    // 上一张图片
+    void onNextImage();        // 下一张图片
+    void onRunAllImages();     // 批量执行所有图片
 
     // 视图菜单
     void onFitToWindow();
@@ -157,8 +163,14 @@ private:
 
     // 动作
     QAction* openImageAction_;
+    QAction* openImageFolderAction_;  // 打开图片文件夹
     QAction* saveImageAction_;
     QAction* exitAction_;
+
+    // 图片序列导航动作
+    QAction* previousImageAction_;    // 上一张
+    QAction* nextImageAction_;        // 下一张
+    QAction* runAllImagesAction_;     // 批量执行所有图片
 
     QAction* fitToWindowAction_;
     QAction* actualSizeAction_;
@@ -197,6 +209,14 @@ private:
 
     // 当前图像
     Base::ImageData::Ptr currentImage_;
+
+    // 图片序列
+    QStringList imageSequence_;       // 图片路径列表
+    int currentImageIndex_;           // 当前图片索引
+
+    // 私有辅助方法
+    void loadImageAtIndex(int index);         // 加载指定索引的图片
+    void updateImageSequenceActions();        // 更新图片序列相关动作状态
 };
 
 } // namespace UI

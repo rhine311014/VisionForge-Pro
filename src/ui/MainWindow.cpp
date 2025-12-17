@@ -10,6 +10,9 @@
 #include "base/Logger.h"
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
+#include <QDir>
+#include <QApplication>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QSplitter>
@@ -44,6 +47,7 @@ MainWindow::MainWindow(QWidget* parent)
     , historyPanel_(nullptr)
     , camera_(nullptr)
     , isContinuousGrabbing_(false)
+    , currentImageIndex_(-1)
 {
     setWindowTitle("VisionForge Pro - 机器视觉检测平台");
 
@@ -149,6 +153,187 @@ void MainWindow::onOpenImage()
     updateStatusBar();
 
     LOG_INFO(QString("加载图像: %1").arg(fileName));
+}
+
+void MainWindow::onOpenImageFolder()
+{
+    QString folderPath = QFileDialog::getExistingDirectory(this,
+        "选择图片文件夹", "",
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    if (folderPath.isEmpty()) {
+        return;
+    }
+
+    // 获取文件夹中的所有图片文件
+    QDir dir(folderPath);
+    QStringList filters;
+    filters << "*.png" << "*.jpg" << "*.jpeg" << "*.bmp" << "*.tiff" << "*.tif";
+    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
+
+    if (files.isEmpty()) {
+        QMessageBox::information(this, "提示", "所选文件夹中没有找到图片文件");
+        return;
+    }
+
+    // 构建完整路径列表
+    imageSequence_.clear();
+    for (const QString& file : files) {
+        imageSequence_.append(dir.absoluteFilePath(file));
+    }
+
+    // 加载第一张图片
+    currentImageIndex_ = 0;
+    loadImageAtIndex(currentImageIndex_);
+
+    statusLabel_->setText(QString("已加载图片文件夹: %1 (%2张图片)")
+        .arg(folderPath).arg(imageSequence_.size()));
+    updateImageSequenceActions();
+
+    LOG_INFO(QString("加载图片文件夹: %1, 共%2张图片")
+        .arg(folderPath).arg(imageSequence_.size()));
+}
+
+void MainWindow::onPreviousImage()
+{
+    if (imageSequence_.isEmpty() || currentImageIndex_ <= 0) {
+        return;
+    }
+
+    currentImageIndex_--;
+    loadImageAtIndex(currentImageIndex_);
+    updateImageSequenceActions();
+}
+
+void MainWindow::onNextImage()
+{
+    if (imageSequence_.isEmpty() || currentImageIndex_ >= imageSequence_.size() - 1) {
+        return;
+    }
+
+    currentImageIndex_++;
+    loadImageAtIndex(currentImageIndex_);
+    updateImageSequenceActions();
+}
+
+void MainWindow::onRunAllImages()
+{
+    if (imageSequence_.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先加载图片文件夹");
+        return;
+    }
+
+    QList<Algorithm::VisionTool*> tools = toolChainPanel_->getTools();
+    if (tools.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先添加处理工具");
+        return;
+    }
+
+    int totalImages = imageSequence_.size();
+    int successCount = 0;
+    double totalTime = 0.0;
+
+    statusLabel_->setText(QString("正在批量处理 %1 张图片...").arg(totalImages));
+    QApplication::processEvents();
+
+    for (int i = 0; i < totalImages; ++i) {
+        // 加载图片
+        currentImageIndex_ = i;
+        loadImageAtIndex(i);
+
+        if (!currentImage_) {
+            LOG_WARNING(QString("无法加载图片: %1").arg(imageSequence_[i]));
+            continue;
+        }
+
+        // 记录开始时间
+        auto startTime = std::chrono::high_resolution_clock::now();
+
+        // 处理图片
+        processImage(currentImage_);
+
+        // 计算处理时间
+        auto endTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = endTime - startTime;
+        totalTime += duration.count();
+        successCount++;
+
+        // 更新状态
+        statusLabel_->setText(QString("批量处理中: %1/%2").arg(i + 1).arg(totalImages));
+        QApplication::processEvents();
+    }
+
+    // 显示完成信息
+    QString resultMsg = QString("批量处理完成!\n"
+                                "处理图片: %1/%2 张\n"
+                                "总耗时: %3 ms\n"
+                                "平均耗时: %4 ms/张")
+        .arg(successCount)
+        .arg(totalImages)
+        .arg(totalTime, 0, 'f', 2)
+        .arg(successCount > 0 ? totalTime / successCount : 0, 0, 'f', 2);
+
+    QMessageBox::information(this, "批量处理完成", resultMsg);
+    statusLabel_->setText(QString("批量处理完成: %1张图片, 总耗时%.2f ms")
+        .arg(successCount).arg(totalTime));
+
+    updateImageSequenceActions();
+
+    LOG_INFO(QString("批量处理完成: %1/%2张图片, 总耗时%3ms")
+        .arg(successCount).arg(totalImages).arg(totalTime, 0, 'f', 2));
+}
+
+void MainWindow::loadImageAtIndex(int index)
+{
+    if (index < 0 || index >= imageSequence_.size()) {
+        return;
+    }
+
+    QString filePath = imageSequence_[index];
+
+    // 使用Qt读取文件（支持中文路径）
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "错误",
+            QString("无法打开图像文件: %1").arg(filePath));
+        return;
+    }
+
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    // 使用OpenCV解码图像数据
+    std::vector<uchar> buffer(fileData.begin(), fileData.end());
+    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
+
+    if (mat.empty()) {
+        QMessageBox::warning(this, "错误",
+            QString("无法解码图像文件: %1").arg(filePath));
+        return;
+    }
+
+    currentImage_ = std::make_shared<Base::ImageData>(mat);
+    imageViewer_->setImage(currentImage_);
+
+    // 更新状态栏显示当前图片信息
+    QFileInfo fileInfo(filePath);
+    statusLabel_->setText(QString("图片 %1/%2: %3")
+        .arg(index + 1)
+        .arg(imageSequence_.size())
+        .arg(fileInfo.fileName()));
+    updateActions();
+    updateStatusBar();
+}
+
+void MainWindow::updateImageSequenceActions()
+{
+    bool hasSequence = !imageSequence_.isEmpty();
+    bool canGoPrev = hasSequence && currentImageIndex_ > 0;
+    bool canGoNext = hasSequence && currentImageIndex_ < imageSequence_.size() - 1;
+
+    previousImageAction_->setEnabled(canGoPrev);
+    nextImageAction_->setEnabled(canGoNext);
+    runAllImagesAction_->setEnabled(hasSequence);
 }
 
 void MainWindow::onSaveImage()
@@ -508,6 +693,38 @@ void MainWindow::createMenus()
     connect(openImageAction_, &QAction::triggered, this, &MainWindow::onOpenImage);
     fileMenu_->addAction(openImageAction_);
 
+    openImageFolderAction_ = new QAction(Theme::getIcon(Icons::FILE_OPEN), "打开图片文件夹(&D)...", this);
+    openImageFolderAction_->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_O);
+    openImageFolderAction_->setStatusTip("打开图片文件夹，加载多张图片");
+    connect(openImageFolderAction_, &QAction::triggered, this, &MainWindow::onOpenImageFolder);
+    fileMenu_->addAction(openImageFolderAction_);
+
+    fileMenu_->addSeparator();
+
+    // 图片序列导航菜单
+    previousImageAction_ = new QAction(Theme::getIcon(Icons::TOOL_STOP), "上一张图片(&P)", this);
+    previousImageAction_->setShortcut(Qt::Key_Left);
+    previousImageAction_->setStatusTip("显示上一张图片");
+    previousImageAction_->setEnabled(false);
+    connect(previousImageAction_, &QAction::triggered, this, &MainWindow::onPreviousImage);
+    fileMenu_->addAction(previousImageAction_);
+
+    nextImageAction_ = new QAction(Theme::getIcon(Icons::TOOL_RUN), "下一张图片(&N)", this);
+    nextImageAction_->setShortcut(Qt::Key_Right);
+    nextImageAction_->setStatusTip("显示下一张图片");
+    nextImageAction_->setEnabled(false);
+    connect(nextImageAction_, &QAction::triggered, this, &MainWindow::onNextImage);
+    fileMenu_->addAction(nextImageAction_);
+
+    runAllImagesAction_ = new QAction(Theme::getIcon(Icons::TOOL_RUN), "批量执行所有图片(&B)", this);
+    runAllImagesAction_->setShortcut(Qt::Key_F8);
+    runAllImagesAction_->setStatusTip("依次执行所有图片的工具处理（F8）");
+    runAllImagesAction_->setEnabled(false);
+    connect(runAllImagesAction_, &QAction::triggered, this, &MainWindow::onRunAllImages);
+    fileMenu_->addAction(runAllImagesAction_);
+
+    fileMenu_->addSeparator();
+
     saveImageAction_ = new QAction(Theme::getIcon(Icons::FILE_SAVE), "保存图像(&S)...", this);
     saveImageAction_->setShortcut(QKeySequence::Save);
     saveImageAction_->setStatusTip("保存当前图像");
@@ -636,7 +853,12 @@ void MainWindow::createToolBars()
     // 文件工具栏
     fileToolBar_ = addToolBar("文件");
     fileToolBar_->addAction(openImageAction_);
+    fileToolBar_->addAction(openImageFolderAction_);
     fileToolBar_->addAction(saveImageAction_);
+    fileToolBar_->addSeparator();
+    fileToolBar_->addAction(previousImageAction_);
+    fileToolBar_->addAction(nextImageAction_);
+    fileToolBar_->addAction(runAllImagesAction_);
 
     // 视图工具栏
     viewToolBar_ = addToolBar("视图");
