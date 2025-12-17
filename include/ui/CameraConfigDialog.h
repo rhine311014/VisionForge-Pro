@@ -9,6 +9,7 @@
 
 #include <QDialog>
 #include <QTimer>
+#include <opencv2/core.hpp>
 #include "hal/ICamera.h"
 #include "hal/CameraFactory.h"
 
@@ -73,12 +74,14 @@ private:
     void setupUI();
     void createDeviceListGroup();
     void createParameterGroup();
+    void createTransformGroup();
     void createPreviewGroup();
     void createButtonGroup();
     void updateDeviceList();
     void updateParameterRanges();
     void updatePreviewImage(Base::ImageData::Ptr image);
     void setControlsEnabled(bool enabled);
+    cv::Mat applyTransform(const cv::Mat& src);
 
 private:
     // 设备列表
@@ -98,6 +101,12 @@ private:
     QSpinBox* heightSpin_;
     QSpinBox* offsetXSpin_;
     QSpinBox* offsetYSpin_;
+
+    // 图像变换
+    QGroupBox* transformGroup_;
+    QComboBox* rotationCombo_;
+    QCheckBox* flipHorizontalCheck_;
+    QCheckBox* flipVerticalCheck_;
 
     // 预览
     QGroupBox* previewGroup_;
@@ -123,6 +132,11 @@ private:
 
     // 设备信息缓存
     QList<HAL::GenericDeviceInfo> deviceList_;
+
+    // 图像变换设置
+    int rotationAngle_;         // 旋转角度: 0, 90, 180, 270
+    bool flipHorizontal_;       // 水平镜像
+    bool flipVertical_;         // 垂直镜像
 };
 
 } // namespace VisionForge

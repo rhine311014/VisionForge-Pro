@@ -26,7 +26,9 @@
 
 #include "ui/PLCConfigDialog.h"
 #include "ui/CameraConfigDialog.h"
+#include "ui/RecipeEditorDialog.h"
 #include "hal/CameraFactory.h"
+#include "core/RecipeManager.h"
 
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
 #ifdef USE_HALCON
@@ -45,10 +47,12 @@ MainWindow::MainWindow(QWidget* parent)
     , toolParameterDock_(nullptr)
     , resultTableDock_(nullptr)
     , historyDock_(nullptr)
+    , recipeDock_(nullptr)
     , toolChainPanel_(nullptr)
     , toolParameterPanel_(nullptr)
     , resultTablePanel_(nullptr)
     , historyPanel_(nullptr)
+    , recipeManagerWidget_(nullptr)
     , camera_(nullptr)
     , isContinuousGrabbing_(false)
     , currentImageIndex_(-1)
@@ -949,11 +953,23 @@ void MainWindow::createDockWindows()
     addDockWidget(Qt::LeftDockWidgetArea, historyDock_);
     splitDockWidget(toolChainDock_, historyDock_, Qt::Vertical);
 
+    // 方案管理面板（右侧）
+    recipeDock_ = new QDockWidget("方案管理", this);
+    recipeDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    recipeDock_->setMinimumWidth(250);
+    recipeDock_->setMaximumWidth(400);
+
+    recipeManagerWidget_ = new RecipeManagerWidget(this);
+    recipeDock_->setWidget(recipeManagerWidget_);
+
+    addDockWidget(Qt::RightDockWidgetArea, recipeDock_);
+
     // 默认隐藏所有侧边面板，最大化Halcon窗口显示空间
     toolChainDock_->hide();
     toolParameterDock_->hide();
     resultTableDock_->hide();
     historyDock_->hide();
+    recipeDock_->hide();
 
     // 设置停靠窗口的初始大小（当显示时使用）
     resizeDocks({toolChainDock_}, {250}, Qt::Horizontal);
@@ -986,6 +1002,7 @@ void MainWindow::addDockWidgetsToViewMenu()
     viewMenu_->addAction(toolParameterDock_->toggleViewAction());
     viewMenu_->addAction(resultTableDock_->toggleViewAction());
     viewMenu_->addAction(historyDock_->toggleViewAction());
+    viewMenu_->addAction(recipeDock_->toggleViewAction());
 }
 
 void MainWindow::connectSignals()
@@ -1022,6 +1039,12 @@ void MainWindow::connectSignals()
     // 历史记录信号
     connect(historyPanel_, &HistoryPanel::recordSelected,
             this, &MainWindow::onHistoryRecordSelected);
+
+    // 方案管理信号
+    connect(recipeManagerWidget_, &RecipeManagerWidget::recipeActivated,
+            this, &MainWindow::onRecipeActivated);
+    connect(recipeManagerWidget_, &RecipeManagerWidget::editRecipeRequested,
+            this, &MainWindow::onEditRecipeRequested);
 }
 
 void MainWindow::updateActions()
@@ -1303,6 +1326,77 @@ void MainWindow::onCameraConfig()
 
         updateActions();
         LOG_INFO("相机配置已更新");
+    }
+}
+
+// ========== 方案管理 ==========
+
+void MainWindow::onRecipeActivated(Core::Recipe* recipe)
+{
+    if (!recipe) {
+        return;
+    }
+
+    LOG_INFO(QString("应用方案: %1").arg(recipe->name()));
+
+    // 将方案的工具链配置应用到当前工具链
+    // 这里简化处理：清除现有工具链并从方案中加载
+    // 实际应用中可能需要更复杂的合并逻辑
+
+    // 显示确认对话框
+    int ret = QMessageBox::question(this, "应用方案",
+        QString("确定要将方案 \"%1\" 应用到当前工具链吗？\n这将替换现有的工具链配置。").arg(recipe->name()),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+    if (ret != QMessageBox::Yes) {
+        return;
+    }
+
+    // 清除现有工具
+    QList<Algorithm::VisionTool*> tools = toolChainPanel_->getTools();
+    for (Algorithm::VisionTool* tool : tools) {
+        toolChainPanel_->removeTool(tool);
+        delete tool;
+    }
+
+    // 从方案加载工具链
+    if (recipe->toolChain()) {
+        Core::ToolChain* srcChain = recipe->toolChain();
+        for (int i = 0; i < srcChain->toolCount(); ++i) {
+            const Core::ToolChainNode* node = srcChain->getNode(i);
+            if (node && node->tool) {
+                // 创建工具的副本
+                Algorithm::VisionTool* newTool = Algorithm::ToolFactory::instance().createTool(node->tool->toolType());
+                if (newTool) {
+                    // 复制参数
+                    QJsonObject params = node->tool->serializeParams();
+                    newTool->deserializeParams(params);
+                    newTool->setEnabled(node->enabled);
+                    if (!node->name.isEmpty()) {
+                        newTool->setDisplayName(node->name);
+                    }
+
+                    toolChainPanel_->addTool(newTool);
+                }
+            }
+        }
+    }
+
+    statusLabel_->setText(QString("已应用方案: %1").arg(recipe->name()));
+}
+
+void MainWindow::onEditRecipeRequested(Core::Recipe* recipe)
+{
+    if (!recipe) {
+        return;
+    }
+
+    RecipeEditorDialog dialog(recipe, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        // 保存方案
+        Core::RecipeManager::instance().saveRecipe(recipe);
+        recipeManagerWidget_->refreshRecipeList();
+        LOG_INFO(QString("方案已编辑: %1").arg(recipe->name()));
     }
 }
 

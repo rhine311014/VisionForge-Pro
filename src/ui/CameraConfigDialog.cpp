@@ -28,6 +28,7 @@
 #include <QCheckBox>
 #include <QMessageBox>
 #include <QDateTime>
+#include <opencv2/imgproc.hpp>
 
 namespace VisionForge {
 
@@ -38,6 +39,9 @@ CameraConfigDialog::CameraConfigDialog(QWidget* parent)
     , previewTimer_(new QTimer(this))
     , frameCount_(0)
     , lastFpsTime_(0)
+    , rotationAngle_(0)
+    , flipHorizontal_(false)
+    , flipVertical_(false)
 {
     setWindowTitle("相机配置");
     setMinimumSize(900, 700);
@@ -73,9 +77,11 @@ void CameraConfigDialog::setupUI()
 
     createDeviceListGroup();
     createParameterGroup();
+    createTransformGroup();
 
     leftLayout->addWidget(deviceGroup_);
     leftLayout->addWidget(paramGroup_);
+    leftLayout->addWidget(transformGroup_);
     leftLayout->addStretch();
 
     // 右侧：预览和按钮
@@ -247,6 +253,57 @@ void CameraConfigDialog::createParameterGroup()
     offsetYSpin_->setRange(0, 8192);
     offsetYSpin_->setValue(0);
     layout->addWidget(offsetYSpin_, row + 1, 1);
+}
+
+void CameraConfigDialog::createTransformGroup()
+{
+    transformGroup_ = new QGroupBox("图像变换");
+    auto* layout = new QGridLayout(transformGroup_);
+
+    int row = 0;
+
+    // 旋转
+    layout->addWidget(new QLabel("旋转:"), row, 0);
+    rotationCombo_ = new QComboBox();
+    rotationCombo_->addItem("0°（不旋转）", 0);
+    rotationCombo_->addItem("90°（顺时针）", 90);
+    rotationCombo_->addItem("180°", 180);
+    rotationCombo_->addItem("270°（逆时针）", 270);
+    layout->addWidget(rotationCombo_, row, 1, 1, 2);
+
+    connect(rotationCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+        rotationAngle_ = rotationCombo_->itemData(index).toInt();
+        LOG_DEBUG(QString("设置旋转角度: %1°").arg(rotationAngle_));
+    });
+
+    row++;
+
+    // 水平镜像
+    flipHorizontalCheck_ = new QCheckBox("水平镜像（左右翻转）");
+    layout->addWidget(flipHorizontalCheck_, row, 0, 1, 3);
+
+    connect(flipHorizontalCheck_, &QCheckBox::toggled, [this](bool checked) {
+        flipHorizontal_ = checked;
+        LOG_DEBUG(QString("水平镜像: %1").arg(checked ? "开" : "关"));
+    });
+
+    row++;
+
+    // 垂直镜像
+    flipVerticalCheck_ = new QCheckBox("垂直镜像（上下翻转）");
+    layout->addWidget(flipVerticalCheck_, row, 0, 1, 3);
+
+    connect(flipVerticalCheck_, &QCheckBox::toggled, [this](bool checked) {
+        flipVertical_ = checked;
+        LOG_DEBUG(QString("垂直镜像: %1").arg(checked ? "开" : "关"));
+    });
+
+    row++;
+
+    // 提示
+    auto* hintLabel = new QLabel("提示: 变换顺序为 旋转 → 镜像");
+    hintLabel->setStyleSheet("color: gray; font-size: 10px;");
+    layout->addWidget(hintLabel, row, 0, 1, 3);
 }
 
 void CameraConfigDialog::createPreviewGroup()
@@ -559,7 +616,25 @@ void CameraConfigDialog::updatePreviewImage(Base::ImageData::Ptr image)
 {
     if (!image) return;
 
-    QImage qimg = image->toQImage();
+    // 获取原始Mat
+    cv::Mat mat = image->mat();
+    if (mat.empty()) return;
+
+    // 应用变换
+    cv::Mat transformed = applyTransform(mat);
+
+    // 转换为QImage
+    QImage qimg;
+    if (transformed.channels() == 3) {
+        cv::Mat rgb;
+        cv::cvtColor(transformed, rgb, cv::COLOR_BGR2RGB);
+        qimg = QImage(rgb.data, rgb.cols, rgb.rows, rgb.step, QImage::Format_RGB888).copy();
+    } else if (transformed.channels() == 1) {
+        qimg = QImage(transformed.data, transformed.cols, transformed.rows, transformed.step, QImage::Format_Grayscale8).copy();
+    } else {
+        qimg = image->toQImage();
+    }
+
     if (qimg.isNull()) return;
 
     // 缩放适应预览区域
@@ -568,6 +643,54 @@ void CameraConfigDialog::updatePreviewImage(Base::ImageData::Ptr image)
         labelSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
     previewLabel_->setPixmap(pixmap);
+}
+
+cv::Mat CameraConfigDialog::applyTransform(const cv::Mat& src)
+{
+    if (src.empty()) return src;
+
+    cv::Mat result = src.clone();
+
+    // 1. 旋转
+    if (rotationAngle_ != 0) {
+        int rotateCode = -1;
+        switch (rotationAngle_) {
+            case 90:
+                rotateCode = cv::ROTATE_90_CLOCKWISE;
+                break;
+            case 180:
+                rotateCode = cv::ROTATE_180;
+                break;
+            case 270:
+                rotateCode = cv::ROTATE_90_COUNTERCLOCKWISE;
+                break;
+        }
+        if (rotateCode >= 0) {
+            cv::Mat rotated;
+            cv::rotate(result, rotated, rotateCode);
+            result = rotated;
+        }
+    }
+
+    // 2. 镜像
+    if (flipHorizontal_ && flipVertical_) {
+        // 同时水平和垂直翻转 = 旋转180°
+        cv::Mat flipped;
+        cv::flip(result, flipped, -1);
+        result = flipped;
+    } else if (flipHorizontal_) {
+        // 水平翻转（沿Y轴）
+        cv::Mat flipped;
+        cv::flip(result, flipped, 1);
+        result = flipped;
+    } else if (flipVertical_) {
+        // 垂直翻转（沿X轴）
+        cv::Mat flipped;
+        cv::flip(result, flipped, 0);
+        result = flipped;
+    }
+
+    return result;
 }
 
 void CameraConfigDialog::onExposureChanged(double value)

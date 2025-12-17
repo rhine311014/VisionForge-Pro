@@ -7,6 +7,8 @@ set(CORE_SOURCES
     ToolChain.cpp
     TaskScheduler.cpp
     VisionProject.cpp
+    Recipe.cpp
+    RecipeManager.cpp
 )
 
 # 收集头文件
@@ -14,6 +16,8 @@ set(CORE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/core/ToolChain.h
     ${CMAKE_SOURCE_DIR}/include/core/TaskScheduler.h
     ${CMAKE_SOURCE_DIR}/include/core/VisionProject.h
+    ${CMAKE_SOURCE_DIR}/include/core/Recipe.h
+    ${CMAKE_SOURCE_DIR}/include/core/RecipeManager.h
 )
 
 # 创建核心业务层静态库
@@ -35,6 +39,11 @@ target_link_libraries(VisionForgeCore PUBLIC
     Qt6::Core
     ${OpenCV_LIBS}
 )
+
+# 如果启用Halcon，添加编译定义
+if(USE_HALCON)
+    target_compile_definitions(VisionForgeCore PRIVATE USE_HALCON)
+endif()
 
 # 设置属性
 set_target_properties(VisionForgeCore PROPERTIES

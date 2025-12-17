@@ -76,7 +76,7 @@ public:
         Camera, File, Video,
 
         // 预处理
-        Gray, Blur, Binary, ROI, ColorConvert,
+        Gray, Blur, Binary, ROI, ColorConvert, Edge, Morphology,
 
         // 定位检测
         TemplateMatch, Match, FindCircle, FindLine, FindEdge,

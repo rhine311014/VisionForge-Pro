@@ -19,6 +19,7 @@
 #include "ui/ToolParameterPanel.h"
 #include "ui/ResultTablePanel.h"
 #include "ui/HistoryPanel.h"
+#include "ui/RecipeManagerWidget.h"
 #include "hal/SimulatedCamera.h"
 #include "hal/ICamera.h"
 #include "algorithm/VisionTool.h"
@@ -119,6 +120,10 @@ private slots:
     // 相机配置
     void onCameraConfig();
 
+    // 方案管理
+    void onRecipeActivated(Core::Recipe* recipe);
+    void onEditRecipeRequested(Core::Recipe* recipe);
+
 private:
     void createMenus();
     void createToolBars();
@@ -146,12 +151,14 @@ private:
     QDockWidget* toolParameterDock_;
     QDockWidget* resultTableDock_;
     QDockWidget* historyDock_;
+    QDockWidget* recipeDock_;
 
     // 面板
     ToolChainPanel* toolChainPanel_;
     ToolParameterPanel* toolParameterPanel_;
     ResultTablePanel* resultTablePanel_;
     HistoryPanel* historyPanel_;
+    RecipeManagerWidget* recipeManagerWidget_;
 
     // 菜单
     QMenu* fileMenu_;

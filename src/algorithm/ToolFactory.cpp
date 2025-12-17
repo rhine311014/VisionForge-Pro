@@ -7,6 +7,8 @@
 #include "algorithm/GrayTool.h"
 #include "algorithm/BlurTool.h"
 #include "algorithm/ThresholdTool.h"
+#include "algorithm/EdgeTool.h"
+#include "algorithm/MorphologyTool.h"
 #include "base/Logger.h"
 
 #ifdef _WIN32
@@ -161,6 +163,32 @@ void ToolFactory::registerBuiltInTools()
             VisionTool::Binary
         ),
         []() -> VisionTool* { return new ThresholdTool(); }
+    );
+
+    // 注册边缘检测工具
+    registerTool(
+        VisionTool::Edge,
+        ToolInfo(
+            "边缘检测",
+            "图像预处理",
+            "检测图像边缘，支持Canny、Sobel、Laplacian、Scharr算法",
+            ":/icons/edge.png",
+            VisionTool::Edge
+        ),
+        []() -> VisionTool* { return new EdgeTool(); }
+    );
+
+    // 注册形态学处理工具
+    registerTool(
+        VisionTool::Morphology,
+        ToolInfo(
+            "形态学处理",
+            "图像预处理",
+            "形态学操作，支持腐蚀、膨胀、开闭运算、梯度、顶帽、黑帽",
+            ":/icons/morphology.png",
+            VisionTool::Morphology
+        ),
+        []() -> VisionTool* { return new MorphologyTool(); }
     );
 
 #ifdef _WIN32

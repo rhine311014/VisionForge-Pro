@@ -8,6 +8,8 @@ set(ALGORITHM_SOURCES
     GrayTool.cpp
     BlurTool.cpp
     ThresholdTool.cpp
+    EdgeTool.cpp
+    MorphologyTool.cpp
     ToolFactory.cpp
 )
 
@@ -25,6 +27,8 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/GrayTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/BlurTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/ThresholdTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/EdgeTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/MorphologyTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/ToolFactory.h
 )
 

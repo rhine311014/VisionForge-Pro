@@ -13,6 +13,8 @@ set(UI_SOURCES
     Theme.cpp
     PLCConfigDialog.cpp
     CameraConfigDialog.cpp
+    RecipeManagerWidget.cpp
+    RecipeEditorDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -40,6 +42,8 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/Theme.h
     ${CMAKE_SOURCE_DIR}/include/ui/PLCConfigDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/CameraConfigDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/RecipeManagerWidget.h
+    ${CMAKE_SOURCE_DIR}/include/ui/RecipeEditorDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件
@@ -72,6 +76,7 @@ target_link_libraries(VisionForgeUI PUBLIC
     VisionForgeHAL
     VisionForgeAlgorithm
     VisionForgeComm
+    VisionForgeCore
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
