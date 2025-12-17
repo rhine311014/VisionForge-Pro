@@ -37,6 +37,17 @@ QJsonObject ShapeModelInfo::toJson() const
     json["angle_extent"] = angleExtent;
     json["min_contrast"] = minContrast;
     json["usage_count"] = usageCount;
+
+    // 新增匹配参数
+    json["min_score"] = minScore;
+    json["num_matches"] = numMatches;
+    json["max_overlap"] = maxOverlap;
+    json["sub_pixel"] = subPixel;
+    json["greediness"] = greediness;
+    json["scale_min"] = scaleMin;
+    json["scale_max"] = scaleMax;
+    json["match_type"] = matchType;
+
     return json;
 }
 
@@ -55,6 +66,17 @@ ShapeModelInfo ShapeModelInfo::fromJson(const QJsonObject& json)
     info.angleExtent = json["angle_extent"].toDouble(6.28);
     info.minContrast = json["min_contrast"].toInt(10);
     info.usageCount = json["usage_count"].toInt(0);
+
+    // 新增匹配参数（带默认值以兼容旧数据）
+    info.minScore = json["min_score"].toDouble(0.5);
+    info.numMatches = json["num_matches"].toInt(1);
+    info.maxOverlap = json["max_overlap"].toDouble(0.5);
+    info.subPixel = json["sub_pixel"].toString("least_squares");
+    info.greediness = json["greediness"].toDouble(0.9);
+    info.scaleMin = json["scale_min"].toDouble(0.8);
+    info.scaleMax = json["scale_max"].toDouble(1.2);
+    info.matchType = json["match_type"].toInt(0);
+
     return info;
 }
 
@@ -177,7 +199,22 @@ void ShapeModelManager::setLibraryPath(const QString& path)
 bool ShapeModelManager::addModel(ShapeModelInfoPtr info, const QString& modelFilePath,
                                 const QImage& thumbnail)
 {
-    if (!info || modelFilePath.isEmpty()) {
+    if (!info) {
+        LOG_ERROR("addModel: 模板信息为空");
+        return false;
+    }
+    if (modelFilePath.isEmpty()) {
+        LOG_ERROR("addModel: 模板文件路径为空");
+        return false;
+    }
+    if (libraryPath_.isEmpty()) {
+        LOG_ERROR("addModel: 模板库路径未设置");
+        return false;
+    }
+
+    // 检查源文件是否存在
+    if (!QFile::exists(modelFilePath)) {
+        LOG_ERROR(QString("addModel: 源模板文件不存在: %1").arg(modelFilePath));
         return false;
     }
 
@@ -185,6 +222,7 @@ bool ShapeModelManager::addModel(ShapeModelInfoPtr info, const QString& modelFil
     if (info->id.isEmpty()) {
         info->id = generateModelId();
     }
+    LOG_DEBUG(QString("addModel: 模板ID=%1, 名称=%2").arg(info->id).arg(info->name));
 
     // 设置时间
     QDateTime now = QDateTime::currentDateTime();
@@ -193,11 +231,18 @@ bool ShapeModelManager::addModel(ShapeModelInfoPtr info, const QString& modelFil
 
     // 复制模型文件到库目录
     QDir dir(libraryPath_);
-    QString modelFileName = QString("%1.shm").arg(info->id);
+    if (!dir.exists()) {
+        LOG_ERROR(QString("addModel: 模板库目录不存在: %1").arg(libraryPath_));
+        return false;
+    }
+
+    QString modelFileName = QString("%1.gshm").arg(info->id);  // 使用.gshm扩展名以区分通用模型
     QString targetModelPath = dir.filePath(modelFileName);
 
+    LOG_DEBUG(QString("addModel: 复制文件 %1 -> %2").arg(modelFilePath).arg(targetModelPath));
+
     if (!copyModelFile(modelFilePath, targetModelPath)) {
-        LOG_ERROR("复制模型文件失败");
+        LOG_ERROR(QString("addModel: 复制模型文件失败: %1 -> %2").arg(modelFilePath).arg(targetModelPath));
         return false;
     }
 
@@ -210,6 +255,9 @@ bool ShapeModelManager::addModel(ShapeModelInfoPtr info, const QString& modelFil
 
         if (saveThumbnail(thumbnail, targetThumbnailPath)) {
             info->thumbnailPath = thumbnailFileName;  // 相对路径
+            LOG_DEBUG(QString("addModel: 缩略图已保存: %1").arg(targetThumbnailPath));
+        } else {
+            LOG_WARNING(QString("addModel: 保存缩略图失败: %1").arg(targetThumbnailPath));
         }
     }
 
@@ -217,7 +265,10 @@ bool ShapeModelManager::addModel(ShapeModelInfoPtr info, const QString& modelFil
     models_.push_back(info);
 
     // 保存配置
-    saveLibrary();
+    if (!saveLibrary()) {
+        LOG_ERROR("addModel: 保存模板库配置失败");
+        // 仍然返回true，因为模型文件已复制成功
+    }
 
     emit modelAdded(info->id);
     LOG_INFO(QString("模板已添加: %1 (%2)").arg(info->name).arg(info->id));
@@ -465,12 +516,64 @@ QString ShapeModelManager::generateModelId() const
 
 bool ShapeModelManager::copyModelFile(const QString& srcPath, const QString& dstPath)
 {
-    // 如果目标文件存在，先删除
-    if (QFile::exists(dstPath)) {
-        QFile::remove(dstPath);
+    LOG_DEBUG(QString("copyModelFile: 源文件=%1").arg(srcPath));
+    LOG_DEBUG(QString("copyModelFile: 目标文件=%1").arg(dstPath));
+
+    // 检查源文件是否存在
+    if (!QFile::exists(srcPath)) {
+        LOG_ERROR(QString("copyModelFile: 源文件不存在: %1").arg(srcPath));
+        return false;
     }
 
-    return QFile::copy(srcPath, dstPath);
+    // 获取源文件大小
+    QFileInfo srcInfo(srcPath);
+    LOG_DEBUG(QString("copyModelFile: 源文件大小=%1 bytes").arg(srcInfo.size()));
+
+    // 如果目标文件存在，先删除
+    if (QFile::exists(dstPath)) {
+        if (!QFile::remove(dstPath)) {
+            LOG_ERROR(QString("copyModelFile: 无法删除已存在的目标文件: %1").arg(dstPath));
+            return false;
+        }
+        LOG_DEBUG("copyModelFile: 已删除旧的目标文件");
+    }
+
+    // 复制文件
+    bool success = QFile::copy(srcPath, dstPath);
+    if (!success) {
+        // 尝试使用二进制读写方式复制
+        LOG_WARNING("copyModelFile: QFile::copy失败，尝试手动复制...");
+
+        QFile srcFile(srcPath);
+        if (!srcFile.open(QIODevice::ReadOnly)) {
+            LOG_ERROR(QString("copyModelFile: 无法打开源文件: %1").arg(srcPath));
+            return false;
+        }
+
+        QFile dstFile(dstPath);
+        if (!dstFile.open(QIODevice::WriteOnly)) {
+            LOG_ERROR(QString("copyModelFile: 无法创建目标文件: %1").arg(dstPath));
+            srcFile.close();
+            return false;
+        }
+
+        // 读取并写入
+        QByteArray data = srcFile.readAll();
+        qint64 written = dstFile.write(data);
+        srcFile.close();
+        dstFile.close();
+
+        if (written != data.size()) {
+            LOG_ERROR(QString("copyModelFile: 写入不完整: %1/%2 bytes").arg(written).arg(data.size()));
+            return false;
+        }
+
+        LOG_INFO(QString("copyModelFile: 手动复制成功，大小=%1 bytes").arg(written));
+        return true;
+    }
+
+    LOG_DEBUG("copyModelFile: 复制成功");
+    return true;
 }
 
 bool ShapeModelManager::saveThumbnail(const QImage& thumbnail, const QString& path)

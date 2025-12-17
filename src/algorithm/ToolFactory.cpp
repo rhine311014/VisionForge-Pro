@@ -7,7 +7,6 @@
 #include "algorithm/GrayTool.h"
 #include "algorithm/BlurTool.h"
 #include "algorithm/ThresholdTool.h"
-#include "algorithm/EdgeDetectionTool.h"
 #include "base/Logger.h"
 
 #ifdef _WIN32
@@ -162,19 +161,6 @@ void ToolFactory::registerBuiltInTools()
             VisionTool::Binary
         ),
         []() -> VisionTool* { return new ThresholdTool(); }
-    );
-
-    // 注册边缘检测工具
-    registerTool(
-        VisionTool::FindEdge,
-        ToolInfo(
-            "边缘检测",
-            "定位检测",
-            "检测图像中的边缘，支持Sobel、Scharr、Laplacian、Canny算法",
-            ":/icons/edge.png",
-            VisionTool::FindEdge
-        ),
-        []() -> VisionTool* { return new EdgeDetectionTool(); }
     );
 
 #ifdef _WIN32

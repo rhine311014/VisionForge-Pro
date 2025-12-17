@@ -38,6 +38,16 @@ struct ShapeModelInfo {
     double angleExtent;      // 角度范围
     int minContrast;         // 最小对比度
 
+    // 匹配参数（新增）
+    double minScore;         // 最小分数
+    int numMatches;          // 最大匹配数
+    double maxOverlap;       // 最大重叠
+    QString subPixel;        // 亚像素精度
+    double greediness;       // 贪婪度
+    double scaleMin;         // 最小缩放
+    double scaleMax;         // 最大缩放
+    int matchType;           // 匹配模式 (0=标准, 1=缩放, 2=仿射)
+
     // 统计信息
     int usageCount;          // 使用次数
 

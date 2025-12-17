@@ -22,6 +22,7 @@ if(USE_HALCON)
         ShapeMatchParamPanel.cpp
         ShapeModelLibraryDialog.cpp
         ShapeMatchToolDialog.cpp
+        ModelCheckPointDialog.cpp
     )
 endif()
 
@@ -46,6 +47,7 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/ui/ShapeMatchParamPanel.h
         ${CMAKE_SOURCE_DIR}/include/ui/ShapeModelLibraryDialog.h
         ${CMAKE_SOURCE_DIR}/include/ui/ShapeMatchToolDialog.h
+        ${CMAKE_SOURCE_DIR}/include/ui/ModelCheckPointDialog.h
     )
 endif()
 

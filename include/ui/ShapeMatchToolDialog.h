@@ -19,6 +19,7 @@
 #include <QComboBox>
 #include <QSplitter>
 #include <QVBoxLayout>
+#include <QTabWidget>
 #include "base/ImageData.h"
 
 namespace VisionForge {
@@ -88,6 +89,7 @@ private slots:
 
     // ROI操作槽
     void onDrawROIClicked();
+    void onDrawFreehandClicked();
     void onClearROIClicked();
 
     // 模板操作槽
@@ -98,6 +100,11 @@ private slots:
     void onSaveModelClicked();
     void onClearModelClicked();
     void onModelLibraryClicked();
+
+    // 标准轮廓生成槽
+    void onGenerateMarkContourClicked();
+    void onMarkShapeTypeChanged(int index);
+    void onPreviewMarkContour();
 
     // 对话框按钮槽
     void onOkClicked();
@@ -117,14 +124,23 @@ private:
     void connectSignals();
     QString getModelPath(bool forSave);
     void applyParameters();
+    void updateFeaturePreview();  // 更新特征预览
+    bool saveToModelLibrary();    // 保存到模板库
+    bool updateModelInLibrary();  // 更新模板库中的模板
 
 private:
     Algorithm::ShapeMatchTool* tool_;
     Base::ImageData::Ptr currentImage_;
+    QString currentLibraryModelId_;  // 当前加载的模板库模型ID（用于直接更新）
 
     // 左侧图像显示
     HalconImageViewer* imageViewer_;
+    HalconImageViewer* featureViewer_;  // 特征预览窗口
     QSplitter* mainSplitter_;
+    QSplitter* leftSplitter_;  // 左侧分割器（图像/特征）
+
+    // 右侧选项卡
+    QTabWidget* paramTabWidget_;
 
     // 工具类型
     QComboBox* toolTypeCombo_;
@@ -133,6 +149,7 @@ private:
     // ROI设置
     QCheckBox* polarCoordCheckBox_;
     QPushButton* drawROIBtn_;
+    QPushButton* drawFreehandBtn_;
     QPushButton* clearROIBtn_;
     QLabel* roiStatusLabel_;
 
@@ -163,6 +180,17 @@ private:
     QPushButton* deleteModelBtn_;
     QPushButton* modelLibraryBtn_;
     QLabel* modelStatusLabel_;
+
+    // 标准Mark轮廓生成
+    QComboBox* markShapeTypeCombo_;           // 形状类型选择
+    QDoubleSpinBox* markSize1SpinBox_;        // 主尺寸（臂长/半径/边长）
+    QDoubleSpinBox* markSize2SpinBox_;        // 辅尺寸（臂宽/内径/宽度）
+    QDoubleSpinBox* markSize3SpinBox_;        // 额外尺寸（线宽等）
+    QLabel* markSize1Label_;                  // 尺寸1标签
+    QLabel* markSize2Label_;                  // 尺寸2标签
+    QLabel* markSize3Label_;                  // 尺寸3标签
+    QPushButton* previewMarkBtn_;             // 预览按钮
+    QPushButton* generateMarkContourBtn_;     // 生成并训练按钮
 
     // 对话框按钮
     QPushButton* okBtn_;

@@ -44,7 +44,8 @@ enum class ROIType {
     Ellipse,        // 椭圆
     Polygon,        // 多边形
     Line,           // 直线
-    Point           // 点
+    Point,          // 点
+    Freehand        // 自由绘制轮廓
 };
 
 /**
@@ -290,6 +291,115 @@ public:
 
 private:
     QPoint point_;
+};
+
+/**
+ * @class ROIFreehand
+ * @brief 自由绘制轮廓ROI
+ *
+ * 用于存储用户自由绘制的点集，可转换为Halcon XLD轮廓
+ */
+class ROIFreehand : public ROIShape {
+public:
+    ROIFreehand() : ROIShape(ROIType::Freehand), closed_(false) {}
+
+    /**
+     * @brief 添加一个点到轮廓
+     */
+    void addPoint(const QPoint& point) { points_.append(point); }
+
+    /**
+     * @brief 获取所有点
+     */
+    QVector<QPoint> getPoints() const { return points_; }
+
+    /**
+     * @brief 设置所有点
+     */
+    void setPoints(const QVector<QPoint>& points) { points_ = points; }
+
+    /**
+     * @brief 清除所有点
+     */
+    void clearPoints() { points_.clear(); }
+
+    /**
+     * @brief 获取点数量
+     */
+    int pointCount() const { return points_.size(); }
+
+    /**
+     * @brief 设置是否闭合轮廓
+     */
+    void setClosed(bool closed) { closed_ = closed; }
+
+    /**
+     * @brief 是否闭合轮廓
+     */
+    bool isClosed() const { return closed_; }
+
+    /**
+     * @brief 获取最后一个点
+     */
+    QPoint lastPoint() const {
+        return points_.isEmpty() ? QPoint() : points_.last();
+    }
+
+    bool contains(const QPoint& point) const override {
+        // 检测点是否在轮廓线附近（5像素容差）
+        const int tolerance = 5;
+        const int tol2 = tolerance * tolerance;
+
+        for (int i = 0; i < points_.size() - 1; ++i) {
+            const QPoint& p1 = points_[i];
+            const QPoint& p2 = points_[i + 1];
+
+            int x1 = p1.x(), y1 = p1.y();
+            int x2 = p2.x(), y2 = p2.y();
+            int x0 = point.x(), y0 = point.y();
+
+            int dx = x2 - x1;
+            int dy = y2 - y1;
+            int len2 = dx * dx + dy * dy;
+            if (len2 == 0) continue;
+
+            double t = std::max(0.0, std::min(1.0,
+                ((x0 - x1) * dx + (y0 - y1) * dy) / static_cast<double>(len2)));
+
+            int projX = static_cast<int>(x1 + t * dx);
+            int projY = static_cast<int>(y1 + t * dy);
+
+            int dist2 = (x0 - projX) * (x0 - projX) + (y0 - projY) * (y0 - projY);
+            if (dist2 <= tol2) return true;
+        }
+        return false;
+    }
+
+    QRect boundingRect() const override {
+        if (points_.isEmpty()) return QRect();
+
+        int minX = points_[0].x(), maxX = minX;
+        int minY = points_[0].y(), maxY = minY;
+
+        for (const QPoint& pt : points_) {
+            if (pt.x() < minX) minX = pt.x();
+            if (pt.x() > maxX) maxX = pt.x();
+            if (pt.y() < minY) minY = pt.y();
+            if (pt.y() > maxY) maxY = pt.y();
+        }
+
+        return QRect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    void translate(const QPoint& offset) override {
+        for (QPoint& pt : points_) {
+            pt += offset;
+        }
+    }
+
+private:
+    QVector<QPoint> points_;
+    bool closed_;  // 是否闭合轮廓
 };
 
 // ROI智能指针类型定义

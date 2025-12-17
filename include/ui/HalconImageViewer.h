@@ -75,6 +75,7 @@ public:
         DrawPolygon,    // 绘制多边形
         DrawLine,       // 绘制直线
         DrawPoint,      // 绘制点
+        DrawFreehand,   // 自由绘制轮廓
         SelectMode      // 选择模式
     };
 

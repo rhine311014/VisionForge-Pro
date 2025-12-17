@@ -481,6 +481,14 @@ void HalconImageViewer::mousePressEvent(QMouseEvent* event)
                     updateDisplay();
                 }
                 return;  // 多边形不在这里完成
+            case DrawFreehand:
+                // 自由绘制模式：创建ROIFreehand并添加起始点
+                currentROI_ = std::make_shared<ROIFreehand>();
+                {
+                    auto freehand = std::dynamic_pointer_cast<ROIFreehand>(currentROI_);
+                    freehand->addPoint(imagePos);
+                }
+                break;
             default:
                 break;
             }
@@ -572,6 +580,19 @@ void HalconImageViewer::mouseMoveEvent(QMouseEvent* event)
             point->setPoint(imagePos);
             break;
         }
+        case DrawFreehand: {
+            // 自由绘制：持续添加点（带距离过滤避免点过密）
+            auto freehand = std::dynamic_pointer_cast<ROIFreehand>(currentROI_);
+            if (freehand && freehand->pointCount() > 0) {
+                QPoint lastPt = freehand->lastPoint();
+                // 曼哈顿距离大于2像素才添加新点（避免点过密）
+                int dist = std::abs(imagePos.x() - lastPt.x()) + std::abs(imagePos.y() - lastPt.y());
+                if (dist > 2) {
+                    freehand->addPoint(imagePos);
+                }
+            }
+            break;
+        }
         default:
             break;
         }
@@ -627,10 +648,8 @@ void HalconImageViewer::onImageDisplayed()
 {
     // 图像显示完成后，在主线程绘制ROI
     // 不使用mutex，因为这个函数已经在主线程中执行
-    // 只有在非绘制状态时才绘制ROI，避免与鼠标事件冲突
-    if (!isDrawing_) {
-        drawROIs();
-    }
+    // 始终绘制ROI（包括正在绘制的currentROI_）
+    drawROIs();
 }
 
 void HalconImageViewer::onDisplayError(const QString& errorMsg)
@@ -725,17 +744,8 @@ void HalconImageViewer::closeHalconWindow()
 
 void HalconImageViewer::updateDisplay()
 {
-    // 在绘制过程中，不要频繁调用Halcon的绘制函数
-    // 只有在完成ROI绘制后才调用drawROIs()
-    // 这是为了避免主线程和显示线程同时访问Halcon窗口导致崩溃
-
-    // 如果正在绘制中，只更新Qt界面，不调用Halcon绘制
-    if (isDrawing_) {
-        update();  // 触发paintEvent，但由于Halcon已初始化，不会绘制任何东西
-        return;
-    }
-
-    // 非绘制状态下，请求显示线程重新显示图像（会自动绘制ROI）
+    // 请求显示线程重新显示图像
+    // 图像显示完成后会触发onImageDisplayed()信号，在其中绘制ROI
     if (currentImage_ && displayWorker_ && halconWindowInitialized_) {
         displayWorker_->requestDisplayImage(currentImage_);
     }
@@ -978,6 +988,24 @@ void HalconImageViewer::drawROI(const ROIShapePtr& roi)
             DispObj(region, windowHandle_);
             break;
         }
+        case ROIType::Freehand: {
+            // 自由绘制轮廓：转换为XLD显示
+            auto freehand = std::dynamic_pointer_cast<ROIFreehand>(roi);
+            if (freehand && freehand->pointCount() >= 2) {
+                QVector<QPoint> points = freehand->getPoints();
+                HTuple rows, cols;
+                for (const QPoint& pt : points) {
+                    rows.Append(pt.y());
+                    cols.Append(pt.x());
+                }
+                // 生成XLD轮廓（不闭合的多边形轮廓）
+                HXLDCont contour;
+                contour.GenContourPolygonXld(rows, cols);
+                // 显示XLD轮廓
+                DispObj(contour, windowHandle_);
+            }
+            break;
+        }
         default:
             break;
         }
@@ -1133,6 +1161,12 @@ void HalconImageViewer::finishCurrentROI()
         case ROIType::Point:
             valid = true;
             break;
+        case ROIType::Freehand: {
+            // 自由绘制轮廓：至少需要3个点才有效
+            auto freehand = std::dynamic_pointer_cast<ROIFreehand>(currentROI_);
+            valid = freehand && freehand->pointCount() >= 3;
+            break;
+        }
         }
 
         ROIShapePtr completedROI = currentROI_;

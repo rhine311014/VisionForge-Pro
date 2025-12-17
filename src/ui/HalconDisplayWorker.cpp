@@ -76,25 +76,40 @@ void HalconDisplayWorker::setXLDContours(const QList<HXLDCont>& contours,
 {
 #ifdef _WIN32
     QMutexLocker locker(&mutex_);
-    xldContours_ = contours;
+    xldContours_.clear();
+    xldColors_.clear();
 
-    // 如果没有提供颜色，使用默认绿色
-    if (colors.isEmpty()) {
-        xldColors_.clear();
-        for (int i = 0; i < contours.size(); i++) {
-            xldColors_.append("green");
+    // 只添加有效的轮廓（CountObj > 0）
+    int validCount = 0;
+    for (int i = 0; i < contours.size(); i++) {
+        try {
+            // 检查轮廓是否有效
+            if (contours[i].CountObj() > 0) {
+                // 深拷贝轮廓以确保有效性
+                HXLDCont contourCopy;
+                CopyObj(contours[i], &contourCopy, 1, contours[i].CountObj());
+                xldContours_.append(contourCopy);
+
+                // 添加对应颜色
+                if (i < colors.size()) {
+                    xldColors_.append(colors[i]);
+                } else {
+                    xldColors_.append("green");
+                }
+                validCount++;
+            } else {
+                LOG_WARNING(QString("HalconDisplayWorker: 跳过空轮廓 [%1]").arg(i));
+            }
         }
-    } else {
-        xldColors_ = colors;
-        // 确保颜色数量与轮廓数量匹配
-        while (xldColors_.size() < contours.size()) {
-            xldColors_.append("green");
+        catch (const HException& e) {
+            LOG_WARNING(QString("HalconDisplayWorker: 跳过无效轮廓 [%1]: %2").arg(i).arg(e.ErrorMessage().Text()));
         }
     }
 
     hasXLDUpdate_ = true;
     condition_.wakeOne();
-    LOG_DEBUG(QString("HalconDisplayWorker: 设置 %1 个XLD轮廓").arg(contours.size()));
+    LOG_DEBUG(QString("HalconDisplayWorker: 设置 %1 个有效XLD轮廓 (总共 %2 个)")
+        .arg(validCount).arg(contours.size()));
 #endif
 }
 
