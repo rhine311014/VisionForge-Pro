@@ -41,6 +41,9 @@ set(UI_SOURCES
     RangeJudgeToolDialog.cpp
     LogicOperationToolDialog.cpp
     SaveImageToolDialog.cpp
+    # 工具对话框 - ROI和PLC
+    ROIToolDialog.cpp
+    PLCOutputToolDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -96,6 +99,9 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/RangeJudgeToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/LogicOperationToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/SaveImageToolDialog.h
+    # 工具对话框头文件 - ROI和PLC
+    ${CMAKE_SOURCE_DIR}/include/ui/ROIToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/PLCOutputToolDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件

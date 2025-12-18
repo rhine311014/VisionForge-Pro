@@ -54,6 +54,9 @@
 #include "ui/RangeJudgeToolDialog.h"
 #include "ui/LogicOperationToolDialog.h"
 #include "ui/SaveImageToolDialog.h"
+// 工具对话框 - ROI和PLC
+#include "ui/ROIToolDialog.h"
+#include "ui/PLCOutputToolDialog.h"
 // 算法工具头文件
 #include "algorithm/GrayTool.h"
 #include "algorithm/BlurTool.h"
@@ -75,6 +78,8 @@
 #include "algorithm/RangeJudgeTool.h"
 #include "algorithm/LogicOperationTool.h"
 #include "algorithm/SaveImageTool.h"
+#include "algorithm/ROITool.h"
+#include "algorithm/PLCOutputTool.h"
 #include "hal/CameraFactory.h"
 #include "core/RecipeManager.h"
 #include "algorithm/CalibrationManager.h"
@@ -912,6 +917,26 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
         SaveImageToolDialog dialog(saveTool, this);
         if (dialog.exec() == QDialog::Accepted) {
             statusLabel_->setText("图像保存参数已更新");
+        }
+        return;
+    }
+
+    // ========== ROI和PLC工具 ==========
+    // ROI区域工具
+    if (Algorithm::ROITool* roiTool = dynamic_cast<Algorithm::ROITool*>(tool)) {
+        ROIToolDialog dialog(roiTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("ROI区域参数已更新");
+        }
+        return;
+    }
+
+    // PLC输出工具
+    if (Algorithm::PLCOutputTool* plcTool = dynamic_cast<Algorithm::PLCOutputTool*>(tool)) {
+        PLCOutputToolDialog dialog(plcTool, this);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("PLC输出参数已更新");
         }
         return;
     }
