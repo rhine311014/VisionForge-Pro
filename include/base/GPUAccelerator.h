@@ -24,6 +24,15 @@ namespace VisionForge {
 namespace Base {
 
 /**
+ * @brief GPU加速模式
+ */
+enum class GPUAccelMode {
+    Disabled = 0,   // 禁用GPU加速（仅使用CPU）
+    CUDA = 1,       // 启用CUDA GPU加速
+    Auto = 2        // 自动选择（有GPU用GPU，否则用CPU）
+};
+
+/**
  * @brief GPU设备信息
  */
 struct GPUDeviceInfo {
@@ -96,7 +105,7 @@ public:
     void printDeviceInfo() const;
 
     /**
-     * @brief 启用/禁用GPU加速
+     * @brief 启用/禁用GPU加速（兼容旧接口）
      */
     void setEnabled(bool enabled) { enabled_ = enabled; }
 
@@ -104,6 +113,41 @@ public:
      * @brief 检查GPU加速是否启用
      */
     bool isEnabled() const { return enabled_ && isCudaAvailable(); }
+
+    /**
+     * @brief 设置GPU加速模式
+     * @param mode 加速模式
+     */
+    void setAccelMode(GPUAccelMode mode);
+
+    /**
+     * @brief 获取当前加速模式
+     * @return 加速模式
+     */
+    GPUAccelMode getAccelMode() const { return accelMode_; }
+
+    /**
+     * @brief 获取实际使用的加速状态
+     * @return true如果实际在使用GPU加速
+     */
+    bool isUsingGPU() const;
+
+    /**
+     * @brief 获取加速模式名称
+     * @param mode 加速模式
+     * @return 模式名称字符串
+     */
+    static QString getAccelModeName(GPUAccelMode mode);
+
+    /**
+     * @brief 保存设置到配置
+     */
+    void saveSettings();
+
+    /**
+     * @brief 从配置加载设置
+     */
+    void loadSettings();
 
 #ifdef USE_CUDA
     // ========== GPU加速图像处理 ==========
@@ -209,6 +253,7 @@ private:
     int deviceCount_;
     int currentDevice_;
     QList<GPUDeviceInfo> devices_;
+    GPUAccelMode accelMode_;   // GPU加速模式
 };
 
 } // namespace Base

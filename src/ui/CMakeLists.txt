@@ -17,6 +17,7 @@ set(UI_SOURCES
     RecipeEditorDialog.cpp
     CameraCalibDialog.cpp
     NinePointCalibDialog.cpp
+    SystemSettingsDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -48,6 +49,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/RecipeEditorDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/CameraCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/NinePointCalibDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/SystemSettingsDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件

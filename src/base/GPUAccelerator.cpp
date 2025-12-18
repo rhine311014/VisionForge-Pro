@@ -4,6 +4,7 @@
  */
 
 #include "base/GPUAccelerator.h"
+#include "base/ConfigManager.h"
 #include "base/Logger.h"
 #include <QDebug>
 
@@ -21,8 +22,10 @@ GPUAccelerator::GPUAccelerator()
     , enabled_(true)
     , deviceCount_(0)
     , currentDevice_(-1)
+    , accelMode_(GPUAccelMode::Auto)
 {
     detectDevices();
+    loadSettings();
 }
 
 GPUAccelerator& GPUAccelerator::instance()
@@ -183,6 +186,99 @@ void GPUAccelerator::detectDevices()
     deviceCount_ = 0;
     LOG_INFO("未编译CUDA支持");
 #endif
+}
+
+void GPUAccelerator::setAccelMode(GPUAccelMode mode)
+{
+    accelMode_ = mode;
+
+    // 根据模式更新enabled_状态
+    switch (mode) {
+        case GPUAccelMode::Disabled:
+            enabled_ = false;
+            LOG_INFO("GPU加速模式: 禁用");
+            break;
+        case GPUAccelMode::CUDA:
+            enabled_ = cudaAvailable_;
+            if (cudaAvailable_) {
+                LOG_INFO("GPU加速模式: CUDA");
+            } else {
+                LOG_WARNING("GPU加速模式: CUDA (但CUDA不可用，将使用CPU)");
+            }
+            break;
+        case GPUAccelMode::Auto:
+            enabled_ = cudaAvailable_;
+            LOG_INFO(QString("GPU加速模式: 自动 (%1)")
+                    .arg(cudaAvailable_ ? "使用GPU" : "使用CPU"));
+            break;
+    }
+
+    // 保存设置
+    saveSettings();
+}
+
+bool GPUAccelerator::isUsingGPU() const
+{
+    switch (accelMode_) {
+        case GPUAccelMode::Disabled:
+            return false;
+        case GPUAccelMode::CUDA:
+            return cudaAvailable_;
+        case GPUAccelMode::Auto:
+            return cudaAvailable_;
+        default:
+            return false;
+    }
+}
+
+QString GPUAccelerator::getAccelModeName(GPUAccelMode mode)
+{
+    switch (mode) {
+        case GPUAccelMode::Disabled:
+            return "禁用GPU加速";
+        case GPUAccelMode::CUDA:
+            return "CUDA GPU加速";
+        case GPUAccelMode::Auto:
+            return "自动选择";
+        default:
+            return "未知";
+    }
+}
+
+void GPUAccelerator::saveSettings()
+{
+    ConfigManager& config = ConfigManager::instance();
+    config.setValue("GPU/AccelMode", static_cast<int>(accelMode_));
+    config.save();
+    LOG_DEBUG(QString("GPU设置已保存: 模式=%1").arg(static_cast<int>(accelMode_)));
+}
+
+void GPUAccelerator::loadSettings()
+{
+    ConfigManager& config = ConfigManager::instance();
+    int mode = config.getValue("GPU/AccelMode", static_cast<int>(GPUAccelMode::Auto)).toInt();
+
+    // 验证模式值有效性
+    if (mode < 0 || mode > 2) {
+        mode = static_cast<int>(GPUAccelMode::Auto);
+    }
+
+    accelMode_ = static_cast<GPUAccelMode>(mode);
+
+    // 根据模式更新enabled_状态（不保存，避免循环）
+    switch (accelMode_) {
+        case GPUAccelMode::Disabled:
+            enabled_ = false;
+            break;
+        case GPUAccelMode::CUDA:
+        case GPUAccelMode::Auto:
+            enabled_ = cudaAvailable_;
+            break;
+    }
+
+    LOG_DEBUG(QString("GPU设置已加载: 模式=%1, 实际使用GPU=%2")
+             .arg(static_cast<int>(accelMode_))
+             .arg(isUsingGPU() ? "是" : "否"));
 }
 
 #ifdef USE_CUDA

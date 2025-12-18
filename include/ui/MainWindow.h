@@ -128,6 +128,9 @@ private slots:
     void onRecipeActivated(Core::Recipe* recipe);
     void onEditRecipeRequested(Core::Recipe* recipe);
 
+    // 系统设置
+    void onSystemSettings();
+
 private:
     void createMenus();
     void createToolBars();
@@ -172,6 +175,7 @@ private:
     QMenu* cameraMenu_;
     QMenu* calibMenu_;   // 标定菜单
     QMenu* commMenu_;    // 通信菜单
+    QMenu* settingsMenu_;  // 设置菜单
     QMenu* helpMenu_;
 
     // 工具栏
@@ -226,6 +230,9 @@ private:
     QAction* cameraCalibAction_;
     QAction* ninePointCalibAction_;
 
+    // 系统设置动作
+    QAction* systemSettingsAction_;
+
     // 状态栏
     QLabel* statusLabel_;
     QLabel* imageInfoLabel_;
@@ -233,7 +240,7 @@ private:
     QLabel* positionLabel_;
 
     // 相机
-    HAL::SimulatedCamera* camera_;
+    HAL::ICamera* camera_;
     QTimer* continuousTimer_;
     bool isContinuousGrabbing_;
 
@@ -247,6 +254,7 @@ private:
     // 私有辅助方法
     void loadImageAtIndex(int index);         // 加载指定索引的图片
     void updateImageSequenceActions();        // 更新图片序列相关动作状态
+    void applyImageTransform(Base::ImageData::Ptr& image);  // 应用图像变换（旋转、镜像）
 };
 
 } // namespace UI

@@ -29,6 +29,7 @@
 #include "ui/RecipeEditorDialog.h"
 #include "ui/CameraCalibDialog.h"
 #include "ui/NinePointCalibDialog.h"
+#include "ui/SystemSettingsDialog.h"
 #include "hal/CameraFactory.h"
 #include "core/RecipeManager.h"
 #include "algorithm/CalibrationManager.h"
@@ -97,13 +98,17 @@ MainWindow::MainWindow(QWidget* parent)
     // 连接信号
     connectSignals();
 
-    // 创建相机
-    camera_ = new HAL::SimulatedCamera(this);
-    camera_->useTestPattern(0);  // 使用渐变测试图案
+    // 创建模拟相机作为默认相机
+    HAL::SimulatedCamera* simCamera = new HAL::SimulatedCamera(this);
+    simCamera->useTestPattern(0);  // 使用渐变测试图案
+    camera_ = simCamera;
 
     // 连续采集定时器
     continuousTimer_ = new QTimer(this);
     connect(continuousTimer_, &QTimer::timeout, this, &MainWindow::onContinuousTimer);
+
+    // 初始化配方管理器（扫描目录并加载上次使用的配方）
+    Core::RecipeManager::instance().initialize();
 
     // 更新界面状态
     updateActions();
@@ -552,6 +557,9 @@ void MainWindow::onGrabImage()
     Base::ImageData::Ptr image = camera_->grabImage(5000);
 
     if (image) {
+        // 应用图像变换（旋转、镜像）
+        applyImageTransform(image);
+
         currentImage_ = image;
         imageViewer_->setImage(currentImage_);
         statusLabel_->setText("图像采集成功");
@@ -640,14 +648,13 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
             statusLabel_->setText("工具参数已更新");
             updateActions();
         }
-    } else {
-        // 其他工具类型，显示提示
-        QMessageBox::information(this, "提示",
-            QString("工具 \"%1\" 暂不支持高级参数编辑对话框").arg(tool->displayName()));
+        return;
     }
-#else
-    QMessageBox::information(this, "提示", "此功能需要Halcon支持");
 #endif
+
+    // 其他工具类型，显示提示（基于OpenCV的工具参数在右侧面板编辑）
+    QMessageBox::information(this, "提示",
+        QString("工具 \"%1\" 的参数可在右侧参数面板中编辑").arg(tool->displayName()));
 }
 
 void MainWindow::onParameterChanged()
@@ -672,6 +679,66 @@ void MainWindow::onMousePositionChanged(int x, int y, bool valid)
     }
 }
 
+// ========== 图像变换 ==========
+
+void MainWindow::applyImageTransform(Base::ImageData::Ptr& image)
+{
+    if (!image || !camera_) return;
+
+    HAL::ICamera::Config config = camera_->getConfig();
+
+    // 如果没有任何变换，直接返回
+    if (config.rotationAngle == 0 && !config.flipHorizontal && !config.flipVertical) {
+        return;
+    }
+
+    cv::Mat mat = image->mat();
+    if (mat.empty()) return;
+
+    cv::Mat result = mat.clone();
+
+    // 1. 旋转
+    if (config.rotationAngle != 0) {
+        int rotateCode = -1;
+        switch (config.rotationAngle) {
+            case 90:
+                rotateCode = cv::ROTATE_90_CLOCKWISE;
+                break;
+            case 180:
+                rotateCode = cv::ROTATE_180;
+                break;
+            case 270:
+                rotateCode = cv::ROTATE_90_COUNTERCLOCKWISE;
+                break;
+            default:
+                break;
+        }
+        if (rotateCode >= 0) {
+            cv::Mat rotated;
+            cv::rotate(result, rotated, rotateCode);
+            result = rotated;
+        }
+    }
+
+    // 2. 镜像
+    if (config.flipHorizontal && config.flipVertical) {
+        cv::Mat flipped;
+        cv::flip(result, flipped, -1);  // 同时水平和垂直翻转
+        result = flipped;
+    } else if (config.flipHorizontal) {
+        cv::Mat flipped;
+        cv::flip(result, flipped, 1);   // 水平翻转
+        result = flipped;
+    } else if (config.flipVertical) {
+        cv::Mat flipped;
+        cv::flip(result, flipped, 0);   // 垂直翻转
+        result = flipped;
+    }
+
+    // 更新ImageData
+    image = std::make_shared<Base::ImageData>(result);
+}
+
 // ========== 连续采集 ==========
 
 void MainWindow::onContinuousTimer()
@@ -686,6 +753,9 @@ void MainWindow::onContinuousTimer()
     Base::ImageData::Ptr image = camera_->grabImage(100);
 
     if (image) {
+        // 应用图像变换（旋转、镜像）
+        applyImageTransform(image);
+
         // 处理图像
         processImage(image);
     }
@@ -868,6 +938,14 @@ void MainWindow::createMenus()
     plcConfigAction_->setStatusTip("配置PLC通信连接");
     connect(plcConfigAction_, &QAction::triggered, this, &MainWindow::onPLCConfig);
     commMenu_->addAction(plcConfigAction_);
+
+    // 设置菜单
+    settingsMenu_ = menuBar()->addMenu("设置(&S)");
+
+    systemSettingsAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "系统设置(&S)...", this);
+    systemSettingsAction_->setStatusTip("配置系统设置（GPU加速等）");
+    connect(systemSettingsAction_, &QAction::triggered, this, &MainWindow::onSystemSettings);
+    settingsMenu_->addAction(systemSettingsAction_);
 
     // 帮助菜单
     helpMenu_ = menuBar()->addMenu("帮助(&H)");
@@ -1329,15 +1407,9 @@ void MainWindow::onCameraConfig()
                 camera_->close();
                 delete camera_;
             }
-            camera_ = qobject_cast<HAL::SimulatedCamera*>(newCamera);
-
-            // 如果不是SimulatedCamera，需要更新指针类型
-            // 这里简化处理，实际应用中可能需要修改camera_成员类型为ICamera*
-            if (!camera_) {
-                // 如果是其他类型相机，暂存为通用指针
-                // 未来可以将camera_改为ICamera*类型
-                LOG_INFO("已切换到工业相机");
-            }
+            // 直接赋值，camera_已改为ICamera*类型，支持所有相机类型
+            camera_ = newCamera;
+            LOG_INFO(QString("相机已切换: %1").arg(camera_->deviceName()));
         }
 
         updateActions();
@@ -1457,6 +1529,14 @@ void MainWindow::onNinePointCalibration()
         statusLabel_->setText("九点标定完成");
     });
 
+    dialog.exec();
+}
+
+// ========== 系统设置 ==========
+
+void MainWindow::onSystemSettings()
+{
+    SystemSettingsDialog dialog(this);
     dialog.exec();
 }
 
