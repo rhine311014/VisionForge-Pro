@@ -1,24 +1,19 @@
 /**
  * @file NinePointCalibDialog.h
- * @brief 九点标定对话框
- * @details 提供九点标定的交互界面，支持图像坐标到物理坐标的映射标定
+ * @brief 九点标定对话框（简化版）
+ * @details 参考VisionASM设计，提供向导式九点标定界面
  * @author VisionForge Team
- * @date 2025-12-17
+ * @date 2025-12-18
  */
 
 #pragma once
 
 #include <QDialog>
 #include <QLabel>
-#include <QSpinBox>
 #include <QDoubleSpinBox>
-#include <QComboBox>
 #include <QPushButton>
-#include <QTableWidget>
-#include <QGroupBox>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QSplitter>
+#include <QStackedWidget>
+#include <QGridLayout>
 
 #include "algorithm/NinePointCalibTool.h"
 #include "algorithm/CalibrationResult.h"
@@ -30,13 +25,13 @@ namespace UI {
 
 /**
  * @class NinePointCalibDialog
- * @brief 九点标定对话框
+ * @brief 简化版九点标定对话框
  *
- * 功能：
- * - 设置标定点数量和物理坐标
- * - 在图像上点击采集图像坐标
- * - 执行标定并显示结果
- * - 提供坐标转换测试
+ * 设计理念（参考VisionASM）：
+ * - 向导式三步流程：设置参数 → 采集点位 → 查看结果
+ * - 可视化3x3网格，点击采集
+ * - 简洁的参数设置
+ * - 实时反馈标定状态
  */
 class NinePointCalibDialog : public QDialog {
     Q_OBJECT
@@ -45,125 +40,85 @@ public:
     explicit NinePointCalibDialog(QWidget* parent = nullptr);
     ~NinePointCalibDialog() override;
 
-    /**
-     * @brief 设置当前图像
-     */
     void setCurrentImage(const Base::ImageData::Ptr& image);
-
-    /**
-     * @brief 获取标定结果
-     */
     Algorithm::CalibrationResult getCalibrationResult() const;
-
-    /**
-     * @brief 是否已完成标定
-     */
     bool isCalibrated() const;
 
 signals:
-    /**
-     * @brief 标定完成信号
-     */
     void calibrationCompleted(const Algorithm::CalibrationResult& result);
 
-protected:
-    void showEvent(QShowEvent* event) override;
-
 private slots:
-    // 标定点管理
-    void onPointCountChanged(int count);
-    void onGenerateGrid();
-    void onClearPoints();
-    void onPointTableCellChanged(int row, int column);
+    // 步骤导航
+    void onNextStep();
+    void onPrevStep();
 
-    // 图像点击
+    // 网格点击采集
+    void onGridPointClicked(int index);
     void onImageClicked(int x, int y);
 
-    // 标定执行
+    // 标定操作
     void onExecuteCalibration();
-    void onTestTransform();
+    void onResetCalibration();
 
-    // 参数变更
-    void onCalibModeChanged(int index);
-    void onBackendChanged(int index);
-
-    // 对话框操作
+    // 对话框
     void onOkClicked();
     void onCancelClicked();
-    void onApplyClicked();
-    void onSaveResult();
-    void onLoadResult();
 
 private:
     void createUI();
-    void createImagePreviewArea(QSplitter* splitter);
-    void createControlPanel(QSplitter* splitter);
-    void createCalibModeGroup(QVBoxLayout* layout);
-    void createPointsGroup(QVBoxLayout* layout);
-    void createGridGeneratorGroup(QVBoxLayout* layout);
-    void createResultGroup(QVBoxLayout* layout);
-    void createTestGroup(QVBoxLayout* layout);
-    void createButtons(QVBoxLayout* layout);
+    void createStep1_Settings();
+    void createStep2_Capture();
+    void createStep3_Result();
+    void createNavigationButtons();
 
-    void connectSignals();
-    void updateUI();
-    void updatePointsTable();
+    void updateStepIndicator();
+    void updateGridButtons();
     void updateResultDisplay();
-    void applyParameters();
     void drawCalibPoints();
+    void goToStep(int step);
 
-    // 当前选中的点索引（用于图像点击赋值）
-    int currentPointIndex_;
+    // 生成标准3x3网格物理坐标
+    void generateGridCoordinates();
 
 private:
     // 标定工具
     Algorithm::NinePointCalibTool* calibTool_;
-
-    // 当前图像
     Base::ImageData::Ptr currentImage_;
 
-    // UI组件 - 图像预览
+    // 当前状态
+    int currentStep_;           // 0=设置, 1=采集, 2=结果
+    int currentPointIndex_;     // 当前采集的点索引 (0-8)
+
+    // 主布局
+    QStackedWidget* stackedWidget_;
+
+    // 步骤指示器
+    QLabel* stepIndicators_[3];
+    QLabel* stepLabels_[3];
+
+    // 步骤1: 参数设置
+    QDoubleSpinBox* gridSpacingSpin_;    // 网格间距 (mm)
+    QDoubleSpinBox* originXSpin_;        // 原点X (mm)
+    QDoubleSpinBox* originYSpin_;        // 原点Y (mm)
+
+    // 步骤2: 点位采集
     ImageViewer* imageViewer_;
-    QLabel* instructionLabel_;
+    QPushButton* gridButtons_[9];        // 3x3网格按钮
+    QLabel* pointStatusLabels_[9];       // 点状态标签
+    QLabel* captureInstructionLabel_;    // 采集说明
 
-    // UI组件 - 标定模式
-    QComboBox* calibModeCombo_;
-    QComboBox* backendCombo_;
+    // 步骤3: 标定结果
+    QLabel* pixelScaleLabel_;            // 像素比例
+    QLabel* rotationLabel_;              // 旋转角度
+    QLabel* calibErrorLabel_;            // 标定误差
+    QLabel* resultStatusLabel_;          // 结果状态
 
-    // UI组件 - 标定点
-    QSpinBox* pointCountSpin_;
-    QTableWidget* pointsTable_;
-    QPushButton* clearPointsBtn_;
-
-    // UI组件 - 网格生成器
-    QSpinBox* gridRowsSpin_;
-    QSpinBox* gridColsSpin_;
-    QDoubleSpinBox* gridSpacingXSpin_;
-    QDoubleSpinBox* gridSpacingYSpin_;
-    QDoubleSpinBox* gridOriginXSpin_;
-    QDoubleSpinBox* gridOriginYSpin_;
-    QPushButton* generateGridBtn_;
-
-    // UI组件 - 标定结果
-    QLabel* pixelScaleXLabel_;
-    QLabel* pixelScaleYLabel_;
-    QLabel* rotationAngleLabel_;
-    QLabel* calibErrorLabel_;
-    QPushButton* saveResultBtn_;
-    QPushButton* loadResultBtn_;
-
-    // UI组件 - 坐标转换测试
-    QDoubleSpinBox* testImageXSpin_;
-    QDoubleSpinBox* testImageYSpin_;
-    QLabel* testWorldXLabel_;
-    QLabel* testWorldYLabel_;
-    QPushButton* testTransformBtn_;
-
-    // UI组件 - 对话框按钮
+    // 导航按钮
+    QPushButton* prevBtn_;
+    QPushButton* nextBtn_;
     QPushButton* calibrateBtn_;
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
-    QPushButton* applyBtn_;
 };
 
 } // namespace UI
