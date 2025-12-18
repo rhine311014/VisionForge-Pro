@@ -45,11 +45,19 @@ public:
         double gain;           // 增益(dB)
         TriggerMode triggerMode;  // 触发模式
 
+        // 图像变换设置
+        int rotationAngle;     // 旋转角度: 0, 90, 180, 270
+        bool flipHorizontal;   // 水平镜像
+        bool flipVertical;     // 垂直镜像
+
         Config()
             : width(1920), height(1080)
             , offsetX(0), offsetY(0)
             , exposure(10000.0), gain(0.0)
             , triggerMode(Software)
+            , rotationAngle(0)
+            , flipHorizontal(false)
+            , flipVertical(false)
         {}
     };
 

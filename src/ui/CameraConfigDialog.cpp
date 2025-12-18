@@ -8,6 +8,7 @@
 #include "ui/CameraConfigDialog.h"
 #include "hal/CameraFactory.h"
 #include "base/Logger.h"
+#include "base/ConfigManager.h"
 
 #ifdef USE_HIKVISION_MVS
 #include "hal/HikvisionCamera.h"
@@ -514,6 +515,16 @@ void CameraConfigDialog::onConnectCamera()
 
     previewLabel_->setText("已连接: " + info.modelName);
     LOG_INFO(QString("已连接相机: %1 (%2)").arg(info.modelName).arg(info.serialNumber));
+
+    // 保存相机配置到配置文件，以便下次自动连接
+    Base::ConfigManager& configMgr = Base::ConfigManager::instance();
+    configMgr.setValue("Camera/Type", info.cameraType);
+    configMgr.setValue("Camera/SerialNumber", info.serialNumber);
+    configMgr.setValue("Camera/IPAddress", info.ipAddress);
+    configMgr.setValue("Camera/ModelName", info.modelName);
+    configMgr.setValue("Camera/Manufacturer", info.manufacturer);
+    configMgr.save();
+    LOG_INFO("相机配置已保存");
 }
 
 void CameraConfigDialog::onDisconnectCamera()
@@ -738,6 +749,11 @@ void CameraConfigDialog::onApplySettings()
     config.triggerMode = static_cast<HAL::ICamera::TriggerMode>(
         triggerModeCombo_->currentData().toInt());
 
+    // 图像变换设置
+    config.rotationAngle = rotationAngle_;
+    config.flipHorizontal = flipHorizontal_;
+    config.flipVertical = flipVertical_;
+
     camera_->setConfig(config);
 
     LOG_INFO("相机参数已应用");
@@ -788,6 +804,10 @@ void CameraConfigDialog::setControlsEnabled(bool enabled)
 HAL::ICamera* CameraConfigDialog::takeCamera()
 {
     HAL::ICamera* cam = camera_;
+    if (cam) {
+        // 移除父对象关系，防止对话框销毁时连带删除相机
+        cam->setParent(nullptr);
+    }
     camera_ = nullptr;
     ownsCamera_ = false;
     return cam;

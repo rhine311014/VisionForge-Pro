@@ -5,12 +5,16 @@
 
 #include "core/RecipeManager.h"
 #include "base/Logger.h"
+#include "base/ConfigManager.h"
 #ifdef USE_HALCON
 #include "algorithm/ShapeModelManager.h"
 #endif
 #include <QFile>
 #include <QFileInfo>
 #include <QDirIterator>
+
+// 配置键名
+static const QString CONFIG_KEY_LAST_RECIPE = "Recipe/LastUsedRecipe";
 
 namespace VisionForge {
 namespace Core {
@@ -198,6 +202,9 @@ bool RecipeManager::setCurrentRecipe(const QString& name)
 
     currentRecipe_ = recipes_[name];
     addToRecentRecipes(name);
+
+    // 保存最后使用的配方名称
+    saveLastRecipeName();
 
     // 切换模板库到当前方案的模板库目录
 #ifdef USE_HALCON
@@ -497,6 +504,53 @@ QString RecipeManager::generateFilePath(const QString& name) const
     }
 
     return QDir(recipeDir).filePath(safeName + ".vfr");
+}
+
+// ========== 初始化和自动加载 ==========
+
+bool RecipeManager::initialize()
+{
+    // 扫描方案目录
+    int count = scanRecipeDirectory();
+    LOG_INFO(QString("方案管理器初始化完成，加载了 %1 个方案").arg(count));
+
+    // 尝试加载上次使用的配方
+    if (loadLastRecipe()) {
+        LOG_INFO(QString("已自动加载上次使用的配方: %1").arg(currentRecipeName()));
+        return true;
+    }
+
+    return false;
+}
+
+void RecipeManager::saveLastRecipeName()
+{
+    QString recipeName = currentRecipeName();
+    Base::ConfigManager::instance().setValue(CONFIG_KEY_LAST_RECIPE, recipeName);
+    Base::ConfigManager::instance().save();
+    LOG_DEBUG(QString("保存最后使用的配方: %1").arg(recipeName));
+}
+
+bool RecipeManager::loadLastRecipe()
+{
+    QString lastRecipeName = getLastRecipeName();
+
+    if (lastRecipeName.isEmpty()) {
+        LOG_DEBUG("没有保存的上次配方记录");
+        return false;
+    }
+
+    if (!hasRecipe(lastRecipeName)) {
+        LOG_WARNING(QString("上次使用的配方不存在: %1").arg(lastRecipeName));
+        return false;
+    }
+
+    return setCurrentRecipe(lastRecipeName);
+}
+
+QString RecipeManager::getLastRecipeName() const
+{
+    return Base::ConfigManager::instance().getValue(CONFIG_KEY_LAST_RECIPE, QString()).toString();
 }
 
 } // namespace Core

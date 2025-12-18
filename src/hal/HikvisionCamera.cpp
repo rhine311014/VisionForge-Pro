@@ -297,6 +297,15 @@ bool HikvisionCamera::open()
     if (imageBuffer_) delete[] imageBuffer_;
     imageBuffer_ = new unsigned char[bufferSize_];
 
+    // 设置为连续采集模式（关闭触发模式）
+    ret = MV_CC_SetEnumValue(handle_, "TriggerMode", MV_TRIGGER_MODE_OFF);
+    if (ret != MV_OK) {
+        LOG_WARNING(QString("设置触发模式失败: 0x%1").arg(static_cast<unsigned int>(ret), 8, 16, QChar('0')));
+    } else {
+        config_.triggerMode = Continuous;
+        LOG_DEBUG("已设置为连续采集模式");
+    }
+
     isOpen_ = true;
     LOG_INFO(QString("相机已打开: %1 (%2) 分辨率: %3x%4")
         .arg(deviceInfo_.modelName).arg(deviceInfo_.serialNumber)
@@ -384,14 +393,34 @@ Base::ImageData::Ptr HikvisionCamera::grabImage(int timeoutMs)
     QMutexLocker locker(&mutex_);
 
     if (!isOpen_ || !handle_) {
+        LOG_ERROR("相机未打开或句柄无效");
         return nullptr;
+    }
+
+    // 如果未在采集状态，先启动采集
+    if (!isGrabbing_) {
+        int ret = MV_CC_StartGrabbing(handle_);
+        if (ret != MV_OK) {
+            LOG_ERROR(QString("启动采集失败, 错误码: 0x%1").arg(ret, 8, 16, QChar('0')));
+            return nullptr;
+        }
+        isGrabbing_ = true;
+        LOG_DEBUG("自动启动采集");
     }
 
     MV_FRAME_OUT frameOut = {0};
     int ret = MV_CC_GetImageBuffer(handle_, &frameOut, timeoutMs);
     if (ret != MV_OK) {
-        if (ret != MV_E_NODATA) {
-            LOG_ERROR(QString("获取图像失败, 错误码: 0x%1").arg(ret, 8, 16, QChar('0')));
+        unsigned int errCode = static_cast<unsigned int>(ret);
+        if (errCode == 0x80000006) {  // MV_E_NODATA - 无数据
+            // 软触发模式下可能需要等待
+            LOG_DEBUG("等待图像数据...");
+        } else if (errCode == 0x80000008) {  // MV_E_CALLORDER - 调用顺序错误
+            LOG_ERROR("调用顺序错误，请确保相机已开始采集");
+        } else if (errCode == 0x80000003) {  // MV_E_BUFOVER - 缓冲区溢出
+            LOG_ERROR("图像缓冲区溢出");
+        } else {
+            LOG_ERROR(QString("获取图像失败, 错误码: 0x%1").arg(errCode, 8, 16, QChar('0')));
         }
         return nullptr;
     }

@@ -33,6 +33,11 @@
 #include "hal/CameraFactory.h"
 #include "core/RecipeManager.h"
 #include "algorithm/CalibrationManager.h"
+#include "base/ConfigManager.h"
+
+#ifdef USE_HIKVISION_MVS
+#include "hal/HikvisionCamera.h"
+#endif
 
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
 #ifdef USE_HALCON
@@ -98,7 +103,7 @@ MainWindow::MainWindow(QWidget* parent)
     // 连接信号
     connectSignals();
 
-    // 创建模拟相机作为默认相机
+    // 创建模拟相机作为默认相机（备用）
     HAL::SimulatedCamera* simCamera = new HAL::SimulatedCamera(this);
     simCamera->useTestPattern(0);  // 使用渐变测试图案
     camera_ = simCamera;
@@ -109,6 +114,13 @@ MainWindow::MainWindow(QWidget* parent)
 
     // 初始化配方管理器（扫描目录并加载上次使用的配方）
     Core::RecipeManager::instance().initialize();
+
+    // 尝试自动连接已保存的相机配置
+    if (tryAutoConnectCamera()) {
+        LOG_INFO("已自动连接保存的相机配置");
+    } else {
+        LOG_DEBUG("使用模拟相机作为默认相机");
+    }
 
     // 更新界面状态
     updateActions();
@@ -1538,6 +1550,122 @@ void MainWindow::onSystemSettings()
 {
     SystemSettingsDialog dialog(this);
     dialog.exec();
+}
+
+// ========== 相机自动连接 ==========
+
+bool MainWindow::tryAutoConnectCamera()
+{
+    Base::ConfigManager& config = Base::ConfigManager::instance();
+
+    // 读取保存的相机配置
+    int cameraType = config.getValue("Camera/Type", -1).toInt();
+    QString serialNumber = config.getValue("Camera/SerialNumber", "").toString();
+    QString ipAddress = config.getValue("Camera/IPAddress", "").toString();
+    QString modelName = config.getValue("Camera/ModelName", "").toString();
+
+    // 检查是否有有效的配置
+    if (cameraType < 0 || (serialNumber.isEmpty() && ipAddress.isEmpty())) {
+        LOG_DEBUG("没有找到保存的相机配置，跳过自动连接");
+        return false;
+    }
+
+    LOG_INFO(QString("尝试自动连接相机: 类型=%1, 序列号=%2, IP=%3")
+        .arg(cameraType).arg(serialNumber).arg(ipAddress));
+
+    // 枚举可用相机
+    QList<HAL::GenericDeviceInfo> cameras = HAL::CameraFactory::enumerateAllDevices();
+
+    if (cameras.isEmpty()) {
+        LOG_WARNING("没有找到可用相机，无法自动连接");
+        return false;
+    }
+
+    // 查找匹配的相机
+    HAL::GenericDeviceInfo matchedCamera;
+    bool found = false;
+
+    for (const HAL::GenericDeviceInfo& cam : cameras) {
+        // 优先匹配序列号（更精确）
+        if (!serialNumber.isEmpty() && cam.serialNumber == serialNumber) {
+            matchedCamera = cam;
+            found = true;
+            LOG_INFO(QString("通过序列号匹配到相机: %1").arg(serialNumber));
+            break;
+        }
+        // 其次匹配IP地址
+        if (!ipAddress.isEmpty() && cam.ipAddress == ipAddress) {
+            matchedCamera = cam;
+            found = true;
+            LOG_INFO(QString("通过IP地址匹配到相机: %1").arg(ipAddress));
+            break;
+        }
+    }
+
+    if (!found) {
+        LOG_WARNING(QString("未找到匹配的相机 (序列号=%1, IP=%2)")
+            .arg(serialNumber).arg(ipAddress));
+        return false;
+    }
+
+    // 创建并连接相机
+    HAL::ICamera* newCamera = HAL::CameraFactory::create(
+        static_cast<HAL::CameraFactory::CameraType>(matchedCamera.cameraType), this);
+    if (!newCamera) {
+        LOG_ERROR("创建相机实例失败");
+        return false;
+    }
+
+    // 根据相机类型选择设备
+    bool deviceSelected = false;
+#ifdef USE_HIKVISION_MVS
+    if (matchedCamera.cameraType == HAL::CameraFactory::Hikvision) {
+        HAL::HikvisionCamera* hikCamera = dynamic_cast<HAL::HikvisionCamera*>(newCamera);
+        if (hikCamera) {
+            // 优先使用序列号选择设备
+            if (!serialNumber.isEmpty()) {
+                deviceSelected = hikCamera->selectBySerialNumber(serialNumber);
+            }
+            // 其次使用IP地址
+            if (!deviceSelected && !ipAddress.isEmpty()) {
+                deviceSelected = hikCamera->selectByIP(ipAddress);
+            }
+        }
+    }
+#endif
+
+    // 非海康相机或选择失败，直接尝试打开
+    if (!deviceSelected && matchedCamera.cameraType != HAL::CameraFactory::Hikvision) {
+        deviceSelected = true;  // 模拟相机等不需要选择设备
+    }
+
+    if (!deviceSelected) {
+        LOG_ERROR("选择相机设备失败");
+        delete newCamera;
+        return false;
+    }
+
+    // 尝试打开相机
+    if (!newCamera->open()) {
+        LOG_ERROR("打开相机失败");
+        delete newCamera;
+        return false;
+    }
+
+    // 成功连接，替换当前相机
+    if (camera_) {
+        camera_->close();
+        delete camera_;
+    }
+    camera_ = newCamera;
+
+    statusLabel_->setText(QString("已自动连接相机: %1").arg(matchedCamera.modelName));
+    updateActions();
+
+    LOG_INFO(QString("相机自动连接成功: %1 (%2)")
+        .arg(matchedCamera.modelName).arg(matchedCamera.serialNumber));
+
+    return true;
 }
 
 } // namespace UI

@@ -138,6 +138,53 @@ bool ShapeMatchTool::loadModel(const QString& modelPath)
         }
 
         LOG_INFO(QString("模板类型: %1").arg(useGenericModel_ ? "通用(Generic)" : "传统(Traditional)"));
+
+        // 获取模板参考点（关键！用于正确变换轮廓）
+        try {
+            if (useGenericModel_) {
+                // 通用形状模型：从模型轮廓获取中心点
+                HObject contoursObj;
+                GetGenericShapeModelObject(&contoursObj, shapeModel_, "contours");
+                HTuple countObj;
+                CountObj(contoursObj, &countObj);
+                if (countObj.I() > 0) {
+                    // 获取轮廓边界框的中心作为参考点
+                    HTuple minRow, maxRow, minCol, maxCol;
+                    SmallestRectangle1Xld(HXLDCont(contoursObj), &minRow, &maxRow, &minCol, &maxCol);
+                    modelRefRow_ = (minRow.D() + maxRow.D()) / 2.0;
+                    modelRefCol_ = (minCol.D() + maxCol.D()) / 2.0;
+                    modelWidth_ = static_cast<int>(maxCol.D() - minCol.D());
+                    modelHeight_ = static_cast<int>(maxRow.D() - minRow.D());
+                    LOG_INFO(QString("从轮廓获取参考点: (%.1f, %.1f), 尺寸: %2x%3")
+                        .arg(modelRefRow_).arg(modelRefCol_).arg(modelWidth_).arg(modelHeight_));
+                }
+            } else {
+                // 传统形状模型：使用GetShapeModelOrigin获取参考点偏移
+                HTuple originRow, originCol;
+                GetShapeModelOrigin(shapeModel_, &originRow, &originCol);
+                // 传统模型的原点偏移是相对于模型中心的
+                // 需要获取模型轮廓来计算实际参考点
+                HXLDCont modelContours;
+                GetShapeModelContours(&modelContours, shapeModel_, 1);
+                if (modelContours.CountObj() > 0) {
+                    HTuple minRow, maxRow, minCol, maxCol;
+                    SmallestRectangle1Xld(modelContours, &minRow, &maxRow, &minCol, &maxCol);
+                    double centerRow = (minRow.D() + maxRow.D()) / 2.0;
+                    double centerCol = (minCol.D() + maxCol.D()) / 2.0;
+                    modelRefRow_ = centerRow + originRow.D();
+                    modelRefCol_ = centerCol + originCol.D();
+                    modelWidth_ = static_cast<int>(maxCol.D() - minCol.D());
+                    modelHeight_ = static_cast<int>(maxRow.D() - minRow.D());
+                }
+                LOG_INFO(QString("传统模型原点偏移: (%.1f, %.1f)").arg(originRow.D()).arg(originCol.D()));
+            }
+        }
+        catch (const HException& e) {
+            LOG_WARNING(QString("获取模板参考点失败: %1, 使用默认值(0,0)").arg(e.ErrorMessage().Text()));
+            modelRefRow_ = 0.0;
+            modelRefCol_ = 0.0;
+        }
+
         LOG_INFO(QString("模板参考点: (%.1f, %.1f)").arg(modelRefRow_).arg(modelRefCol_));
 
         emit paramChanged();

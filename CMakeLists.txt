@@ -84,9 +84,9 @@ if(NOT DEFINED CMAKE_PREFIX_PATH)
 endif()
 message(STATUS "Qt路径: ${CMAKE_PREFIX_PATH}")
 
-# OpenCV路径
+# OpenCV路径 (CUDA版本)
 if(NOT DEFINED OpenCV_DIR)
-    set(OpenCV_DIR "F:/Program Files/OPENCV/build" CACHE PATH "OpenCV路径")
+    set(OpenCV_DIR "F:/Program Files/OPENCV/opencv_cuda" CACHE PATH "OpenCV路径")
 endif()
 message(STATUS "OpenCV路径: ${OpenCV_DIR}")
 

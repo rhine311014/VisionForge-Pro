@@ -255,6 +255,7 @@ private:
     void loadImageAtIndex(int index);         // 加载指定索引的图片
     void updateImageSequenceActions();        // 更新图片序列相关动作状态
     void applyImageTransform(Base::ImageData::Ptr& image);  // 应用图像变换（旋转、镜像）
+    bool tryAutoConnectCamera();              // 尝试自动连接已保存的相机
 };
 
 } // namespace UI

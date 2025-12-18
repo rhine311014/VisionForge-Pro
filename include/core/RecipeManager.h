@@ -208,6 +208,28 @@ public:
      */
     void clearRecentRecipes();
 
+    /**
+     * @brief 初始化方案管理器（扫描目录并加载上次使用的配方）
+     * @return true如果成功加载了上次配方
+     */
+    bool initialize();
+
+    /**
+     * @brief 保存最后使用的配方名称到配置
+     */
+    void saveLastRecipeName();
+
+    /**
+     * @brief 加载最后使用的配方
+     * @return true如果成功
+     */
+    bool loadLastRecipe();
+
+    /**
+     * @brief 获取保存的最后配方名称
+     */
+    QString getLastRecipeName() const;
+
 signals:
     /**
      * @brief 方案加载信号
