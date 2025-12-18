@@ -18,6 +18,29 @@ set(UI_SOURCES
     CameraCalibDialog.cpp
     NinePointCalibDialog.cpp
     SystemSettingsDialog.cpp
+    # 工具对话框 - 预处理
+    GrayToolDialog.cpp
+    BlurToolDialog.cpp
+    ThresholdToolDialog.cpp
+    ColorConvertToolDialog.cpp
+    EdgeToolDialog.cpp
+    MorphologyToolDialog.cpp
+    # 工具对话框 - 检测
+    TemplateMatchToolDialog.cpp
+    CircleToolDialog.cpp
+    LineToolDialog.cpp
+    FindEdgeToolDialog.cpp
+    BlobToolDialog.cpp
+    AIDetectionToolDialog.cpp
+    # 工具对话框 - 测量和判定
+    MeasureDistanceToolDialog.cpp
+    MeasureAngleToolDialog.cpp
+    MeasureAreaToolDialog.cpp
+    CalcCenterToolDialog.cpp
+    CalcOrientationToolDialog.cpp
+    RangeJudgeToolDialog.cpp
+    LogicOperationToolDialog.cpp
+    SaveImageToolDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -50,6 +73,29 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/CameraCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/NinePointCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/SystemSettingsDialog.h
+    # 工具对话框头文件 - 预处理
+    ${CMAKE_SOURCE_DIR}/include/ui/GrayToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/BlurToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/ThresholdToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/ColorConvertToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/EdgeToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/MorphologyToolDialog.h
+    # 工具对话框头文件 - 检测
+    ${CMAKE_SOURCE_DIR}/include/ui/TemplateMatchToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/CircleToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/LineToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/FindEdgeToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/BlobToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/AIDetectionToolDialog.h
+    # 工具对话框头文件 - 测量和判定
+    ${CMAKE_SOURCE_DIR}/include/ui/MeasureDistanceToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/MeasureAngleToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/MeasureAreaToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/CalcCenterToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/CalcOrientationToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/RangeJudgeToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/LogicOperationToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/SaveImageToolDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件

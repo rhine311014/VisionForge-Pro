@@ -31,6 +31,50 @@
 #include "ui/CameraCalibDialog.h"
 #include "ui/NinePointCalibDialog.h"
 #include "ui/SystemSettingsDialog.h"
+// 工具对话框 - 预处理
+#include "ui/GrayToolDialog.h"
+#include "ui/BlurToolDialog.h"
+#include "ui/ThresholdToolDialog.h"
+#include "ui/ColorConvertToolDialog.h"
+#include "ui/EdgeToolDialog.h"
+#include "ui/MorphologyToolDialog.h"
+// 工具对话框 - 检测
+#include "ui/TemplateMatchToolDialog.h"
+#include "ui/CircleToolDialog.h"
+#include "ui/LineToolDialog.h"
+#include "ui/FindEdgeToolDialog.h"
+#include "ui/BlobToolDialog.h"
+#include "ui/AIDetectionToolDialog.h"
+// 工具对话框 - 测量和判定
+#include "ui/MeasureDistanceToolDialog.h"
+#include "ui/MeasureAngleToolDialog.h"
+#include "ui/MeasureAreaToolDialog.h"
+#include "ui/CalcCenterToolDialog.h"
+#include "ui/CalcOrientationToolDialog.h"
+#include "ui/RangeJudgeToolDialog.h"
+#include "ui/LogicOperationToolDialog.h"
+#include "ui/SaveImageToolDialog.h"
+// 算法工具头文件
+#include "algorithm/GrayTool.h"
+#include "algorithm/BlurTool.h"
+#include "algorithm/ThresholdTool.h"
+#include "algorithm/ColorConvertTool.h"
+#include "algorithm/EdgeTool.h"
+#include "algorithm/MorphologyTool.h"
+#include "algorithm/TemplateMatchTool.h"
+#include "algorithm/CircleTool.h"
+#include "algorithm/LineTool.h"
+#include "algorithm/FindEdgeTool.h"
+#include "algorithm/BlobTool.h"
+#include "algorithm/AIDetectionTool.h"
+#include "algorithm/MeasureDistanceTool.h"
+#include "algorithm/MeasureAngleTool.h"
+#include "algorithm/MeasureAreaTool.h"
+#include "algorithm/CalcCenterTool.h"
+#include "algorithm/CalcOrientationTool.h"
+#include "algorithm/RangeJudgeTool.h"
+#include "algorithm/LogicOperationTool.h"
+#include "algorithm/SaveImageTool.h"
 #include "hal/CameraFactory.h"
 #include "core/RecipeManager.h"
 #include "algorithm/CalibrationManager.h"
@@ -664,6 +708,213 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
         return;
     }
 #endif
+
+    // ========== 预处理工具 ==========
+    // 灰度转换工具
+    if (Algorithm::GrayTool* grayTool = dynamic_cast<Algorithm::GrayTool*>(tool)) {
+        GrayToolDialog dialog(grayTool, this);
+        dialog.setPreviewImage(currentImage_);
+        connect(&dialog, &GrayToolDialog::previewRequested, this, &MainWindow::onRunSingle);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("灰度转换参数已更新");
+        }
+        return;
+    }
+
+    // 模糊工具
+    if (Algorithm::BlurTool* blurTool = dynamic_cast<Algorithm::BlurTool*>(tool)) {
+        BlurToolDialog dialog(blurTool, this);
+        dialog.setPreviewImage(currentImage_);
+        connect(&dialog, &BlurToolDialog::previewRequested, this, &MainWindow::onRunSingle);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("模糊参数已更新");
+        }
+        return;
+    }
+
+    // 二值化工具
+    if (Algorithm::ThresholdTool* thresholdTool = dynamic_cast<Algorithm::ThresholdTool*>(tool)) {
+        ThresholdToolDialog dialog(thresholdTool, this);
+        dialog.setPreviewImage(currentImage_);
+        connect(&dialog, &ThresholdToolDialog::previewRequested, this, &MainWindow::onRunSingle);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("二值化参数已更新");
+        }
+        return;
+    }
+
+    // 颜色转换工具
+    if (Algorithm::ColorConvertTool* colorTool = dynamic_cast<Algorithm::ColorConvertTool*>(tool)) {
+        ColorConvertToolDialog dialog(colorTool, this);
+        dialog.setPreviewImage(currentImage_);
+        connect(&dialog, &ColorConvertToolDialog::previewRequested, this, &MainWindow::onRunSingle);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("颜色转换参数已更新");
+        }
+        return;
+    }
+
+    // 边缘检测工具
+    if (Algorithm::EdgeTool* edgeTool = dynamic_cast<Algorithm::EdgeTool*>(tool)) {
+        EdgeToolDialog dialog(edgeTool, this);
+        dialog.setPreviewImage(currentImage_);
+        connect(&dialog, &EdgeToolDialog::previewRequested, this, &MainWindow::onRunSingle);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("边缘检测参数已更新");
+        }
+        return;
+    }
+
+    // 形态学工具
+    if (Algorithm::MorphologyTool* morphTool = dynamic_cast<Algorithm::MorphologyTool*>(tool)) {
+        MorphologyToolDialog dialog(morphTool, this);
+        dialog.setPreviewImage(currentImage_);
+        connect(&dialog, &MorphologyToolDialog::previewRequested, this, &MainWindow::onRunSingle);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("形态学参数已更新");
+        }
+        return;
+    }
+
+    // ========== 检测工具 ==========
+    // 模板匹配工具
+    if (Algorithm::TemplateMatchTool* templateTool = dynamic_cast<Algorithm::TemplateMatchTool*>(tool)) {
+        TemplateMatchToolDialog dialog(templateTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("模板匹配参数已更新");
+        }
+        return;
+    }
+
+    // 圆检测工具
+    if (Algorithm::CircleTool* circleTool = dynamic_cast<Algorithm::CircleTool*>(tool)) {
+        CircleToolDialog dialog(circleTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("圆检测参数已更新");
+        }
+        return;
+    }
+
+    // 线检测工具
+    if (Algorithm::LineTool* lineTool = dynamic_cast<Algorithm::LineTool*>(tool)) {
+        LineToolDialog dialog(lineTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("线检测参数已更新");
+        }
+        return;
+    }
+
+    // 边缘查找工具
+    if (Algorithm::FindEdgeTool* findEdgeTool = dynamic_cast<Algorithm::FindEdgeTool*>(tool)) {
+        FindEdgeToolDialog dialog(findEdgeTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("边缘查找参数已更新");
+        }
+        return;
+    }
+
+    // Blob分析工具
+    if (Algorithm::BlobTool* blobTool = dynamic_cast<Algorithm::BlobTool*>(tool)) {
+        BlobToolDialog dialog(blobTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("Blob分析参数已更新");
+        }
+        return;
+    }
+
+    // AI检测工具
+    if (Algorithm::AIDetectionTool* aiTool = dynamic_cast<Algorithm::AIDetectionTool*>(tool)) {
+        AIDetectionToolDialog dialog(aiTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("AI检测参数已更新");
+        }
+        return;
+    }
+
+    // ========== 测量工具 ==========
+    // 距离测量工具
+    if (Algorithm::MeasureDistanceTool* distTool = dynamic_cast<Algorithm::MeasureDistanceTool*>(tool)) {
+        MeasureDistanceToolDialog dialog(distTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("距离测量参数已更新");
+        }
+        return;
+    }
+
+    // 角度测量工具
+    if (Algorithm::MeasureAngleTool* angleTool = dynamic_cast<Algorithm::MeasureAngleTool*>(tool)) {
+        MeasureAngleToolDialog dialog(angleTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("角度测量参数已更新");
+        }
+        return;
+    }
+
+    // 面积测量工具
+    if (Algorithm::MeasureAreaTool* areaTool = dynamic_cast<Algorithm::MeasureAreaTool*>(tool)) {
+        MeasureAreaToolDialog dialog(areaTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("面积测量参数已更新");
+        }
+        return;
+    }
+
+    // 中心计算工具
+    if (Algorithm::CalcCenterTool* centerTool = dynamic_cast<Algorithm::CalcCenterTool*>(tool)) {
+        CalcCenterToolDialog dialog(centerTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("中心计算参数已更新");
+        }
+        return;
+    }
+
+    // 方向计算工具
+    if (Algorithm::CalcOrientationTool* orientTool = dynamic_cast<Algorithm::CalcOrientationTool*>(tool)) {
+        CalcOrientationToolDialog dialog(orientTool, this);
+        dialog.setImage(currentImage_);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("方向计算参数已更新");
+        }
+        return;
+    }
+
+    // ========== 判定工具 ==========
+    // 范围判定工具
+    if (Algorithm::RangeJudgeTool* judgeTool = dynamic_cast<Algorithm::RangeJudgeTool*>(tool)) {
+        RangeJudgeToolDialog dialog(judgeTool, this);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("范围判定参数已更新");
+        }
+        return;
+    }
+
+    // 逻辑运算工具
+    if (Algorithm::LogicOperationTool* logicTool = dynamic_cast<Algorithm::LogicOperationTool*>(tool)) {
+        LogicOperationToolDialog dialog(logicTool, this);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("逻辑运算参数已更新");
+        }
+        return;
+    }
+
+    // 图像保存工具
+    if (Algorithm::SaveImageTool* saveTool = dynamic_cast<Algorithm::SaveImageTool*>(tool)) {
+        SaveImageToolDialog dialog(saveTool, this);
+        if (dialog.exec() == QDialog::Accepted) {
+            statusLabel_->setText("图像保存参数已更新");
+        }
+        return;
+    }
 
     // 其他工具类型，显示提示（基于OpenCV的工具参数在右侧面板编辑）
     QMessageBox::information(this, "提示",
