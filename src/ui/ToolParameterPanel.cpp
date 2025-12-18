@@ -8,7 +8,7 @@
 #include "base/Logger.h"
 #include <QPushButton>
 
-#ifdef _WIN32
+#ifdef USE_HALCON
 #include "ui/ShapeMatchParamPanel.h"
 #include "algorithm/ShapeMatchTool.h"
 #endif
@@ -91,7 +91,7 @@ void ToolParameterPanel::setTool(Algorithm::VisionTool* tool)
     if (currentTool_->toolType() == Algorithm::VisionTool::Gray) {
         createGrayToolParameters();
     }
-#ifdef _WIN32
+#ifdef USE_HALCON
     else if (currentTool_->toolType() == Algorithm::VisionTool::Match) {
         createShapeMatchToolParameters();
     }
@@ -253,7 +253,7 @@ void ToolParameterPanel::refreshUI()
     if (channelCombo_) channelCombo_->blockSignals(false);
 }
 
-#ifdef _WIN32
+#ifdef USE_HALCON
 void ToolParameterPanel::createShapeMatchToolParameters()
 {
     using namespace Algorithm;

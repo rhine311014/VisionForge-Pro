@@ -9,9 +9,11 @@
 #include "algorithm/ThresholdTool.h"
 #include "algorithm/EdgeTool.h"
 #include "algorithm/MorphologyTool.h"
+#include "algorithm/CameraCalibTool.h"
+#include "algorithm/NinePointCalibTool.h"
 #include "base/Logger.h"
 
-#ifdef _WIN32
+#ifdef USE_HALCON
 #include "algorithm/ShapeMatchTool.h"
 #endif
 
@@ -191,7 +193,7 @@ void ToolFactory::registerBuiltInTools()
         []() -> VisionTool* { return new MorphologyTool(); }
     );
 
-#ifdef _WIN32
+#ifdef USE_HALCON
     // 注册Halcon形状匹配工具
     registerTool(
         VisionTool::Match,
@@ -205,6 +207,32 @@ void ToolFactory::registerBuiltInTools()
         []() -> VisionTool* { return new ShapeMatchTool(); }
     );
 #endif
+
+    // 注册相机标定工具
+    registerTool(
+        VisionTool::CameraCalib,
+        ToolInfo(
+            "相机标定",
+            "标定",
+            "使用棋盘格/圆点阵进行相机内参标定，计算畸变校正参数",
+            ":/icons/camera_calib.png",
+            VisionTool::CameraCalib
+        ),
+        []() -> VisionTool* { return new CameraCalibTool(); }
+    );
+
+    // 注册九点标定工具
+    registerTool(
+        VisionTool::NinePointCalib,
+        ToolInfo(
+            "九点标定",
+            "标定",
+            "图像坐标与物理坐标映射标定，支持仿射/透视变换",
+            ":/icons/ninepoint_calib.png",
+            VisionTool::NinePointCalib
+        ),
+        []() -> VisionTool* { return new NinePointCalibTool(); }
+    );
 
     // TODO: 注册其他内置工具
     // 例如:

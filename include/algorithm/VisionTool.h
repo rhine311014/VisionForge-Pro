@@ -89,6 +89,9 @@ public:
         // 判定输出
         RangeJudge, LogicOperation, PLCOutput, SaveImage,
 
+        // 标定
+        CameraCalib, NinePointCalib,
+
         // 自定义
         Custom
     };

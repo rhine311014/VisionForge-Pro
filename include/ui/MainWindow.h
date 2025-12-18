@@ -120,6 +120,10 @@ private slots:
     // 相机配置
     void onCameraConfig();
 
+    // 标定
+    void onCameraCalibration();
+    void onNinePointCalibration();
+
     // 方案管理
     void onRecipeActivated(Core::Recipe* recipe);
     void onEditRecipeRequested(Core::Recipe* recipe);
@@ -166,6 +170,7 @@ private:
     QMenu* toolMenu_;
     QMenu* roiMenu_;
     QMenu* cameraMenu_;
+    QMenu* calibMenu_;   // 标定菜单
     QMenu* commMenu_;    // 通信菜单
     QMenu* helpMenu_;
 
@@ -216,6 +221,10 @@ private:
 
     // 相机配置动作
     QAction* cameraConfigAction_;
+
+    // 标定动作
+    QAction* cameraCalibAction_;
+    QAction* ninePointCalibAction_;
 
     // 状态栏
     QLabel* statusLabel_;

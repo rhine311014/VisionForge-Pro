@@ -380,6 +380,8 @@ void ImageViewer::mouseMoveEvent(QMouseEvent* event)
 void ImageViewer::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton) {
+        QPoint imagePos = widgetToImage(event->pos());
+
         if (isPanning_) {
             isPanning_ = false;
             setCursor(Qt::ArrowCursor);
@@ -391,10 +393,18 @@ void ImageViewer::mouseReleaseEvent(QMouseEvent* event)
             }
             else {
                 // 多边形：添加点
-                QPoint imagePos = widgetToImage(event->pos());
                 auto polygon = std::dynamic_pointer_cast<ROIPolygon>(currentROI_);
                 polygon->addPoint(imagePos);
                 update();
+            }
+        }
+
+        // 发出鼠标点击信号（用于九点标定等功能）
+        if (currentImage_) {
+            bool valid = (imagePos.x() >= 0 && imagePos.x() < currentImage_->width() &&
+                         imagePos.y() >= 0 && imagePos.y() < currentImage_->height());
+            if (valid) {
+                emit mouseClicked(imagePos.x(), imagePos.y());
             }
         }
     }

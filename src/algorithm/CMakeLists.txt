@@ -11,6 +11,11 @@ set(ALGORITHM_SOURCES
     EdgeTool.cpp
     MorphologyTool.cpp
     ToolFactory.cpp
+    # 标定相关
+    CalibrationResult.cpp
+    CameraCalibTool.cpp
+    NinePointCalibTool.cpp
+    CalibrationManager.cpp
 )
 
 # 如果启用Halcon，添加Halcon相关工具
@@ -30,6 +35,11 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/EdgeTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/MorphologyTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/ToolFactory.h
+    # 标定相关
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CalibrationResult.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CameraCalibTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/NinePointCalibTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CalibrationManager.h
 )
 
 # 如果启用Halcon，添加Halcon相关头文件
@@ -75,6 +85,11 @@ set_target_properties(VisionForgeAlgorithm PROPERTIES
     CXX_STANDARD_REQUIRED ON
     AUTOMOC ON
 )
+
+# Windows平台：防止min/max宏冲突
+if(WIN32)
+    target_compile_definitions(VisionForgeAlgorithm PRIVATE NOMINMAX)
+endif()
 
 # 输出信息
 message(STATUS "算法层 (VisionForgeAlgorithm) 配置完成")

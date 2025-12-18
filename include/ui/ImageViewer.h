@@ -217,6 +217,13 @@ signals:
      */
     void roiRemoved(ROIShapePtr roi);
 
+    /**
+     * @brief 鼠标点击信号（图像坐标）
+     * @param x 图像x坐标
+     * @param y 图像y坐标
+     */
+    void mouseClicked(int x, int y);
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;

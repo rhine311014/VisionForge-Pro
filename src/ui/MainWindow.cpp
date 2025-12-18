@@ -6,7 +6,6 @@
 #include "ui/MainWindow.h"
 #include "ui/Theme.h"
 #include "algorithm/ToolFactory.h"
-#include "algorithm/ShapeMatchTool.h"
 #include "base/Logger.h"
 #include <QFile>
 #include <QFileDialog>
@@ -19,7 +18,8 @@
 #include <opencv2/opencv.hpp>
 #include <chrono>
 
-#ifdef _WIN32
+#ifdef USE_HALCON
+#include "algorithm/ShapeMatchTool.h"
 #include "algorithm/HalconObjectWrapper.h"
 #include "ui/ShapeMatchToolDialog.h"
 #endif
@@ -27,8 +27,11 @@
 #include "ui/PLCConfigDialog.h"
 #include "ui/CameraConfigDialog.h"
 #include "ui/RecipeEditorDialog.h"
+#include "ui/CameraCalibDialog.h"
+#include "ui/NinePointCalibDialog.h"
 #include "hal/CameraFactory.h"
 #include "core/RecipeManager.h"
+#include "algorithm/CalibrationManager.h"
 
 // 定义ImageViewer类型宏，根据USE_HALCON选择使用哪个ImageViewer
 #ifdef USE_HALCON
@@ -465,7 +468,7 @@ void MainWindow::onRunSingle()
             imageViewer_->setImage(currentImage_);
 
             // 处理displayObjects - XLD轮廓显示
-#ifdef _WIN32
+#ifdef USE_HALCON
             if (!result.displayObjects.isEmpty() &&
                 result.displayObjects.contains("match_contours")) {
                 QVariant objVariant = result.displayObjects["match_contours"];
@@ -596,7 +599,7 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
 {
     if (!tool) return;
 
-#ifdef _WIN32
+#ifdef USE_HALCON
     // 检查是否是形状匹配工具
     Algorithm::ShapeMatchTool* shapeMatchTool =
         dynamic_cast<Algorithm::ShapeMatchTool*>(tool);
@@ -844,6 +847,19 @@ void MainWindow::createMenus()
     cameraConfigAction_->setStatusTip("配置相机设备和参数");
     connect(cameraConfigAction_, &QAction::triggered, this, &MainWindow::onCameraConfig);
     cameraMenu_->addAction(cameraConfigAction_);
+
+    // 标定菜单
+    calibMenu_ = menuBar()->addMenu("标定(&B)");
+
+    cameraCalibAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "相机标定(&C)...", this);
+    cameraCalibAction_->setStatusTip("相机内参和畸变校正标定");
+    connect(cameraCalibAction_, &QAction::triggered, this, &MainWindow::onCameraCalibration);
+    calibMenu_->addAction(cameraCalibAction_);
+
+    ninePointCalibAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "九点标定(&N)...", this);
+    ninePointCalibAction_->setStatusTip("图像坐标到物理坐标映射标定");
+    connect(ninePointCalibAction_, &QAction::triggered, this, &MainWindow::onNinePointCalibration);
+    calibMenu_->addAction(ninePointCalibAction_);
 
     // 通信菜单
     commMenu_ = menuBar()->addMenu("通信(&M)");
@@ -1145,7 +1161,7 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
     imageViewer_->setImage(currentImage_);
 
     // 处理displayObjects - XLD轮廓显示
-#ifdef _WIN32
+#ifdef USE_HALCON
     if (!lastDisplayObjects.isEmpty() &&
         lastDisplayObjects.contains("match_contours")) {
         QVariant objVariant = lastDisplayObjects["match_contours"];
@@ -1398,6 +1414,50 @@ void MainWindow::onEditRecipeRequested(Core::Recipe* recipe)
         recipeManagerWidget_->refreshRecipeList();
         LOG_INFO(QString("方案已编辑: %1").arg(recipe->name()));
     }
+}
+
+// ========== 标定 ==========
+
+void MainWindow::onCameraCalibration()
+{
+    CameraCalibDialog dialog(this);
+
+    // 设置当前图像
+    if (currentImage_) {
+        dialog.setCurrentImage(currentImage_);
+    }
+
+    // 连接标定完成信号
+    connect(&dialog, &CameraCalibDialog::calibrationCompleted,
+            this, [this](const Algorithm::CalibrationResult& result) {
+        // 保存标定结果到CalibrationManager
+        Algorithm::CalibrationManager::instance().setCameraCalibResult(result);
+        LOG_INFO("相机标定结果已保存到CalibrationManager");
+        statusLabel_->setText("相机标定完成");
+    });
+
+    dialog.exec();
+}
+
+void MainWindow::onNinePointCalibration()
+{
+    NinePointCalibDialog dialog(this);
+
+    // 设置当前图像
+    if (currentImage_) {
+        dialog.setCurrentImage(currentImage_);
+    }
+
+    // 连接标定完成信号
+    connect(&dialog, &NinePointCalibDialog::calibrationCompleted,
+            this, [this](const Algorithm::CalibrationResult& result) {
+        // 保存标定结果到CalibrationManager
+        Algorithm::CalibrationManager::instance().setNinePointCalibResult(result);
+        LOG_INFO("九点标定结果已保存到CalibrationManager");
+        statusLabel_->setText("九点标定完成");
+    });
+
+    dialog.exec();
 }
 
 } // namespace UI

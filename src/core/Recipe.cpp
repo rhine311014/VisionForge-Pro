@@ -251,6 +251,17 @@ QString Recipe::modelLibraryPath() const
     return QDir(recipeDir).filePath("models");
 }
 
+QString Recipe::calibrationPath() const
+{
+    QString recipeDir = recipeDirectory();
+    if (recipeDir.isEmpty()) {
+        return QString();
+    }
+
+    // 标定数据存储在方案目录下的 calibration 子目录
+    return QDir(recipeDir).filePath("calibration");
+}
+
 bool Recipe::ensureDirectoryStructure() const
 {
     QString recipeDir = recipeDirectory();
@@ -279,6 +290,19 @@ bool Recipe::ensureDirectoryStructure() const
                 return false;
             }
             LOG_INFO(QString("创建模板库目录: %1").arg(modelsDir));
+        }
+    }
+
+    // 确保标定目录存在
+    QString calibDir = calibrationPath();
+    if (!calibDir.isEmpty()) {
+        QDir calibPath(calibDir);
+        if (!calibPath.exists()) {
+            if (!calibPath.mkpath(".")) {
+                LOG_ERROR(QString("无法创建标定目录: %1").arg(calibDir));
+                return false;
+            }
+            LOG_INFO(QString("创建标定目录: %1").arg(calibDir));
         }
     }
 

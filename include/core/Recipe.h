@@ -180,6 +180,12 @@ public:
     QString modelLibraryPath() const;
 
     /**
+     * @brief 获取标定数据路径
+     * @return 标定目录路径（{方案目录}/calibration/）
+     */
+    QString calibrationPath() const;
+
+    /**
      * @brief 确保方案目录结构存在
      * @return true如果目录结构创建/存在成功
      */
