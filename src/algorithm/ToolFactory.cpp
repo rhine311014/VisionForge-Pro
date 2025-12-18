@@ -23,6 +23,11 @@
 #include "algorithm/PLCOutputTool.h"
 #include "algorithm/LogicOperationTool.h"
 #include "algorithm/TemplateMatchTool.h"
+#include "algorithm/ColorConvertTool.h"
+#include "algorithm/FindEdgeTool.h"
+#include "algorithm/CalcCenterTool.h"
+#include "algorithm/CalcOrientationTool.h"
+#include "algorithm/AIDetectionTool.h"
 #include "base/Logger.h"
 
 #ifdef USE_HALCON
@@ -400,6 +405,71 @@ void ToolFactory::registerBuiltInTools()
             VisionTool::TemplateMatch
         ),
         []() -> VisionTool* { return new TemplateMatchTool(); }
+    );
+
+    // 注册颜色转换工具
+    registerTool(
+        VisionTool::ColorConvert,
+        ToolInfo(
+            "颜色转换",
+            "图像预处理",
+            "在不同颜色空间之间转换，支持BGR/RGB/HSV/Lab等格式",
+            ":/icons/color_convert.png",
+            VisionTool::ColorConvert
+        ),
+        []() -> VisionTool* { return new ColorConvertTool(); }
+    );
+
+    // 注册边缘查找工具
+    registerTool(
+        VisionTool::FindEdge,
+        ToolInfo(
+            "边缘查找",
+            "定位检测",
+            "沿指定方向查找边缘点，支持线搜索和矩形搜索模式",
+            ":/icons/find_edge.png",
+            VisionTool::FindEdge
+        ),
+        []() -> VisionTool* { return new FindEdgeTool(); }
+    );
+
+    // 注册中心计算工具
+    registerTool(
+        VisionTool::CalcCenter,
+        ToolInfo(
+            "中心计算",
+            "测量计算",
+            "计算目标中心点，支持质心、几何中心、最小包围圆等方法",
+            ":/icons/calc_center.png",
+            VisionTool::CalcCenter
+        ),
+        []() -> VisionTool* { return new CalcCenterTool(); }
+    );
+
+    // 注册方向计算工具
+    registerTool(
+        VisionTool::CalcOrientation,
+        ToolInfo(
+            "方向计算",
+            "测量计算",
+            "计算目标方向角度，支持PCA、最小外接矩形、椭圆拟合等方法",
+            ":/icons/calc_orientation.png",
+            VisionTool::CalcOrientation
+        ),
+        []() -> VisionTool* { return new CalcOrientationTool(); }
+    );
+
+    // 注册AI检测工具
+    registerTool(
+        VisionTool::AIDetection,
+        ToolInfo(
+            "AI检测",
+            "AI视觉",
+            "基于深度学习的目标检测、分类、缺陷检测，支持ONNX/TensorRT推理",
+            ":/icons/ai_detection.png",
+            VisionTool::AIDetection
+        ),
+        []() -> VisionTool* { return new AIDetectionTool(); }
     );
 
     LOG_INFO(QString("已注册 %1 个内置工具").arg(tools_.size()));

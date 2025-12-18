@@ -31,6 +31,12 @@ set(ALGORITHM_SOURCES
     LogicOperationTool.cpp
     # 模板匹配
     TemplateMatchTool.cpp
+    # 新增工具
+    ColorConvertTool.cpp
+    FindEdgeTool.cpp
+    CalcCenterTool.cpp
+    CalcOrientationTool.cpp
+    AIDetectionTool.cpp
 )
 
 # 如果启用Halcon，添加Halcon相关工具
@@ -70,6 +76,12 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/LogicOperationTool.h
     # 模板匹配
     ${CMAKE_SOURCE_DIR}/include/algorithm/TemplateMatchTool.h
+    # 新增工具
+    ${CMAKE_SOURCE_DIR}/include/algorithm/ColorConvertTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/FindEdgeTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CalcCenterTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CalcOrientationTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/AIDetectionTool.h
 )
 
 # 如果启用Halcon，添加Halcon相关头文件
