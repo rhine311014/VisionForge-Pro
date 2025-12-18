@@ -6,18 +6,22 @@
 set(COMM_SOURCES
     PLCComm.cpp
     ModbusTCPComm.cpp
+    ModbusRTUComm.cpp
     MitsubishiMCComm.cpp
     KeyencePCLinkComm.cpp
     PLCManager.cpp
+    LightController.cpp
 )
 
 set(COMM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/comm/PLCDef.h
     ${CMAKE_SOURCE_DIR}/include/comm/PLCComm.h
     ${CMAKE_SOURCE_DIR}/include/comm/ModbusTCPComm.h
+    ${CMAKE_SOURCE_DIR}/include/comm/ModbusRTUComm.h
     ${CMAKE_SOURCE_DIR}/include/comm/MitsubishiMCComm.h
     ${CMAKE_SOURCE_DIR}/include/comm/KeyencePCLinkComm.h
     ${CMAKE_SOURCE_DIR}/include/comm/PLCManager.h
+    ${CMAKE_SOURCE_DIR}/include/comm/LightController.h
 )
 
 # 创建静态库
@@ -36,6 +40,7 @@ target_include_directories(VisionForgeComm PUBLIC
 target_link_libraries(VisionForgeComm PUBLIC
     Qt6::Core
     Qt6::Network
+    Qt6::SerialPort
     VisionForgeBase
 )
 

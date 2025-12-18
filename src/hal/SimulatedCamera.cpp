@@ -23,6 +23,7 @@ SimulatedCamera::SimulatedCamera(QObject* parent)
     , sourceType_(TestPattern)
     , currentIndex_(0)
     , testPatternType_(0)
+    , videoLoopEnabled_(true)
     , frameRate_(30.0)
 {
     grabTimer_ = new QTimer(this);
@@ -61,6 +62,7 @@ void SimulatedCamera::close()
     }
 
     stopGrabbing();
+    closeVideoCapture();
     isOpen_ = false;
 
     LOG_INFO("关闭模拟相机");
@@ -148,8 +150,7 @@ Base::ImageData::Ptr SimulatedCamera::grabImage(int timeoutMs)
         break;
 
     case VideoFile:
-        // TODO: 实现视频文件读取
-        image = generateTestPattern(testPatternType_);
+        image = loadNextVideoFrame();
         break;
     }
 
@@ -238,11 +239,19 @@ void SimulatedCamera::setImageSequence(const QStringList& imagePaths)
 
 void SimulatedCamera::setVideoSource(const QString& videoPath)
 {
+    // 先关闭之前的视频
+    closeVideoCapture();
+
     videoPath_ = videoPath;
     sourceType_ = VideoFile;
     cachedImage_.reset();
 
-    LOG_INFO(QString("设置视频源: %1").arg(videoPath));
+    // 尝试打开视频文件
+    if (!openVideoCapture()) {
+        LOG_WARNING(QString("无法打开视频文件: %1，将使用测试图案").arg(videoPath));
+    } else {
+        LOG_INFO(QString("设置视频源: %1").arg(videoPath));
+    }
 }
 
 void SimulatedCamera::useTestPattern(int patternType)
@@ -391,6 +400,82 @@ cv::Mat SimulatedCamera::applyGainAndExposure(const cv::Mat& input)
     output.convertTo(output, -1, gainFactor * exposureFactor, 0);
 
     return output;
+}
+
+bool SimulatedCamera::openVideoCapture()
+{
+    if (videoPath_.isEmpty()) {
+        return false;
+    }
+
+    // 使用标准字符串打开视频文件
+    std::string path = videoPath_.toStdString();
+    videoCapture_.open(path);
+
+    if (!videoCapture_.isOpened()) {
+        LOG_ERROR(QString("无法打开视频文件: %1").arg(videoPath_));
+        return false;
+    }
+
+    double fps = videoCapture_.get(cv::CAP_PROP_FPS);
+    int frameCount = static_cast<int>(videoCapture_.get(cv::CAP_PROP_FRAME_COUNT));
+    int width = static_cast<int>(videoCapture_.get(cv::CAP_PROP_FRAME_WIDTH));
+    int height = static_cast<int>(videoCapture_.get(cv::CAP_PROP_FRAME_HEIGHT));
+
+    LOG_INFO(QString("视频已打开: %1x%2, %3 FPS, %4 帧")
+            .arg(width).arg(height).arg(fps).arg(frameCount));
+
+    return true;
+}
+
+void SimulatedCamera::closeVideoCapture()
+{
+    if (videoCapture_.isOpened()) {
+        videoCapture_.release();
+        LOG_DEBUG("视频捕获已释放");
+    }
+}
+
+Base::ImageData::Ptr SimulatedCamera::loadNextVideoFrame()
+{
+    if (!videoCapture_.isOpened()) {
+        // 尝试重新打开
+        if (!openVideoCapture()) {
+            return generateTestPattern(testPatternType_);
+        }
+    }
+
+    cv::Mat frame;
+    bool success = videoCapture_.read(frame);
+
+    if (!success || frame.empty()) {
+        // 视频结束
+        if (videoLoopEnabled_) {
+            // 循环播放：重置到开头
+            videoCapture_.set(cv::CAP_PROP_POS_FRAMES, 0);
+            success = videoCapture_.read(frame);
+            if (!success || frame.empty()) {
+                LOG_WARNING("视频循环读取失败");
+                return generateTestPattern(testPatternType_);
+            }
+            LOG_DEBUG("视频循环播放：重新开始");
+        } else {
+            // 不循环：返回测试图案
+            LOG_INFO("视频播放完毕");
+            return generateTestPattern(testPatternType_);
+        }
+    }
+
+    // 调整大小到配置的分辨率
+    if (frame.cols != config_.width || frame.rows != config_.height) {
+        cv::resize(frame, frame, cv::Size(config_.width, config_.height));
+    }
+
+    // 应用增益和曝光
+    frame = applyGainAndExposure(frame);
+
+    auto image = std::make_shared<Base::ImageData>(frame);
+    return image;
 }
 
 } // namespace HAL

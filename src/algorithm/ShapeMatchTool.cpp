@@ -26,6 +26,7 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <cmath>
+#include <string>  // for std::wstring
 
 namespace VisionForge {
 namespace Algorithm {
@@ -104,12 +105,14 @@ bool ShapeMatchTool::loadModel(const QString& modelPath)
         return false;
     }
 
-    // 读取模板（使用本地编码支持中文路径）
-    QByteArray localPath = modelPath.toLocal8Bit();
+    // 读取模板（使用UTF-8编码支持中文路径）
+    // Windows 10 1903+ 支持 UTF-8，使用 HTuple 传递路径
+    std::wstring wpath = modelPath.toStdWString();
+    HTuple pathTuple(wpath.c_str());
 
     // 所有形状模型（包括Generic Shape Model）使用相同的读取函数
     try {
-        ReadShapeModel(localPath.constData(), &shapeModel_);
+        ReadShapeModel(pathTuple, &shapeModel_);
         modelLoaded_ = true;
         modelPath_ = modelPath;
 
@@ -267,12 +270,14 @@ bool ShapeMatchTool::saveModel(const QString& modelPath)
             return false;
         }
 
-        // 保存模板（使用本地编码支持中文路径）
-        QByteArray localPath = modelPath.toLocal8Bit();
-        LOG_DEBUG(QString("保存路径: %1 -> %2").arg(modelPath).arg(QString::fromLocal8Bit(localPath)));
+        // 保存模板（使用宽字符路径支持中文）
+        // Windows 10 1903+ 支持 UTF-8，使用 HTuple 传递路径
+        std::wstring wpath = modelPath.toStdWString();
+        HTuple pathTuple(wpath.c_str());
+        LOG_DEBUG(QString("保存路径: %1").arg(modelPath));
 
         // 所有形状模型（包括Generic Shape Model）使用相同的保存函数
-        WriteShapeModel(shapeModel_, localPath.constData());
+        WriteShapeModel(shapeModel_, pathTuple);
         LOG_INFO(QString("%1已保存: %2").arg(useGenericModel_ ? "通用形状模板" : "形状模板").arg(modelPath));
 
         modelPath_ = modelPath;

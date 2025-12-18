@@ -151,6 +151,7 @@ find_package(Qt6 6.2 REQUIRED COMPONENTS
     Network
     Sql
     Xml
+    SerialPort
 )
 message(STATUS "Qt版本: ${Qt6_VERSION}")
 

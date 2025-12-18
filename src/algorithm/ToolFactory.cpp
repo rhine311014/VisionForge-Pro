@@ -9,8 +9,20 @@
 #include "algorithm/ThresholdTool.h"
 #include "algorithm/EdgeTool.h"
 #include "algorithm/MorphologyTool.h"
+#include "algorithm/ROITool.h"
+#include "algorithm/BlobTool.h"
+#include "algorithm/CircleTool.h"
+#include "algorithm/LineTool.h"
 #include "algorithm/CameraCalibTool.h"
 #include "algorithm/NinePointCalibTool.h"
+#include "algorithm/MeasureDistanceTool.h"
+#include "algorithm/MeasureAngleTool.h"
+#include "algorithm/MeasureAreaTool.h"
+#include "algorithm/RangeJudgeTool.h"
+#include "algorithm/SaveImageTool.h"
+#include "algorithm/PLCOutputTool.h"
+#include "algorithm/LogicOperationTool.h"
+#include "algorithm/TemplateMatchTool.h"
 #include "base/Logger.h"
 
 #ifdef USE_HALCON
@@ -193,6 +205,58 @@ void ToolFactory::registerBuiltInTools()
         []() -> VisionTool* { return new MorphologyTool(); }
     );
 
+    // 注册ROI区域工具
+    registerTool(
+        VisionTool::ROI,
+        ToolInfo(
+            "ROI区域",
+            "图像预处理",
+            "定义感兴趣区域，支持矩形、圆形、椭圆、多边形、旋转矩形",
+            ":/icons/roi.png",
+            VisionTool::ROI
+        ),
+        []() -> VisionTool* { return new ROITool(); }
+    );
+
+    // 注册Blob分析工具
+    registerTool(
+        VisionTool::BlobAnalysis,
+        ToolInfo(
+            "Blob分析",
+            "定位检测",
+            "连通域分析，提取面积、周长、圆度等特征，支持Halcon/OpenCV双后端",
+            ":/icons/blob.png",
+            VisionTool::BlobAnalysis
+        ),
+        []() -> VisionTool* { return new BlobTool(); }
+    );
+
+    // 注册圆检测工具
+    registerTool(
+        VisionTool::FindCircle,
+        ToolInfo(
+            "圆检测",
+            "定位检测",
+            "检测图像中的圆形，支持霍夫变换、轮廓拟合、边缘拟合等方法",
+            ":/icons/circle.png",
+            VisionTool::FindCircle
+        ),
+        []() -> VisionTool* { return new CircleTool(); }
+    );
+
+    // 注册线检测工具
+    registerTool(
+        VisionTool::FindLine,
+        ToolInfo(
+            "线检测",
+            "定位检测",
+            "检测图像中的直线，支持霍夫变换、轮廓拟合等方法",
+            ":/icons/line.png",
+            VisionTool::FindLine
+        ),
+        []() -> VisionTool* { return new LineTool(); }
+    );
+
 #ifdef USE_HALCON
     // 注册Halcon形状匹配工具
     registerTool(
@@ -234,13 +298,109 @@ void ToolFactory::registerBuiltInTools()
         []() -> VisionTool* { return new NinePointCalibTool(); }
     );
 
-    // TODO: 注册其他内置工具
-    // 例如:
-    // - ROI工具 (ROITool)
-    // - 形态学工具 (MorphologyTool)
-    // - 模板匹配工具 (TemplateMatchTool)
-    // - 圆检测工具 (FindCircleTool)
-    // 等等...
+    // 注册距离测量工具
+    registerTool(
+        VisionTool::MeasureDistance,
+        ToolInfo(
+            "距离测量",
+            "测量计算",
+            "测量两点、点到线、线到线等距离，支持像素/毫米换算",
+            ":/icons/measure_distance.png",
+            VisionTool::MeasureDistance
+        ),
+        []() -> VisionTool* { return new MeasureDistanceTool(); }
+    );
+
+    // 注册角度测量工具
+    registerTool(
+        VisionTool::MeasureAngle,
+        ToolInfo(
+            "角度测量",
+            "测量计算",
+            "测量两线夹角、三点角度、线与水平/垂直方向角度",
+            ":/icons/measure_angle.png",
+            VisionTool::MeasureAngle
+        ),
+        []() -> VisionTool* { return new MeasureAngleTool(); }
+    );
+
+    // 注册面积测量工具
+    registerTool(
+        VisionTool::MeasureArea,
+        ToolInfo(
+            "面积测量",
+            "测量计算",
+            "测量轮廓、多边形、圆形、椭圆的面积，支持像素/毫米换算",
+            ":/icons/measure_area.png",
+            VisionTool::MeasureArea
+        ),
+        []() -> VisionTool* { return new MeasureAreaTool(); }
+    );
+
+    // 注册范围判定工具
+    registerTool(
+        VisionTool::RangeJudge,
+        ToolInfo(
+            "范围判定",
+            "判定输出",
+            "判断测量值是否在指定范围内，输出OK/NG结果",
+            ":/icons/range_judge.png",
+            VisionTool::RangeJudge
+        ),
+        []() -> VisionTool* { return new RangeJudgeTool(); }
+    );
+
+    // 注册图像保存工具
+    registerTool(
+        VisionTool::SaveImage,
+        ToolInfo(
+            "图像保存",
+            "判定输出",
+            "保存图像到文件，支持多种格式和命名规则",
+            ":/icons/save_image.png",
+            VisionTool::SaveImage
+        ),
+        []() -> VisionTool* { return new SaveImageTool(); }
+    );
+
+    // 注册PLC输出工具
+    registerTool(
+        VisionTool::PLCOutput,
+        ToolInfo(
+            "PLC输出",
+            "判定输出",
+            "将检测结果输出到PLC，支持位/字输出和地址映射",
+            ":/icons/plc_output.png",
+            VisionTool::PLCOutput
+        ),
+        []() -> VisionTool* { return new PLCOutputTool(); }
+    );
+
+    // 注册逻辑运算工具
+    registerTool(
+        VisionTool::LogicOperation,
+        ToolInfo(
+            "逻辑运算",
+            "判定输出",
+            "对多个检测结果进行逻辑运算(AND/OR/NOT/XOR等)",
+            ":/icons/logic_op.png",
+            VisionTool::LogicOperation
+        ),
+        []() -> VisionTool* { return new LogicOperationTool(); }
+    );
+
+    // 注册OpenCV模板匹配工具
+    registerTool(
+        VisionTool::TemplateMatch,
+        ToolInfo(
+            "模板匹配",
+            "定位检测",
+            "使用OpenCV模板匹配算法查找目标，支持金字塔加速和角度搜索",
+            ":/icons/template_match.png",
+            VisionTool::TemplateMatch
+        ),
+        []() -> VisionTool* { return new TemplateMatchTool(); }
+    );
 
     LOG_INFO(QString("已注册 %1 个内置工具").arg(tools_.size()));
 }

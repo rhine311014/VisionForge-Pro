@@ -15,6 +15,7 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <QQueue>
+#include <QSet>
 #include <memory>
 
 namespace VisionForge {
@@ -83,6 +84,23 @@ public:
      */
     bool isBusy() const;
 
+    /**
+     * @brief 取消指定任务
+     * @param taskId 任务ID
+     * @return true如果任务在队列中被移除，false如果任务正在执行或不存在
+     */
+    bool cancelTask(const QString& taskId);
+
+    /**
+     * @brief 获取当前执行的任务ID
+     */
+    QString currentTaskId() const;
+
+    /**
+     * @brief 检查任务是否被取消
+     */
+    bool isTaskCancelled(const QString& taskId) const;
+
 signals:
     /**
      * @brief 任务开始信号
@@ -104,6 +122,11 @@ signals:
      */
     void toolProgress(const QString& taskId, int current, int total);
 
+    /**
+     * @brief 任务被取消信号
+     */
+    void taskCancelled(const QString& taskId);
+
 protected:
     void run() override;
 
@@ -115,6 +138,8 @@ private:
     mutable QMutex mutex_;
     QWaitCondition condition_;
     QQueue<TaskInfo> taskQueue_;
+    QSet<QString> cancelledTasks_;      // 已取消的任务ID集合
+    QString currentTaskId_;             // 当前执行的任务ID
     bool stopRequested_;
     bool busy_;
     int taskIdCounter_;
@@ -225,6 +250,11 @@ signals:
      */
     void taskProgress(const QString& taskId, int current, int total);
 
+    /**
+     * @brief 任务取消信号
+     */
+    void taskCancelled(const QString& taskId);
+
 private:
     TaskScheduler();
     ~TaskScheduler();
@@ -236,6 +266,7 @@ private:
     void onTaskStarted(const QString& taskId);
     void onTaskCompleted(const QString& taskId, const ToolChainResult& result);
     void onTaskFailed(const QString& taskId, const QString& errorMessage);
+    void onTaskCancelled(const QString& taskId);
 
 private:
     QList<TaskWorker*> workers_;                    // 工作线程列表

@@ -11,6 +11,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <opencv2/core.hpp>
+#include <opencv2/videoio.hpp>
 
 namespace VisionForge {
 namespace HAL {
@@ -100,13 +101,27 @@ public:
      */
     void setFrameRate(double fps);
 
+    /**
+     * @brief 设置视频循环播放
+     * @param enabled 是否循环
+     */
+    void setVideoLoopEnabled(bool enabled) { videoLoopEnabled_ = enabled; }
+
+    /**
+     * @brief 获取视频循环播放状态
+     */
+    bool isVideoLoopEnabled() const { return videoLoopEnabled_; }
+
 private slots:
     void onContinuousGrab();
 
 private:
     Base::ImageData::Ptr generateTestPattern(int patternType);
     Base::ImageData::Ptr loadNextImage();
+    Base::ImageData::Ptr loadNextVideoFrame();
     cv::Mat applyGainAndExposure(const cv::Mat& input);
+    bool openVideoCapture();
+    void closeVideoCapture();
 
 private:
     bool isOpen_;
@@ -120,6 +135,10 @@ private:
     QString videoPath_;
     int currentIndex_;
     int testPatternType_;
+
+    // 视频捕获
+    cv::VideoCapture videoCapture_;
+    bool videoLoopEnabled_;         // 视频循环播放
 
     // 连续采集定时器
     QTimer* grabTimer_;

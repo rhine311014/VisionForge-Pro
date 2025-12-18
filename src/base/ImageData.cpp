@@ -4,6 +4,7 @@
  */
 
 #include "base/ImageData.h"
+#include "base/Logger.h"
 #include <opencv2/imgproc.hpp>
 #include <cstring>
 #include <stdexcept>
@@ -12,6 +13,35 @@
 #include <malloc.h>
 #else
 #include <cstdlib>
+#endif
+
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+
+// CUDA错误检查宏
+#define CUDA_CHECK(call) \
+    do { \
+        cudaError_t error = call; \
+        if (error != cudaSuccess) { \
+            LOG_ERROR(QString("CUDA错误: %1 (%2:%3)") \
+                .arg(cudaGetErrorString(error)) \
+                .arg(__FILE__) \
+                .arg(__LINE__)); \
+            return; \
+        } \
+    } while(0)
+
+#define CUDA_CHECK_RETURN(call, ret) \
+    do { \
+        cudaError_t error = call; \
+        if (error != cudaSuccess) { \
+            LOG_ERROR(QString("CUDA错误: %1 (%2:%3)") \
+                .arg(cudaGetErrorString(error)) \
+                .arg(__FILE__) \
+                .arg(__LINE__)); \
+            return ret; \
+        } \
+    } while(0)
 #endif
 
 namespace VisionForge {
@@ -175,38 +205,111 @@ ImageData::Ptr ImageData::fromAlignedMemory(void* data, int width, int height, i
 }
 
 // ============================================================
-// GPU内存管理（占位实现）
+// GPU内存管理
 // ============================================================
 
 void ImageData::allocateGPU()
 {
-    // TODO: 实现CUDA内存分配
-    // cudaMalloc(&gpuPtr_, totalBytes());
+#ifdef USE_CUDA
+    if (mat_.empty()) {
+        LOG_WARNING("ImageData::allocateGPU: 图像为空，无法分配GPU内存");
+        return;
+    }
+
+    // 如果已有GPU内存，先释放
+    if (gpuPtr_) {
+        releaseGPU();
+    }
+
+    size_t bytes = totalBytes();
+    if (bytes == 0) {
+        LOG_WARNING("ImageData::allocateGPU: 图像大小为0");
+        return;
+    }
+
+    // 分配GPU内存
+    CUDA_CHECK(cudaMalloc(&gpuPtr_, bytes));
+
+    LOG_DEBUG(QString("GPU内存已分配: %1 字节").arg(bytes));
+#else
+    LOG_WARNING("ImageData::allocateGPU: CUDA未启用");
+#endif
 }
 
 void ImageData::uploadToGPU()
 {
-    // TODO: 实现CUDA内存上传
-    // if (gpuPtr_) {
-    //     cudaMemcpy(gpuPtr_, mat_.data, totalBytes(), cudaMemcpyHostToDevice);
-    // }
+#ifdef USE_CUDA
+    if (mat_.empty()) {
+        LOG_WARNING("ImageData::uploadToGPU: 图像为空");
+        return;
+    }
+
+    // 如果没有GPU内存，先分配
+    if (!gpuPtr_) {
+        allocateGPU();
+    }
+
+    if (!gpuPtr_) {
+        LOG_ERROR("ImageData::uploadToGPU: GPU内存分配失败");
+        return;
+    }
+
+    size_t bytes = totalBytes();
+
+    // 确保Mat数据是连续的
+    cv::Mat continuous = mat_.isContinuous() ? mat_ : mat_.clone();
+
+    // 上传数据到GPU
+    CUDA_CHECK(cudaMemcpy(gpuPtr_, continuous.data, bytes, cudaMemcpyHostToDevice));
+
+    LOG_DEBUG(QString("数据已上传到GPU: %1 字节").arg(bytes));
+#else
+    LOG_WARNING("ImageData::uploadToGPU: CUDA未启用");
+#endif
 }
 
 void ImageData::downloadFromGPU()
 {
-    // TODO: 实现CUDA内存下载
-    // if (gpuPtr_) {
-    //     cudaMemcpy(mat_.data, gpuPtr_, totalBytes(), cudaMemcpyDeviceToHost);
-    // }
+#ifdef USE_CUDA
+    if (!gpuPtr_) {
+        LOG_WARNING("ImageData::downloadFromGPU: 无GPU内存");
+        return;
+    }
+
+    if (mat_.empty()) {
+        LOG_ERROR("ImageData::downloadFromGPU: CPU端图像为空");
+        return;
+    }
+
+    size_t bytes = totalBytes();
+
+    // 确保Mat数据是连续的
+    if (!mat_.isContinuous()) {
+        mat_ = mat_.clone();
+    }
+
+    // 从GPU下载数据
+    CUDA_CHECK(cudaMemcpy(mat_.data, gpuPtr_, bytes, cudaMemcpyDeviceToHost));
+
+    LOG_DEBUG(QString("数据已从GPU下载: %1 字节").arg(bytes));
+#else
+    LOG_WARNING("ImageData::downloadFromGPU: CUDA未启用");
+#endif
 }
 
 void ImageData::releaseGPU()
 {
-    // TODO: 实现CUDA内存释放
-    // if (gpuPtr_) {
-    //     cudaFree(gpuPtr_);
-    //     gpuPtr_ = nullptr;
-    // }
+#ifdef USE_CUDA
+    if (gpuPtr_) {
+        cudaError_t error = cudaFree(gpuPtr_);
+        if (error != cudaSuccess) {
+            LOG_ERROR(QString("释放GPU内存失败: %1").arg(cudaGetErrorString(error)));
+        } else {
+            LOG_DEBUG("GPU内存已释放");
+        }
+        gpuPtr_ = nullptr;
+    }
+#endif
 }
 
 // ============================================================

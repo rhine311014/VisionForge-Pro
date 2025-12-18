@@ -19,6 +19,7 @@ TaskWorker::TaskWorker(QObject* parent)
     , stopRequested_(false)
     , busy_(false)
     , taskIdCounter_(0)
+    , currentTaskId_()
 {
 }
 
@@ -68,6 +69,44 @@ bool TaskWorker::isBusy() const
     return busy_;
 }
 
+bool TaskWorker::cancelTask(const QString& taskId)
+{
+    QMutexLocker locker(&mutex_);
+
+    // 检查任务是否在队列中
+    for (int i = 0; i < taskQueue_.size(); ++i) {
+        if (taskQueue_[i].taskId == taskId) {
+            // 从队列中移除任务
+            taskQueue_.removeAt(i);
+            LOG_INFO(QString("[Worker] 从队列移除任务: %1").arg(taskId));
+            emit taskCancelled(taskId);
+            return true;
+        }
+    }
+
+    // 检查是否是当前正在执行的任务
+    if (currentTaskId_ == taskId) {
+        // 标记为已取消，但无法立即中断（需要等待当前工具执行完毕）
+        cancelledTasks_.insert(taskId);
+        LOG_INFO(QString("[Worker] 标记任务为取消: %1 (正在执行中)").arg(taskId));
+        return true;
+    }
+
+    return false;
+}
+
+QString TaskWorker::currentTaskId() const
+{
+    QMutexLocker locker(&mutex_);
+    return currentTaskId_;
+}
+
+bool TaskWorker::isTaskCancelled(const QString& taskId) const
+{
+    QMutexLocker locker(&mutex_);
+    return cancelledTasks_.contains(taskId);
+}
+
 void TaskWorker::run()
 {
     LOG_INFO(QString("[Worker] 工作线程启动: %1").arg(reinterpret_cast<qulonglong>(QThread::currentThreadId())));
@@ -88,7 +127,21 @@ void TaskWorker::run()
             }
 
             task = taskQueue_.dequeue();
+            currentTaskId_ = task.taskId;
             busy_ = true;
+        }
+
+        // 检查任务是否已被取消
+        if (isTaskCancelled(task.taskId)) {
+            LOG_INFO(QString("[Worker] 任务已取消，跳过执行: %1").arg(task.taskId));
+            {
+                QMutexLocker locker(&mutex_);
+                cancelledTasks_.remove(task.taskId);
+                currentTaskId_.clear();
+                busy_ = false;
+            }
+            emit taskCancelled(task.taskId);
+            continue;
         }
 
         // 处理任务
@@ -97,6 +150,7 @@ void TaskWorker::run()
         // 任务完成
         {
             QMutexLocker locker(&mutex_);
+            currentTaskId_.clear();
             busy_ = false;
         }
     }
@@ -133,6 +187,18 @@ void TaskWorker::processTask(TaskInfo& task)
     disconnect(task.toolChain, &ToolChain::executionProgress, this, nullptr);
 
     task.endTime = QDateTime::currentMSecsSinceEpoch();
+
+    // 检查任务是否在执行过程中被取消
+    if (isTaskCancelled(task.taskId)) {
+        task.state = TaskState::Cancelled;
+        {
+            QMutexLocker locker(&mutex_);
+            cancelledTasks_.remove(task.taskId);
+        }
+        LOG_INFO(QString("[Worker] 任务被取消: %1").arg(task.taskId));
+        emit taskCancelled(task.taskId);
+        return;
+    }
 
     if (success) {
         task.state = TaskState::Completed;
@@ -200,6 +266,8 @@ void TaskScheduler::setWorkerCount(int count)
                 this, &TaskScheduler::onTaskFailed);
         connect(worker, &TaskWorker::toolProgress,
                 this, &TaskScheduler::taskProgress);
+        connect(worker, &TaskWorker::taskCancelled,
+                this, &TaskScheduler::onTaskCancelled);
 
         worker->start();
         workers_.append(worker);
@@ -276,19 +344,33 @@ QString TaskScheduler::executeAsync(ToolChain* toolChain,
 
 bool TaskScheduler::cancelTask(const QString& taskId)
 {
-    QMutexLocker locker(&tasksMutex_);
+    {
+        QMutexLocker locker(&tasksMutex_);
 
-    if (!runningTasks_.contains(taskId)) {
-        LOG_WARNING(QString("取消任务失败：未找到任务 %1").arg(taskId));
-        return false;
+        if (!runningTasks_.contains(taskId)) {
+            LOG_WARNING(QString("取消任务失败：未找到任务 %1").arg(taskId));
+            return false;
+        }
     }
 
-    // TODO: 实现任务取消逻辑
-    // 当前简单实现，只标记状态
-    runningTasks_[taskId] = TaskState::Cancelled;
+    // 遍历所有worker尝试取消任务
+    bool cancelled = false;
+    for (TaskWorker* worker : workers_) {
+        if (worker->cancelTask(taskId)) {
+            cancelled = true;
+            break;
+        }
+    }
 
-    LOG_INFO(QString("取消任务: %1").arg(taskId));
-    return true;
+    if (cancelled) {
+        QMutexLocker locker(&tasksMutex_);
+        runningTasks_[taskId] = TaskState::Cancelled;
+        LOG_INFO(QString("取消任务: %1").arg(taskId));
+    } else {
+        LOG_WARNING(QString("取消任务失败：任务 %1 不在任何worker队列中").arg(taskId));
+    }
+
+    return cancelled;
 }
 
 TaskState TaskScheduler::getTaskState(const QString& taskId) const
@@ -326,7 +408,8 @@ bool TaskScheduler::waitForTask(const QString& taskId, int timeout)
     while (true) {
         TaskState state = getTaskState(taskId);
 
-        if (state == TaskState::Completed || state == TaskState::Failed) {
+        if (state == TaskState::Completed || state == TaskState::Failed ||
+            state == TaskState::Cancelled) {
             return (state == TaskState::Completed);
         }
 
@@ -417,6 +500,27 @@ void TaskScheduler::onTaskFailed(const QString& taskId, const QString& errorMess
     }
 
     emit taskFailed(taskId, errorMessage);
+}
+
+void TaskScheduler::onTaskCancelled(const QString& taskId)
+{
+    {
+        QMutexLocker locker(&tasksMutex_);
+
+        runningTasks_.remove(taskId);
+
+        TaskInfo task;
+        task.taskId = taskId;
+        task.state = TaskState::Cancelled;
+        task.result.success = false;
+        task.result.errorMessage = "任务已取消";
+        task.endTime = QDateTime::currentMSecsSinceEpoch();
+
+        completedTasks_[taskId] = task;
+    }
+
+    LOG_INFO(QString("任务取消完成: %1").arg(taskId));
+    emit taskCancelled(taskId);
 }
 
 } // namespace Core

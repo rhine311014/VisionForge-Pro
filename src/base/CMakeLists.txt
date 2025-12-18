@@ -42,6 +42,13 @@ target_link_libraries(VisionForgeBase PUBLIC
     ${OpenCV_LIBS}
 )
 
+# CUDA支持（可选）
+if(USE_CUDA AND CUDA_FOUND)
+    target_include_directories(VisionForgeBase PRIVATE ${CUDA_INCLUDE_DIRS})
+    target_link_libraries(VisionForgeBase PUBLIC ${CUDA_LIBRARIES})
+    target_compile_definitions(VisionForgeBase PRIVATE USE_CUDA)
+endif()
+
 # 设置属性
 set_target_properties(VisionForgeBase PROPERTIES
     CXX_STANDARD 17

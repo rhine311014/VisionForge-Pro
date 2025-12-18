@@ -10,12 +10,27 @@ set(ALGORITHM_SOURCES
     ThresholdTool.cpp
     EdgeTool.cpp
     MorphologyTool.cpp
+    ROITool.cpp
+    BlobTool.cpp
+    CircleTool.cpp
+    LineTool.cpp
     ToolFactory.cpp
     # 标定相关
     CalibrationResult.cpp
     CameraCalibTool.cpp
     NinePointCalibTool.cpp
     CalibrationManager.cpp
+    # 测量工具
+    MeasureDistanceTool.cpp
+    MeasureAngleTool.cpp
+    MeasureAreaTool.cpp
+    # 判定输出工具
+    RangeJudgeTool.cpp
+    SaveImageTool.cpp
+    PLCOutputTool.cpp
+    LogicOperationTool.cpp
+    # 模板匹配
+    TemplateMatchTool.cpp
 )
 
 # 如果启用Halcon，添加Halcon相关工具
@@ -34,12 +49,27 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/ThresholdTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/EdgeTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/MorphologyTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/ROITool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/BlobTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CircleTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/LineTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/ToolFactory.h
     # 标定相关
     ${CMAKE_SOURCE_DIR}/include/algorithm/CalibrationResult.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/CameraCalibTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/NinePointCalibTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/CalibrationManager.h
+    # 测量工具
+    ${CMAKE_SOURCE_DIR}/include/algorithm/MeasureDistanceTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/MeasureAngleTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/MeasureAreaTool.h
+    # 判定输出工具
+    ${CMAKE_SOURCE_DIR}/include/algorithm/RangeJudgeTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/SaveImageTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/PLCOutputTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/LogicOperationTool.h
+    # 模板匹配
+    ${CMAKE_SOURCE_DIR}/include/algorithm/TemplateMatchTool.h
 )
 
 # 如果启用Halcon，添加Halcon相关头文件
@@ -66,6 +96,7 @@ target_include_directories(VisionForgeAlgorithm PUBLIC
 target_link_libraries(VisionForgeAlgorithm PUBLIC
     VisionForgeBase
     Qt6::Core
+    Qt6::Network
     ${OpenCV_LIBS}
 )
 

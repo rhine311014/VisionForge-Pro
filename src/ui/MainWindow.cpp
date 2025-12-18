@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QSplitter>
+#include <QActionGroup>
 #include <opencv2/opencv.hpp>
 #include <chrono>
 
@@ -958,6 +959,47 @@ void MainWindow::createMenus()
     systemSettingsAction_->setStatusTip("配置系统设置（GPU加速等）");
     connect(systemSettingsAction_, &QAction::triggered, this, &MainWindow::onSystemSettings);
     settingsMenu_->addAction(systemSettingsAction_);
+
+    settingsMenu_->addSeparator();
+
+    // 主题子菜单
+    QMenu* themeMenu = settingsMenu_->addMenu("主题(&T)");
+
+    QActionGroup* themeGroup = new QActionGroup(this);
+    themeGroup->setExclusive(true);
+
+    QAction* industrialDarkAction = new QAction("工业深色 (蓝色)", this);
+    industrialDarkAction->setCheckable(true);
+    industrialDarkAction->setChecked(true);  // 默认主题
+    industrialDarkAction->setData(static_cast<int>(Theme::IndustrialDark));
+    themeGroup->addAction(industrialDarkAction);
+    themeMenu->addAction(industrialDarkAction);
+
+    QAction* industrialLightAction = new QAction("工业浅色 (蓝色)", this);
+    industrialLightAction->setCheckable(true);
+    industrialLightAction->setData(static_cast<int>(Theme::IndustrialLight));
+    themeGroup->addAction(industrialLightAction);
+    themeMenu->addAction(industrialLightAction);
+
+    themeMenu->addSeparator();
+
+    QAction* classicDarkAction = new QAction("经典深色 (绿色)", this);
+    classicDarkAction->setCheckable(true);
+    classicDarkAction->setData(static_cast<int>(Theme::ClassicDark));
+    themeGroup->addAction(classicDarkAction);
+    themeMenu->addAction(classicDarkAction);
+
+    QAction* classicLightAction = new QAction("经典浅色 (绿色)", this);
+    classicLightAction->setCheckable(true);
+    classicLightAction->setData(static_cast<int>(Theme::ClassicLight));
+    themeGroup->addAction(classicLightAction);
+    themeMenu->addAction(classicLightAction);
+
+    // 连接主题切换信号
+    connect(themeGroup, &QActionGroup::triggered, this, [](QAction* action) {
+        Theme::ThemeType type = static_cast<Theme::ThemeType>(action->data().toInt());
+        Theme::applyTheme(type);
+    });
 
     // 帮助菜单
     helpMenu_ = menuBar()->addMenu("帮助(&H)");
