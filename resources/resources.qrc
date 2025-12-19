@@ -1,0 +1,71 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <!-- 图标资源 -->
+    <qresource prefix="/icons">
+        <!-- 工具栏图标 -->
+        <file>toolbar/new.svg</file>
+        <file>toolbar/open.svg</file>
+        <file>toolbar/save.svg</file>
+        <file>toolbar/run.svg</file>
+        <file>toolbar/stop.svg</file>
+        <file>toolbar/step.svg</file>
+        <file>toolbar/camera.svg</file>
+        <file>toolbar/settings.svg</file>
+
+        <!-- 工具图标 - 预处理 -->
+        <file>tools/gray.svg</file>
+        <file>tools/blur.svg</file>
+        <file>tools/binary.svg</file>
+        <file>tools/edge.svg</file>
+        <file>tools/morphology.svg</file>
+        <file>tools/roi.svg</file>
+        <file>tools/color_convert.svg</file>
+
+        <!-- 工具图标 - 定位检测 -->
+        <file>tools/blob.svg</file>
+        <file>tools/circle.svg</file>
+        <file>tools/line.svg</file>
+        <file>tools/match.svg</file>
+        <file>tools/template_match.svg</file>
+        <file>tools/find_edge.svg</file>
+        <file>tools/ai_detection.svg</file>
+
+        <!-- 工具图标 - 标定 -->
+        <file>tools/camera_calib.svg</file>
+        <file>tools/ninepoint_calib.svg</file>
+
+        <!-- 工具图标 - 测量计算 -->
+        <file>tools/measure_distance.svg</file>
+        <file>tools/measure_angle.svg</file>
+        <file>tools/measure_area.svg</file>
+        <file>tools/calc_center.svg</file>
+        <file>tools/calc_orientation.svg</file>
+
+        <!-- 工具图标 - 判定输出 -->
+        <file>tools/range_judge.svg</file>
+        <file>tools/save_image.svg</file>
+        <file>tools/plc_output.svg</file>
+        <file>tools/logic_op.svg</file>
+
+        <!-- 状态图标 -->
+        <file>status/ok.svg</file>
+        <file>status/ng.svg</file>
+        <file>status/warning.svg</file>
+        <file>status/running.svg</file>
+        <file>status/stopped.svg</file>
+    </qresource>
+
+    <!-- 样式表资源 -->
+    <qresource prefix="/styles">
+        <file>industrial_dark.qss</file>
+        <file>industrial_light.qss</file>
+        <file>classic_dark.qss</file>
+        <file>classic_light.qss</file>
+    </qresource>
+
+    <!-- 图像资源 -->
+    <qresource prefix="/images">
+        <file>logo.png</file>
+        <file>splash.png</file>
+    </qresource>
+</RCC>

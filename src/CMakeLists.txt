@@ -156,3 +156,30 @@ if(WIN32)
         )
     endif()
 endif()
+
+# ============================================================
+# 翻译文件编译配置
+# ============================================================
+# 收集翻译源文件
+set(TS_FILES
+    ${CMAKE_SOURCE_DIR}/translations/visionforge_en_US.ts
+    ${CMAKE_SOURCE_DIR}/translations/visionforge_ja_JP.ts
+)
+
+# 编译.ts文件为.qm文件
+qt_add_lrelease(VisionForge
+    TS_FILES ${TS_FILES}
+    QM_FILES_OUTPUT_VARIABLE QM_FILES
+)
+
+# 将翻译文件复制到输出目录
+add_custom_command(TARGET VisionForge POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:VisionForge>/translations"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${QM_FILES} "$<TARGET_FILE_DIR:VisionForge>/translations"
+    COMMENT "复制翻译文件到输出目录..."
+)
+
+# 安装翻译文件
+install(FILES ${QM_FILES}
+    DESTINATION bin/translations
+)

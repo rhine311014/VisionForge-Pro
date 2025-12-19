@@ -11,6 +11,7 @@
 #include <QMap>
 #include <QString>
 #include <QList>
+#include <QCoreApplication>
 #include <functional>
 
 namespace VisionForge {
@@ -23,6 +24,8 @@ namespace Algorithm {
  */
 class ToolFactory
 {
+    Q_DECLARE_TR_FUNCTIONS(ToolFactory)
+
 public:
     /**
      * @brief 工具信息结构

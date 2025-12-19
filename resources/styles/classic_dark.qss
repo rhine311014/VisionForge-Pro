@@ -1,0 +1,149 @@
+/*
+ * VisionForge Pro - Classic Dark Theme
+ * 经典深色主题样式表 - 绿色强调色
+ */
+
+/* ========== 全局设置 ========== */
+* {
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-size: 12px;
+}
+
+/* ========== 主窗口 ========== */
+QMainWindow {
+    background-color: #2d2d2d;
+}
+
+QMainWindow::separator:hover {
+    background-color: #4caf50;
+}
+
+/* ========== 菜单栏 ========== */
+QMenuBar {
+    background-color: #353535;
+    color: #ffffff;
+    border-bottom: 1px solid #454545;
+}
+
+QMenuBar::item:selected {
+    background-color: #4caf50;
+}
+
+/* ========== 菜单 ========== */
+QMenu {
+    background-color: #353535;
+    color: #ffffff;
+    border: 1px solid #454545;
+}
+
+QMenu::item:selected {
+    background-color: #4caf50;
+}
+
+/* ========== 工具栏 ========== */
+QToolBar {
+    background-color: #353535;
+    border: none;
+}
+
+QToolButton:pressed,
+QToolButton:checked {
+    background-color: #4caf50;
+}
+
+/* ========== 标签页 ========== */
+QTabBar::tab:selected {
+    border-bottom: 2px solid #4caf50;
+}
+
+/* ========== 按钮 ========== */
+QPushButton {
+    background-color: #454545;
+    color: #ffffff;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 6px 16px;
+}
+
+QPushButton:hover {
+    background-color: #555555;
+}
+
+QPushButton[primary="true"],
+QPushButton:default {
+    background-color: #4caf50;
+    border-color: #388e3c;
+}
+
+QPushButton[primary="true"]:hover,
+QPushButton:default:hover {
+    background-color: #66bb6a;
+}
+
+/* ========== 输入控件 ========== */
+QLineEdit:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus,
+QComboBox:focus {
+    border-color: #4caf50;
+}
+
+/* ========== 复选框和单选框 ========== */
+QCheckBox::indicator:checked,
+QRadioButton::indicator:checked {
+    background-color: #4caf50;
+    border-color: #388e3c;
+}
+
+QCheckBox::indicator:hover,
+QRadioButton::indicator:hover {
+    border-color: #4caf50;
+}
+
+/* ========== 进度条 ========== */
+QProgressBar::chunk {
+    background-color: #4caf50;
+}
+
+/* ========== 表格和列表 ========== */
+QTableWidget::item:selected,
+QTableView::item:selected,
+QTreeWidget::item:selected,
+QTreeView::item:selected,
+QListWidget::item:selected,
+QListView::item:selected {
+    background-color: #4caf50;
+}
+
+/* ========== 分组框 ========== */
+QGroupBox::title {
+    color: #4caf50;
+}
+
+/* ========== 停靠窗口 ========== */
+QDockWidget::title {
+    border-bottom: 1px solid #4caf50;
+}
+
+/* ========== 分割器 ========== */
+QSplitter::handle:hover {
+    background-color: #4caf50;
+}
+
+/* ========== 滚动条 ========== */
+QScrollBar::handle:vertical:hover,
+QScrollBar::handle:horizontal:hover {
+    background-color: #4caf50;
+}
+
+/* ========== 滑块 ========== */
+QSlider::handle:horizontal {
+    background-color: #4caf50;
+}
+
+QSlider::sub-page:horizontal {
+    background-color: #4caf50;
+}
+
+/* 继承工业深色主题的基础样式 */
+@import url(":/styles/industrial_dark.qss");

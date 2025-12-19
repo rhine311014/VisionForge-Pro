@@ -39,7 +39,7 @@ PLCOutputToolDialog::PLCOutputToolDialog(Algorithm::PLCOutputTool* tool, QWidget
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
 {
-    setWindowTitle("PLC输出工具设置");
+    setWindowTitle(tr("PLC输出工具设置"));
     setMinimumSize(600, 550);
     createUI();
     connectSignals();
@@ -67,9 +67,9 @@ void PLCOutputToolDialog::updateUI()
 
     // 更新状态显示
     bool hasPlc = tool_->plcComm() != nullptr;
-    resultStatusLabel_->setText(hasPlc ? "PLC已连接" : "PLC未连接");
+    resultStatusLabel_->setText(hasPlc ? tr("PLC已连接") : tr("PLC未连接"));
     resultStatusLabel_->setStyleSheet(hasPlc ? "color: green;" : "color: red;");
-    completeStatusLabel_->setText(hasPlc ? "PLC已连接" : "PLC未连接");
+    completeStatusLabel_->setText(hasPlc ? tr("PLC已连接") : tr("PLC未连接"));
     completeStatusLabel_->setStyleSheet(hasPlc ? "color: green;" : "color: red;");
 }
 
@@ -106,18 +106,18 @@ void PLCOutputToolDialog::createUI()
 
 void PLCOutputToolDialog::createMappingGroup(QVBoxLayout* layout)
 {
-    auto* group = new QGroupBox("输出映射配置", layout->parentWidget());
+    auto* group = new QGroupBox(tr("输出映射配置"), layout->parentWidget());
     auto* groupLayout = new QVBoxLayout(group);
 
     // 说明标签
-    auto* descLabel = new QLabel("配置检测结果数据到PLC地址的映射关系", group);
+    auto* descLabel = new QLabel(tr("配置检测结果数据到PLC地址的映射关系"), group);
     descLabel->setStyleSheet("color: gray;");
     groupLayout->addWidget(descLabel);
 
     // 映射表格
     mappingTable_ = new QTableWidget(group);
     mappingTable_->setColumnCount(6);
-    mappingTable_->setHorizontalHeaderLabels({"名称", "数据源", "地址", "位地址", "缩放", "偏移"});
+    mappingTable_->setHorizontalHeaderLabels({tr("名称"), tr("数据源"), tr("地址"), tr("位地址"), tr("缩放"), tr("偏移")});
     mappingTable_->horizontalHeader()->setStretchLastSection(true);
     mappingTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     mappingTable_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -135,9 +135,9 @@ void PLCOutputToolDialog::createMappingGroup(QVBoxLayout* layout)
 
     // 操作按钮
     auto* btnLayout = new QHBoxLayout();
-    addMappingBtn_ = new QPushButton("添加映射", group);
-    removeMappingBtn_ = new QPushButton("删除选中", group);
-    clearMappingsBtn_ = new QPushButton("清空全部", group);
+    addMappingBtn_ = new QPushButton(tr("添加映射"), group);
+    removeMappingBtn_ = new QPushButton(tr("删除选中"), group);
+    clearMappingsBtn_ = new QPushButton(tr("清空全部"), group);
 
     btnLayout->addWidget(addMappingBtn_);
     btnLayout->addWidget(removeMappingBtn_);
@@ -151,25 +151,25 @@ void PLCOutputToolDialog::createMappingGroup(QVBoxLayout* layout)
 
 void PLCOutputToolDialog::createResultGroup(QVBoxLayout* layout)
 {
-    auto* group = new QGroupBox("检测结果输出 (OK/NG)", layout->parentWidget());
+    auto* group = new QGroupBox(tr("检测结果输出 (OK/NG)"), layout->parentWidget());
     auto* groupLayout = new QFormLayout(group);
 
-    outputResultCheck_ = new QCheckBox("启用结果输出", group);
+    outputResultCheck_ = new QCheckBox(tr("启用结果输出"), group);
 
     resultAddressSpin_ = new QSpinBox(group);
     resultAddressSpin_->setRange(0, 65535);
     resultAddressSpin_->setValue(0);
     resultAddressSpin_->setPrefix("D");
 
-    resultStatusLabel_ = new QLabel("PLC未连接", group);
+    resultStatusLabel_ = new QLabel(tr("PLC未连接"), group);
     resultStatusLabel_->setStyleSheet("color: red;");
 
     groupLayout->addRow("", outputResultCheck_);
-    groupLayout->addRow("结果地址:", resultAddressSpin_);
-    groupLayout->addRow("状态:", resultStatusLabel_);
+    groupLayout->addRow(tr("结果地址:"), resultAddressSpin_);
+    groupLayout->addRow(tr("状态:"), resultStatusLabel_);
 
     // 说明
-    auto* noteLabel = new QLabel("OK=1, NG=0 写入指定地址", group);
+    auto* noteLabel = new QLabel(tr("OK=1, NG=0 写入指定地址"), group);
     noteLabel->setStyleSheet("color: gray; font-size: 10px;");
     groupLayout->addRow("", noteLabel);
 
@@ -178,25 +178,25 @@ void PLCOutputToolDialog::createResultGroup(QVBoxLayout* layout)
 
 void PLCOutputToolDialog::createCompleteGroup(QVBoxLayout* layout)
 {
-    auto* group = new QGroupBox("完成信号输出", layout->parentWidget());
+    auto* group = new QGroupBox(tr("完成信号输出"), layout->parentWidget());
     auto* groupLayout = new QFormLayout(group);
 
-    outputCompleteCheck_ = new QCheckBox("启用完成信号", group);
+    outputCompleteCheck_ = new QCheckBox(tr("启用完成信号"), group);
 
     completeAddressSpin_ = new QSpinBox(group);
     completeAddressSpin_->setRange(0, 65535);
     completeAddressSpin_->setValue(1);
     completeAddressSpin_->setPrefix("D");
 
-    completeStatusLabel_ = new QLabel("PLC未连接", group);
+    completeStatusLabel_ = new QLabel(tr("PLC未连接"), group);
     completeStatusLabel_->setStyleSheet("color: red;");
 
     groupLayout->addRow("", outputCompleteCheck_);
-    groupLayout->addRow("完成地址:", completeAddressSpin_);
-    groupLayout->addRow("状态:", completeStatusLabel_);
+    groupLayout->addRow(tr("完成地址:"), completeAddressSpin_);
+    groupLayout->addRow(tr("状态:"), completeStatusLabel_);
 
     // 说明
-    auto* noteLabel = new QLabel("检测完成后置位，PLC读取后复位", group);
+    auto* noteLabel = new QLabel(tr("检测完成后置位，PLC读取后复位"), group);
     noteLabel->setStyleSheet("color: gray; font-size: 10px;");
     groupLayout->addRow("", noteLabel);
 
@@ -205,25 +205,25 @@ void PLCOutputToolDialog::createCompleteGroup(QVBoxLayout* layout)
 
 void PLCOutputToolDialog::createTestGroup(QVBoxLayout* layout)
 {
-    auto* group = new QGroupBox("测试输出", layout->parentWidget());
+    auto* group = new QGroupBox(tr("测试输出"), layout->parentWidget());
     auto* groupLayout = new QFormLayout(group);
 
     testKeyEdit_ = new QLineEdit(group);
-    testKeyEdit_->setPlaceholderText("例如: distance, angle");
+    testKeyEdit_->setPlaceholderText(tr("例如: distance, angle"));
 
     testValueSpin_ = new QDoubleSpinBox(group);
     testValueSpin_->setRange(-999999, 999999);
     testValueSpin_->setDecimals(3);
     testValueSpin_->setValue(0);
 
-    testOutputBtn_ = new QPushButton("测试输出", group);
+    testOutputBtn_ = new QPushButton(tr("测试输出"), group);
 
     testResultLabel_ = new QLabel("", group);
 
-    groupLayout->addRow("数据键:", testKeyEdit_);
-    groupLayout->addRow("测试值:", testValueSpin_);
+    groupLayout->addRow(tr("数据键:"), testKeyEdit_);
+    groupLayout->addRow(tr("测试值:"), testValueSpin_);
     groupLayout->addRow("", testOutputBtn_);
-    groupLayout->addRow("结果:", testResultLabel_);
+    groupLayout->addRow(tr("结果:"), testResultLabel_);
 
     layout->addWidget(group);
 }
@@ -232,9 +232,9 @@ void PLCOutputToolDialog::createButtonGroup(QVBoxLayout* layout)
 {
     auto* buttonLayout = new QHBoxLayout();
 
-    okBtn_ = new QPushButton("确定", this);
-    cancelBtn_ = new QPushButton("取消", this);
-    applyBtn_ = new QPushButton("应用", this);
+    okBtn_ = new QPushButton(tr("确定"), this);
+    cancelBtn_ = new QPushButton(tr("取消"), this);
+    applyBtn_ = new QPushButton(tr("应用"), this);
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(okBtn_);
@@ -304,7 +304,7 @@ void PLCOutputToolDialog::onClearMappingsClicked()
 {
     if (!tool_) return;
 
-    if (QMessageBox::question(this, "确认", "确定要清空所有映射吗?") == QMessageBox::Yes) {
+    if (QMessageBox::question(this, tr("确认"), tr("确定要清空所有映射吗?")) == QMessageBox::Yes) {
         tool_->clearMappings();
         updateMappingTable();
         emit parameterChanged();
@@ -356,20 +356,20 @@ void PLCOutputToolDialog::onOutputCompleteChanged(bool checked)
 void PLCOutputToolDialog::onTestOutputClicked()
 {
     if (!tool_) {
-        testResultLabel_->setText("工具未初始化");
+        testResultLabel_->setText(tr("工具未初始化"));
         testResultLabel_->setStyleSheet("color: red;");
         return;
     }
 
     if (!tool_->plcComm()) {
-        testResultLabel_->setText("PLC未连接");
+        testResultLabel_->setText(tr("PLC未连接"));
         testResultLabel_->setStyleSheet("color: red;");
         return;
     }
 
     QString key = testKeyEdit_->text().trimmed();
     if (key.isEmpty()) {
-        testResultLabel_->setText("请输入数据键");
+        testResultLabel_->setText(tr("请输入数据键"));
         testResultLabel_->setStyleSheet("color: orange;");
         return;
     }
@@ -379,11 +379,11 @@ void PLCOutputToolDialog::onTestOutputClicked()
 
     Algorithm::ToolResult result;
     if (tool_->process(nullptr, result)) {
-        testResultLabel_->setText("输出成功");
+        testResultLabel_->setText(tr("输出成功"));
         testResultLabel_->setStyleSheet("color: green;");
         LOG_INFO(QString("PLC测试输出成功: %1 = %2").arg(key).arg(value));
     } else {
-        testResultLabel_->setText("输出失败: " + result.errorMessage);
+        testResultLabel_->setText(tr("输出失败: ") + result.errorMessage);
         testResultLabel_->setStyleSheet("color: red;");
     }
 }

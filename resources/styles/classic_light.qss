@@ -1,0 +1,222 @@
+/*
+ * VisionForge Pro - Classic Light Theme
+ * 经典浅色主题样式表 - 绿色强调色
+ */
+
+/* ========== 全局设置 ========== */
+* {
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-size: 12px;
+}
+
+/* ========== 主窗口 ========== */
+QMainWindow {
+    background-color: #f5f5f5;
+}
+
+QMainWindow::separator:hover {
+    background-color: #4caf50;
+}
+
+/* ========== 菜单栏 ========== */
+QMenuBar {
+    background-color: #ffffff;
+    color: #1e1e1e;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+QMenuBar::item:selected {
+    background-color: #c8e6c9;
+}
+
+/* ========== 菜单 ========== */
+QMenu {
+    background-color: #ffffff;
+    color: #1e1e1e;
+    border: 1px solid #d0d0d0;
+}
+
+QMenu::item:selected {
+    background-color: #c8e6c9;
+}
+
+/* ========== 工具栏 ========== */
+QToolBar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+QToolButton:pressed {
+    background-color: #4caf50;
+    color: #ffffff;
+}
+
+QToolButton:checked {
+    background-color: #c8e6c9;
+    border-color: #4caf50;
+}
+
+/* ========== 标签页 ========== */
+QTabBar::tab:selected {
+    border-bottom: 2px solid #4caf50;
+}
+
+/* ========== 按钮 ========== */
+QPushButton {
+    background-color: #f0f0f0;
+    color: #1e1e1e;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    padding: 6px 16px;
+}
+
+QPushButton:hover {
+    background-color: #e8e8e8;
+}
+
+QPushButton[primary="true"],
+QPushButton:default {
+    background-color: #4caf50;
+    color: #ffffff;
+    border-color: #388e3c;
+}
+
+QPushButton[primary="true"]:hover,
+QPushButton:default:hover {
+    background-color: #66bb6a;
+}
+
+/* ========== 输入控件 ========== */
+QLineEdit,
+QSpinBox,
+QDoubleSpinBox,
+QComboBox {
+    background-color: #ffffff;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+}
+
+QLineEdit:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus,
+QComboBox:focus {
+    border-color: #4caf50;
+}
+
+/* ========== 复选框和单选框 ========== */
+QCheckBox::indicator:checked,
+QRadioButton::indicator:checked {
+    background-color: #4caf50;
+    border-color: #388e3c;
+}
+
+QCheckBox::indicator:hover,
+QRadioButton::indicator:hover {
+    border-color: #4caf50;
+}
+
+/* ========== 进度条 ========== */
+QProgressBar {
+    background-color: #e0e0e0;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+}
+
+QProgressBar::chunk {
+    background-color: #4caf50;
+}
+
+/* ========== 表格和列表 ========== */
+QTableWidget,
+QTableView,
+QTreeWidget,
+QTreeView,
+QListWidget,
+QListView {
+    background-color: #ffffff;
+    border: 1px solid #d0d0d0;
+}
+
+QTableWidget::item:selected,
+QTableView::item:selected,
+QTreeWidget::item:selected,
+QTreeView::item:selected,
+QListWidget::item:selected,
+QListView::item:selected {
+    background-color: #c8e6c9;
+    color: #1e1e1e;
+}
+
+/* ========== 分组框 ========== */
+QGroupBox {
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+}
+
+QGroupBox::title {
+    color: #388e3c;
+}
+
+/* ========== 停靠窗口 ========== */
+QDockWidget::title {
+    background-color: #f0f0f0;
+    border-bottom: 2px solid #4caf50;
+}
+
+/* ========== 分割器 ========== */
+QSplitter::handle {
+    background-color: #e0e0e0;
+}
+
+QSplitter::handle:hover {
+    background-color: #4caf50;
+}
+
+/* ========== 滚动条 ========== */
+QScrollBar:vertical,
+QScrollBar:horizontal {
+    background-color: #f5f5f5;
+}
+
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    background-color: #c0c0c0;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover,
+QScrollBar::handle:horizontal:hover {
+    background-color: #4caf50;
+}
+
+/* ========== 状态栏 ========== */
+QStatusBar {
+    background-color: #f0f0f0;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* ========== 对话框 ========== */
+QDialog {
+    background-color: #f5f5f5;
+}
+
+/* ========== OK/NG 状态样式 ========== */
+QLabel[status="ok"] {
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+QLabel[status="ng"] {
+    color: #c62828;
+    font-weight: bold;
+}
+
+QLabel[status="running"] {
+    color: #1565c0;
+    font-weight: bold;
+}
+
+QLabel[status="warning"] {
+    color: #ef6c00;
+    font-weight: bold;
+}

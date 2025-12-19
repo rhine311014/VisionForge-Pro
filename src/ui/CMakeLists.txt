@@ -44,6 +44,9 @@ set(UI_SOURCES
     # 工具对话框 - ROI和PLC
     ROIToolDialog.cpp
     PLCOutputToolDialog.cpp
+    # 系统对话框
+    LoginDialog.cpp
+    StatisticsPanel.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -102,6 +105,9 @@ set(UI_HEADERS
     # 工具对话框头文件 - ROI和PLC
     ${CMAKE_SOURCE_DIR}/include/ui/ROIToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/PLCOutputToolDialog.h
+    # 系统对话框头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/LoginDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/StatisticsPanel.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件

@@ -11,6 +11,11 @@ set(BASE_SOURCES
     ConfigManager.cpp
     PerformanceMonitor.cpp
     GPUAccelerator.cpp
+    TranslationManager.cpp
+    PermissionManager.cpp
+    DataExporter.cpp
+    PluginManager.cpp
+    SystemMonitor.cpp
 )
 
 # 收集头文件
@@ -22,6 +27,11 @@ set(BASE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/base/ConfigManager.h
     ${CMAKE_SOURCE_DIR}/include/base/PerformanceMonitor.h
     ${CMAKE_SOURCE_DIR}/include/base/GPUAccelerator.h
+    ${CMAKE_SOURCE_DIR}/include/base/TranslationManager.h
+    ${CMAKE_SOURCE_DIR}/include/base/PermissionManager.h
+    ${CMAKE_SOURCE_DIR}/include/base/DataExporter.h
+    ${CMAKE_SOURCE_DIR}/include/base/PluginManager.h
+    ${CMAKE_SOURCE_DIR}/include/base/SystemMonitor.h
 )
 
 # 创建基础设施层静态库
