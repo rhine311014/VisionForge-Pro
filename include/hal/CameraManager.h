@@ -397,7 +397,7 @@ private slots:
     void onContinuousCaptureTimer();
 
 private:
-    QMap<QString, std::unique_ptr<ICamera>> cameras_;       ///< 相机实例
+    QMap<QString, std::shared_ptr<ICamera>> cameras_;       ///< 相机实例
     QMap<QString, CameraInfo> cameraInfos_;                 ///< 相机信息
     QMap<QString, CameraGroup> groups_;                     ///< 相机组
     QMap<QString, QTimer*> continuousTimers_;               ///< 连续采集定时器

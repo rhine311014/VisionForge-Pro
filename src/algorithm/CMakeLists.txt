@@ -37,6 +37,10 @@ set(ALGORITHM_SOURCES
     CalcCenterTool.cpp
     CalcOrientationTool.cpp
     AIDetectionTool.cpp
+    # 多相机对位
+    CoordinateTransform.cpp
+    MultiPointAlignmentTool.cpp
+    AlignmentOutputTool.cpp
 )
 
 # 如果启用Halcon，添加Halcon相关工具
@@ -82,6 +86,10 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/CalcCenterTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/CalcOrientationTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/AIDetectionTool.h
+    # 多相机对位
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CoordinateTransform.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/MultiPointAlignmentTool.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/AlignmentOutputTool.h
 )
 
 # 如果启用Halcon，添加Halcon相关头文件
@@ -109,6 +117,7 @@ target_link_libraries(VisionForgeAlgorithm PUBLIC
     VisionForgeBase
     Qt6::Core
     Qt6::Network
+    Qt6::SerialPort
     ${OpenCV_LIBS}
 )
 

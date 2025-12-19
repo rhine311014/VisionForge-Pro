@@ -152,6 +152,7 @@ find_package(Qt6 6.2 REQUIRED COMPONENTS
     Sql
     Xml
     SerialPort
+    Concurrent
     LinguistTools
 )
 message(STATUS "Qt版本: ${Qt6_VERSION}")
