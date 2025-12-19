@@ -57,6 +57,15 @@
 // 工具对话框 - ROI和PLC
 #include "ui/ROIToolDialog.h"
 #include "ui/PLCOutputToolDialog.h"
+// 系统对话框
+#include "ui/LoginDialog.h"
+#include "ui/StatisticsPanel.h"
+#include "ui/UserManagementDialog.h"
+#include "ui/UIModeManager.h"
+// 基础设施
+#include "base/PermissionManager.h"
+#include "base/SystemMonitor.h"
+#include "base/DataExporter.h"
 // 算法工具头文件
 #include "algorithm/GrayTool.h"
 #include "algorithm/BlurTool.h"
@@ -107,11 +116,13 @@ MainWindow::MainWindow(QWidget* parent)
     , resultTableDock_(nullptr)
     , historyDock_(nullptr)
     , recipeDock_(nullptr)
+    , statisticsDock_(nullptr)
     , toolChainPanel_(nullptr)
     , toolParameterPanel_(nullptr)
     , resultTablePanel_(nullptr)
     , historyPanel_(nullptr)
     , recipeManagerWidget_(nullptr)
+    , statisticsPanel_(nullptr)
     , camera_(nullptr)
     , isContinuousGrabbing_(false)
     , currentImageIndex_(-1)
@@ -156,7 +167,7 @@ MainWindow::MainWindow(QWidget* parent)
     // 创建模拟相机作为默认相机（备用）
     HAL::SimulatedCamera* simCamera = new HAL::SimulatedCamera(this);
     simCamera->useTestPattern(0);  // 使用渐变测试图案
-    camera_ = simCamera;
+    camera_.reset(simCamera);
 
     // 连续采集定时器
     continuousTimer_ = new QTimer(this);
@@ -1149,13 +1160,15 @@ void MainWindow::createMenus()
     // 工具菜单
     toolMenu_ = menuBar()->addMenu("工具(&T)");
 
-    addToolAction_ = new QAction(Theme::getIcon(Icons::TOOL_ADD), "添加工具(&A)...", this);
-    addToolAction_->setStatusTip("添加新的视觉处理工具");
+    addToolAction_ = new QAction(Theme::getIcon(Icons::TOOL_ADD), tr("添加工具(&A)..."), this);
+    addToolAction_->setShortcut(Qt::CTRL | Qt::Key_T);
+    addToolAction_->setStatusTip(tr("添加新的视觉处理工具 (Ctrl+T)"));
     connect(addToolAction_, &QAction::triggered, this, &MainWindow::onAddTool);
     toolMenu_->addAction(addToolAction_);
 
-    removeToolAction_ = new QAction(Theme::getIcon(Icons::TOOL_REMOVE), "删除工具(&R)", this);
-    removeToolAction_->setStatusTip("删除选中的工具");
+    removeToolAction_ = new QAction(Theme::getIcon(Icons::TOOL_REMOVE), tr("删除工具(&R)"), this);
+    removeToolAction_->setShortcut(Qt::Key_Delete);
+    removeToolAction_->setStatusTip(tr("删除选中的工具 (Delete)"));
     connect(removeToolAction_, &QAction::triggered, this, &MainWindow::onRemoveTool);
     toolMenu_->addAction(removeToolAction_);
 
@@ -1188,11 +1201,17 @@ void MainWindow::createMenus()
 
     cameraMenu_->addSeparator();
 
-    grabImageAction_ = new QAction(Theme::getIcon(Icons::CAMERA_PHOTO), "采集单帧(&G)", this);
+    grabImageAction_ = new QAction(Theme::getIcon(Icons::CAMERA_PHOTO), tr("采集单帧(&G)"), this);
     grabImageAction_->setShortcut(Qt::Key_F7);
-    grabImageAction_->setStatusTip("采集单帧图像（F7）");
+    grabImageAction_->setStatusTip(tr("采集单帧图像 (F7 / Ctrl+G)"));
     connect(grabImageAction_, &QAction::triggered, this, &MainWindow::onGrabImage);
     cameraMenu_->addAction(grabImageAction_);
+
+    // 添加备用快捷键 Ctrl+G
+    QAction* grabShortcut = new QAction(this);
+    grabShortcut->setShortcut(Qt::CTRL | Qt::Key_G);
+    connect(grabShortcut, &QAction::triggered, this, &MainWindow::onGrabImage);
+    addAction(grabShortcut);
 
     continuousGrabAction_ = new QAction(Theme::getIcon(Icons::CAMERA_VIDEO), "连续采集(&C)", this);
     continuousGrabAction_->setCheckable(true);
@@ -1239,7 +1258,7 @@ void MainWindow::createMenus()
     settingsMenu_->addSeparator();
 
     // 主题子菜单
-    QMenu* themeMenu = settingsMenu_->addMenu("主题(&T)");
+    QMenu* themeMenu = settingsMenu_->addMenu(tr("主题(&T)"));
 
     QActionGroup* themeGroup = new QActionGroup(this);
     themeGroup->setExclusive(true);
@@ -1277,8 +1296,108 @@ void MainWindow::createMenus()
         Theme::applyTheme(type);
     });
 
+    // UI模式子菜单
+    QMenu* modeMenu = settingsMenu_->addMenu(tr("界面模式(&M)"));
+
+    QActionGroup* modeGroup = new QActionGroup(this);
+    modeGroup->setExclusive(true);
+
+    QAction* simpleModeAction = new QAction(tr("简单模式 - 操作员"), this);
+    simpleModeAction->setCheckable(true);
+    simpleModeAction->setData(static_cast<int>(UIMode::Simple));
+    simpleModeAction->setStatusTip(tr("简化界面，隐藏高级功能，适合日常操作"));
+    modeGroup->addAction(simpleModeAction);
+    modeMenu->addAction(simpleModeAction);
+
+    QAction* professionalModeAction = new QAction(tr("专业模式 - 工程师"), this);
+    professionalModeAction->setCheckable(true);
+    professionalModeAction->setData(static_cast<int>(UIMode::Professional));
+    professionalModeAction->setStatusTip(tr("显示所有功能，适合开发和调试"));
+    modeGroup->addAction(professionalModeAction);
+    modeMenu->addAction(professionalModeAction);
+
+    // 根据当前模式设置选中状态
+    if (UIModeManager::instance().currentMode() == UIMode::Simple) {
+        simpleModeAction->setChecked(true);
+    } else {
+        professionalModeAction->setChecked(true);
+    }
+
+    // 连接模式切换信号
+    connect(modeGroup, &QActionGroup::triggered, this, [this](QAction* action) {
+        UIMode mode = static_cast<UIMode>(action->data().toInt());
+        UIModeManager::instance().setMode(mode);
+    });
+
+    // 连接UIModeManager的模式变更信号
+    connect(&UIModeManager::instance(), &UIModeManager::modeChanged,
+            this, &MainWindow::onUIModeChanged);
+
+    // 添加模式切换快捷键 (Ctrl+M)
+    QAction* toggleModeAction = new QAction(tr("切换界面模式"), this);
+    toggleModeAction->setShortcut(Qt::CTRL | Qt::Key_M);
+    connect(toggleModeAction, &QAction::triggered, this, []() {
+        UIModeManager::instance().toggleMode();
+    });
+    addAction(toggleModeAction);  // 添加到主窗口以启用快捷键
+
+    // 添加面板快捷键
+    // Ctrl+1: 显示/隐藏工具链面板
+    QAction* toggleToolChainAction = new QAction(tr("工具链面板"), this);
+    toggleToolChainAction->setShortcut(Qt::CTRL | Qt::Key_1);
+    connect(toggleToolChainAction, &QAction::triggered, this, [this]() {
+        toolChainDock_->setVisible(!toolChainDock_->isVisible());
+    });
+    addAction(toggleToolChainAction);
+
+    // Ctrl+2: 显示/隐藏参数面板
+    QAction* toggleParamAction = new QAction(tr("参数面板"), this);
+    toggleParamAction->setShortcut(Qt::CTRL | Qt::Key_2);
+    connect(toggleParamAction, &QAction::triggered, this, [this]() {
+        toolParameterDock_->setVisible(!toolParameterDock_->isVisible());
+    });
+    addAction(toggleParamAction);
+
+    // Ctrl+3: 显示/隐藏结果面板
+    QAction* toggleResultAction = new QAction(tr("结果面板"), this);
+    toggleResultAction->setShortcut(Qt::CTRL | Qt::Key_3);
+    connect(toggleResultAction, &QAction::triggered, this, [this]() {
+        resultTableDock_->setVisible(!resultTableDock_->isVisible());
+    });
+    addAction(toggleResultAction);
+
+    // Escape: 取消当前ROI绘制
+    QAction* cancelAction = new QAction(tr("取消"), this);
+    cancelAction->setShortcut(Qt::Key_Escape);
+    connect(cancelAction, &QAction::triggered, this, [this]() {
+        imageViewer_->setInteractionMode(IMAGEVIEWER_CLASS::SelectMode);
+        statusLabel_->setText(tr("就绪"));
+    });
+    addAction(cancelAction);
+
+    // 用户菜单
+    userMenu_ = menuBar()->addMenu(tr("用户(&U)"));
+
+    loginAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), tr("登录(&L)..."), this);
+    loginAction_->setStatusTip(tr("用户登录"));
+    connect(loginAction_, &QAction::triggered, this, &MainWindow::onLogin);
+    userMenu_->addAction(loginAction_);
+
+    logoutAction_ = new QAction(Theme::getIcon(Icons::EXIT), tr("注销(&O)"), this);
+    logoutAction_->setStatusTip(tr("注销当前用户"));
+    logoutAction_->setEnabled(false);  // 初始状态未登录
+    connect(logoutAction_, &QAction::triggered, this, &MainWindow::onLogout);
+    userMenu_->addAction(logoutAction_);
+
+    userMenu_->addSeparator();
+
+    userManagementAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), tr("用户管理(&M)..."), this);
+    userManagementAction_->setStatusTip(tr("管理系统用户（需要管理员权限）"));
+    connect(userManagementAction_, &QAction::triggered, this, &MainWindow::onUserManagement);
+    userMenu_->addAction(userManagementAction_);
+
     // 帮助菜单
-    helpMenu_ = menuBar()->addMenu("帮助(&H)");
+    helpMenu_ = menuBar()->addMenu(tr("帮助(&H)"));
 
     QAction* aboutAction = new QAction(Theme::getIcon(Icons::APP_ABOUT), "关于(&A)", this);
     aboutAction->setStatusTip("关于VisionForge Pro");
@@ -1388,12 +1507,24 @@ void MainWindow::createDockWindows()
 
     addDockWidget(Qt::RightDockWidgetArea, recipeDock_);
 
+    // 统计面板（底部）
+    statisticsDock_ = new QDockWidget(tr("运行统计"), this);
+    statisticsDock_->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    statisticsDock_->setMinimumHeight(200);
+    statisticsDock_->setMaximumHeight(400);
+
+    statisticsPanel_ = new StatisticsPanel(this);
+    statisticsDock_->setWidget(statisticsPanel_);
+
+    addDockWidget(Qt::BottomDockWidgetArea, statisticsDock_);
+
     // 默认隐藏所有侧边面板，最大化Halcon窗口显示空间
     toolChainDock_->hide();
     toolParameterDock_->hide();
     resultTableDock_->hide();
     historyDock_->hide();
     recipeDock_->hide();
+    statisticsDock_->hide();
 
     // 设置停靠窗口的初始大小（当显示时使用）
     resizeDocks({toolChainDock_}, {250}, Qt::Horizontal);
@@ -1403,17 +1534,72 @@ void MainWindow::createDockWindows()
 
 void MainWindow::createStatusBar()
 {
-    statusLabel_ = new QLabel("就绪", this);
+    statusLabel_ = new QLabel(tr("就绪"), this);
     statusBar()->addWidget(statusLabel_, 1);
 
-    imageInfoLabel_ = new QLabel("图像: --", this);
+    imageInfoLabel_ = new QLabel(tr("图像: --"), this);
     statusBar()->addPermanentWidget(imageInfoLabel_);
 
-    scaleLabel_ = new QLabel("缩放: 100%", this);
+    scaleLabel_ = new QLabel(tr("缩放: 100%"), this);
     statusBar()->addPermanentWidget(scaleLabel_);
 
-    positionLabel_ = new QLabel("位置: --", this);
+    positionLabel_ = new QLabel(tr("位置: --"), this);
     statusBar()->addPermanentWidget(positionLabel_);
+
+    // 分隔符
+    QLabel* separator1 = new QLabel(" | ", this);
+    statusBar()->addPermanentWidget(separator1);
+
+    // 用户信息
+    userLabel_ = new QLabel(tr("用户: 访客"), this);
+    userLabel_->setToolTip(tr("当前登录用户"));
+    statusBar()->addPermanentWidget(userLabel_);
+
+    // 分隔符
+    QLabel* separator2 = new QLabel(" | ", this);
+    statusBar()->addPermanentWidget(separator2);
+
+    // CPU使用率
+    cpuLabel_ = new QLabel(tr("CPU: --%"), this);
+    cpuLabel_->setToolTip(tr("CPU使用率"));
+    cpuLabel_->setMinimumWidth(80);
+    statusBar()->addPermanentWidget(cpuLabel_);
+
+    // 内存使用率
+    memoryLabel_ = new QLabel(tr("内存: --%"), this);
+    memoryLabel_->setToolTip(tr("内存使用率"));
+    memoryLabel_->setMinimumWidth(80);
+    statusBar()->addPermanentWidget(memoryLabel_);
+
+    // 启动系统监控定时更新
+    QTimer* monitorTimer = new QTimer(this);
+    connect(monitorTimer, &QTimer::timeout, this, [this]() {
+        Base::SystemMonitor& monitor = Base::SystemMonitor::instance();
+
+        // 更新CPU和内存显示
+        double cpu = monitor.cpuUsage();
+        double mem = monitor.memoryUsage();
+        cpuLabel_->setText(QString("CPU: %1%").arg(static_cast<int>(cpu)));
+        memoryLabel_->setText(QString(tr("内存: %1%")).arg(static_cast<int>(mem)));
+
+        // 根据使用率设置颜色
+        if (cpu > 80) {
+            cpuLabel_->setStyleSheet("color: red;");
+        } else if (cpu > 60) {
+            cpuLabel_->setStyleSheet("color: orange;");
+        } else {
+            cpuLabel_->setStyleSheet("");
+        }
+
+        if (mem > 80) {
+            memoryLabel_->setStyleSheet("color: red;");
+        } else if (mem > 60) {
+            memoryLabel_->setStyleSheet("color: orange;");
+        } else {
+            memoryLabel_->setStyleSheet("");
+        }
+    });
+    monitorTimer->start(2000);  // 每2秒更新一次
 }
 
 void MainWindow::addDockWidgetsToViewMenu()
@@ -1427,6 +1613,7 @@ void MainWindow::addDockWidgetsToViewMenu()
     viewMenu_->addAction(resultTableDock_->toggleViewAction());
     viewMenu_->addAction(historyDock_->toggleViewAction());
     viewMenu_->addAction(recipeDock_->toggleViewAction());
+    viewMenu_->addAction(statisticsDock_->toggleViewAction());
 }
 
 void MainWindow::connectSignals()
@@ -1725,20 +1912,19 @@ void MainWindow::onCameraConfig()
 
     // 如果有当前相机，传递给对话框
     if (camera_) {
-        dialog.setCamera(camera_);
+        dialog.setCamera(camera_.get());
     }
 
     if (dialog.exec() == QDialog::Accepted) {
         // 获取选择的相机
         HAL::ICamera* newCamera = dialog.takeCamera();
-        if (newCamera && newCamera != camera_) {
-            // 关闭旧相机
+        if (newCamera && newCamera != camera_.get()) {
+            // 关闭旧相机（unique_ptr自动管理内存）
             if (camera_) {
                 camera_->close();
-                delete camera_;
             }
-            // 直接赋值，camera_已改为ICamera*类型，支持所有相机类型
-            camera_ = newCamera;
+            // 使用reset转移所有权，旧相机自动释放
+            camera_.reset(newCamera);
             LOG_INFO(QString("相机已切换: %1").arg(camera_->deviceName()));
         }
 
@@ -1870,6 +2056,131 @@ void MainWindow::onSystemSettings()
     dialog.exec();
 }
 
+// ========== 用户登录/注销 ==========
+
+void MainWindow::onLogin()
+{
+    LoginDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        // 登录成功，更新用户状态
+        updateUserStatus();
+        const Base::UserInfo* user = Base::PermissionManager::instance().currentUser();
+        if (user) {
+            LOG_INFO(QString("用户登录: %1").arg(user->username));
+        }
+    }
+}
+
+void MainWindow::onLogout()
+{
+    int ret = QMessageBox::question(this, tr("确认注销"),
+        tr("确定要注销当前用户吗？"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+    if (ret == QMessageBox::Yes) {
+        const Base::UserInfo* user = Base::PermissionManager::instance().currentUser();
+        QString username = user ? user->username : tr("未知");
+        Base::PermissionManager::instance().logout();
+        updateUserStatus();
+        statusLabel_->setText(tr("用户已注销"));
+        LOG_INFO(QString("用户注销: %1").arg(username));
+    }
+}
+
+void MainWindow::onUserManagement()
+{
+    // 检查权限
+    if (!Base::PermissionManager::instance().hasPermission(Base::Permission::UserManagement)) {
+        QMessageBox::warning(this, tr("权限不足"),
+            tr("您没有用户管理权限。\n需要管理员权限才能管理用户。"));
+        return;
+    }
+
+    // 打开用户管理对话框
+    UserManagementDialog dialog(this);
+    dialog.exec();
+
+    // 刷新当前用户状态（可能被修改）
+    updateUserStatus();
+}
+
+void MainWindow::updateUserStatus()
+{
+    Base::PermissionManager& pm = Base::PermissionManager::instance();
+
+    if (pm.isLoggedIn()) {
+        const Base::UserInfo* user = pm.currentUser();
+        if (user) {
+            QString roleStr;
+            switch (user->role) {
+                case Base::UserRole::Guest:
+                    roleStr = tr("访客");
+                    break;
+                case Base::UserRole::Operator:
+                    roleStr = tr("操作员");
+                    break;
+                case Base::UserRole::Engineer:
+                    roleStr = tr("工程师");
+                    break;
+                case Base::UserRole::Administrator:
+                    roleStr = tr("管理员");
+                    break;
+            }
+            userLabel_->setText(QString("%1 (%2)").arg(user->displayName).arg(roleStr));
+            userLabel_->setToolTip(tr("用户名: %1\n角色: %2").arg(user->username).arg(roleStr));
+        }
+        loginAction_->setEnabled(false);
+        logoutAction_->setEnabled(true);
+    } else {
+        userLabel_->setText(tr("用户: 访客"));
+        userLabel_->setToolTip(tr("未登录"));
+
+        loginAction_->setEnabled(true);
+        logoutAction_->setEnabled(false);
+    }
+}
+
+// ========== UI模式 ==========
+
+void MainWindow::onUIModeChanged(UIMode mode)
+{
+    // 根据模式更新界面组件可见性
+    UIModeManager& mgr = UIModeManager::instance();
+
+    // 更新菜单可见性
+    calibMenu_->menuAction()->setVisible(mgr.isComponentVisible(UIComponent::MenuCalibration));
+    settingsMenu_->menuAction()->setVisible(mgr.isComponentVisible(UIComponent::MenuSettings));
+
+    // 更新停靠面板可见性（仅当面板存在时）
+    if (historyDock_) {
+        // 在简单模式下隐藏历史面板
+        if (!mgr.isComponentVisible(UIComponent::PanelHistory)) {
+            historyDock_->hide();
+        }
+    }
+
+    if (statisticsDock_) {
+        // 在简单模式下隐藏统计面板
+        if (!mgr.isComponentVisible(UIComponent::PanelStatistics)) {
+            statisticsDock_->hide();
+        }
+    }
+
+    if (recipeDock_) {
+        // 在简单模式下隐藏方案面板
+        if (!mgr.isComponentVisible(UIComponent::PanelRecipe)) {
+            recipeDock_->hide();
+        }
+    }
+
+    // 更新状态栏显示
+    QString modeStr = UIModeManager::modeName(mode);
+    statusLabel_->setText(tr("已切换到%1").arg(modeStr));
+
+    // 记录日志
+    LOG_INFO(QString("UI模式已切换: %1").arg(modeStr));
+}
+
 // ========== 相机自动连接 ==========
 
 bool MainWindow::tryAutoConnectCamera()
@@ -1970,12 +2281,11 @@ bool MainWindow::tryAutoConnectCamera()
         return false;
     }
 
-    // 成功连接，替换当前相机
+    // 成功连接，替换当前相机（unique_ptr自动管理内存）
     if (camera_) {
         camera_->close();
-        delete camera_;
     }
-    camera_ = newCamera;
+    camera_.reset(newCamera);
 
     statusLabel_->setText(QString("已自动连接相机: %1").arg(matchedCamera.modelName));
     updateActions();

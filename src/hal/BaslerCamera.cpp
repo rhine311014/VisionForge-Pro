@@ -397,7 +397,9 @@ double BaslerCamera::getExposure() const
             return exposureTime->GetValue();
         }
     }
-    catch (const Pylon::GenericException&) {}
+    catch (const Pylon::GenericException& e) {
+        LOG_DEBUG(QString("获取曝光时间时发生异常，使用配置值: %1").arg(e.GetDescription()));
+    }
 
     return config_.exposure;
 }
@@ -433,7 +435,9 @@ double BaslerCamera::getGain() const
             return gainNode->GetValue();
         }
     }
-    catch (const Pylon::GenericException&) {}
+    catch (const Pylon::GenericException& e) {
+        LOG_DEBUG(QString("获取增益值时发生异常，使用配置值: %1").arg(e.GetDescription()));
+    }
 
     return config_.gain;
 }
@@ -494,7 +498,9 @@ void BaslerCamera::getExposureRange(double& minVal, double& maxVal) const
             maxVal = exposureTime->GetMax();
         }
     }
-    catch (const Pylon::GenericException&) {}
+    catch (const Pylon::GenericException& e) {
+        LOG_DEBUG(QString("获取曝光范围时发生异常，使用默认范围: %1").arg(e.GetDescription()));
+    }
 }
 
 void BaslerCamera::getGainRange(double& minVal, double& maxVal) const
@@ -513,7 +519,9 @@ void BaslerCamera::getGainRange(double& minVal, double& maxVal) const
             maxVal = gainNode->GetMax();
         }
     }
-    catch (const Pylon::GenericException&) {}
+    catch (const Pylon::GenericException& e) {
+        LOG_DEBUG(QString("获取增益范围时发生异常，使用默认范围: %1").arg(e.GetDescription()));
+    }
 }
 
 void BaslerCamera::getWidthRange(int& minVal, int& maxVal) const
@@ -532,7 +540,9 @@ void BaslerCamera::getWidthRange(int& minVal, int& maxVal) const
             maxVal = static_cast<int>(widthNode->GetMax());
         }
     }
-    catch (const Pylon::GenericException&) {}
+    catch (const Pylon::GenericException& e) {
+        LOG_DEBUG(QString("获取宽度范围时发生异常，使用默认范围: %1").arg(e.GetDescription()));
+    }
 }
 
 void BaslerCamera::getHeightRange(int& minVal, int& maxVal) const
@@ -551,7 +561,9 @@ void BaslerCamera::getHeightRange(int& minVal, int& maxVal) const
             maxVal = static_cast<int>(heightNode->GetMax());
         }
     }
-    catch (const Pylon::GenericException&) {}
+    catch (const Pylon::GenericException& e) {
+        LOG_DEBUG(QString("获取高度范围时发生异常，使用默认范围: %1").arg(e.GetDescription()));
+    }
 }
 
 bool BaslerCamera::setROI(int offsetX, int offsetY, int width, int height)

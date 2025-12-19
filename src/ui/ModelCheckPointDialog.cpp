@@ -362,7 +362,9 @@ void ModelCheckPointDialog::updateVisualization()
             contours.append(centerCont);
             colors.append("cyan");
         }
-        catch (const HException&) {}
+        catch (const HException& e) {
+            LOG_DEBUG(QString("创建匹配中心标记失败: %1").arg(e.ErrorMessage().Text()));
+        }
     }
 
     imageViewer_->setXLDContours(contours, colors);

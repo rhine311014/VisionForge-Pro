@@ -20,6 +20,8 @@
 #include "ui/ResultTablePanel.h"
 #include "ui/HistoryPanel.h"
 #include "ui/RecipeManagerWidget.h"
+#include "ui/StatisticsPanel.h"
+#include "ui/UIModeManager.h"
 #include "hal/SimulatedCamera.h"
 #include "hal/ICamera.h"
 #include "algorithm/VisionTool.h"
@@ -30,6 +32,7 @@
 #include <QDockWidget>
 #include <QLabel>
 #include <QTimer>
+#include <memory>
 
 namespace VisionForge {
 namespace UI {
@@ -131,6 +134,15 @@ private slots:
     // 系统设置
     void onSystemSettings();
 
+    // 用户管理
+    void onLogin();
+    void onLogout();
+    void onUserManagement();
+    void updateUserStatus();
+
+    // UI模式
+    void onUIModeChanged(VisionForge::UI::UIMode mode);
+
 private:
     void createMenus();
     void createToolBars();
@@ -159,6 +171,7 @@ private:
     QDockWidget* resultTableDock_;
     QDockWidget* historyDock_;
     QDockWidget* recipeDock_;
+    QDockWidget* statisticsDock_;
 
     // 面板
     ToolChainPanel* toolChainPanel_;
@@ -166,6 +179,7 @@ private:
     ResultTablePanel* resultTablePanel_;
     HistoryPanel* historyPanel_;
     RecipeManagerWidget* recipeManagerWidget_;
+    StatisticsPanel* statisticsPanel_;
 
     // 菜单
     QMenu* fileMenu_;
@@ -176,6 +190,7 @@ private:
     QMenu* calibMenu_;   // 标定菜单
     QMenu* commMenu_;    // 通信菜单
     QMenu* settingsMenu_;  // 设置菜单
+    QMenu* userMenu_;      // 用户菜单
     QMenu* helpMenu_;
 
     // 工具栏
@@ -233,14 +248,22 @@ private:
     // 系统设置动作
     QAction* systemSettingsAction_;
 
+    // 用户动作
+    QAction* loginAction_;
+    QAction* logoutAction_;
+    QAction* userManagementAction_;
+
     // 状态栏
     QLabel* statusLabel_;
     QLabel* imageInfoLabel_;
     QLabel* scaleLabel_;
     QLabel* positionLabel_;
+    QLabel* userLabel_;          // 当前用户
+    QLabel* cpuLabel_;           // CPU使用率
+    QLabel* memoryLabel_;        // 内存使用率
 
-    // 相机
-    HAL::ICamera* camera_;
+    // 相机 - 使用unique_ptr管理生命周期，避免内存泄漏
+    std::unique_ptr<HAL::ICamera> camera_;
     QTimer* continuousTimer_;
     bool isContinuousGrabbing_;
 

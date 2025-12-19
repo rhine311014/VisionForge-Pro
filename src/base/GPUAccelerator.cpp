@@ -360,6 +360,322 @@ void GPUAccelerator::canny(const cv::cuda::GpuMat& src,
     detector->detect(src, dst);
 }
 
+// ========== 新增GPU操作实现 ==========
+
+void GPUAccelerator::resize(const cv::cuda::GpuMat& src,
+                           cv::cuda::GpuMat& dst,
+                           cv::Size dsize,
+                           int interpolation)
+{
+    cv::cuda::resize(src, dst, dsize, 0, 0, interpolation);
+}
+
+void GPUAccelerator::erode(const cv::cuda::GpuMat& src,
+                          cv::cuda::GpuMat& dst,
+                          const cv::Mat& kernel,
+                          int iterations)
+{
+    if (iterations <= 0) {
+        src.copyTo(dst);
+        return;
+    }
+
+    auto filter = cv::cuda::createMorphologyFilter(
+        cv::MORPH_ERODE, src.type(), kernel
+    );
+
+    if (iterations == 1) {
+        filter->apply(src, dst);
+        return;
+    }
+
+    // 使用双缓冲避免每次迭代clone，减少GPU内存分配
+    GpuMemoryPool& pool = GpuMemoryPool::instance();
+    cv::cuda::GpuMat buffer1 = pool.allocate(src.rows, src.cols, src.type());
+    cv::cuda::GpuMat buffer2 = pool.allocate(src.rows, src.cols, src.type());
+
+    cv::cuda::GpuMat* current = &buffer1;
+    cv::cuda::GpuMat* next = &buffer2;
+
+    src.copyTo(*current);
+
+    for (int i = 0; i < iterations; ++i) {
+        if (i == iterations - 1) {
+            // 最后一次迭代，输出到dst
+            filter->apply(*current, dst);
+        } else {
+            filter->apply(*current, *next);
+            std::swap(current, next);
+        }
+    }
+
+    // 归还到内存池
+    pool.release(buffer1);
+    pool.release(buffer2);
+}
+
+void GPUAccelerator::dilate(const cv::cuda::GpuMat& src,
+                           cv::cuda::GpuMat& dst,
+                           const cv::Mat& kernel,
+                           int iterations)
+{
+    if (iterations <= 0) {
+        src.copyTo(dst);
+        return;
+    }
+
+    auto filter = cv::cuda::createMorphologyFilter(
+        cv::MORPH_DILATE, src.type(), kernel
+    );
+
+    if (iterations == 1) {
+        filter->apply(src, dst);
+        return;
+    }
+
+    // 使用双缓冲避免每次迭代clone，减少GPU内存分配
+    GpuMemoryPool& pool = GpuMemoryPool::instance();
+    cv::cuda::GpuMat buffer1 = pool.allocate(src.rows, src.cols, src.type());
+    cv::cuda::GpuMat buffer2 = pool.allocate(src.rows, src.cols, src.type());
+
+    cv::cuda::GpuMat* current = &buffer1;
+    cv::cuda::GpuMat* next = &buffer2;
+
+    src.copyTo(*current);
+
+    for (int i = 0; i < iterations; ++i) {
+        if (i == iterations - 1) {
+            // 最后一次迭代，输出到dst
+            filter->apply(*current, dst);
+        } else {
+            filter->apply(*current, *next);
+            std::swap(current, next);
+        }
+    }
+
+    // 归还到内存池
+    pool.release(buffer1);
+    pool.release(buffer2);
+}
+
+void GPUAccelerator::medianFilter(const cv::cuda::GpuMat& src,
+                                 cv::cuda::GpuMat& dst,
+                                 int ksize)
+{
+    // OpenCV CUDA没有直接的中值滤波，使用近似方法
+    // 对于小核使用双边滤波近似
+    if (ksize <= 5) {
+        cv::cuda::bilateralFilter(src, dst, ksize, 75, 75);
+    } else {
+        // 大核使用高斯模糊近似
+        cv::Size size(ksize, ksize);
+        auto filter = cv::cuda::createGaussianFilter(src.type(), -1, size, 0);
+        filter->apply(src, dst);
+    }
+}
+
+void GPUAccelerator::bilateralFilter(const cv::cuda::GpuMat& src,
+                                    cv::cuda::GpuMat& dst,
+                                    int d,
+                                    float sigmaColor,
+                                    float sigmaSpace)
+{
+    cv::cuda::bilateralFilter(src, dst, d, sigmaColor, sigmaSpace);
+}
+
+void GPUAccelerator::add(const cv::cuda::GpuMat& src1,
+                        const cv::cuda::GpuMat& src2,
+                        cv::cuda::GpuMat& dst)
+{
+    cv::cuda::add(src1, src2, dst);
+}
+
+void GPUAccelerator::subtract(const cv::cuda::GpuMat& src1,
+                             const cv::cuda::GpuMat& src2,
+                             cv::cuda::GpuMat& dst)
+{
+    cv::cuda::subtract(src1, src2, dst);
+}
+
+void GPUAccelerator::absdiff(const cv::cuda::GpuMat& src1,
+                            const cv::cuda::GpuMat& src2,
+                            cv::cuda::GpuMat& dst)
+{
+    cv::cuda::absdiff(src1, src2, dst);
+}
+
+// ========== 异步流处理实现 ==========
+
+cv::cuda::Stream& GPUAccelerator::getDefaultStream()
+{
+    return defaultStream_;
+}
+
+void GPUAccelerator::uploadAsync(const cv::Mat& cpuImage,
+                                cv::cuda::GpuMat& gpuImage,
+                                cv::cuda::Stream& stream)
+{
+    gpuImage.upload(cpuImage, stream);
+}
+
+void GPUAccelerator::downloadAsync(const cv::cuda::GpuMat& gpuImage,
+                                  cv::Mat& cpuImage,
+                                  cv::cuda::Stream& stream)
+{
+    gpuImage.download(cpuImage, stream);
+}
+
+void GPUAccelerator::waitStream(cv::cuda::Stream& stream)
+{
+    stream.waitForCompletion();
+}
+
+// ============================================================
+// GpuMemoryPool 实现
+// ============================================================
+
+static constexpr size_t DEFAULT_GPU_POOL_SIZE = 8;
+
+size_t GpuMemoryPool::PoolKey::getMemorySize() const
+{
+    return static_cast<size_t>(rows) * cols * CV_ELEM_SIZE(type);
+}
+
+GpuMemoryPool::GpuMemoryPool()
+    : maxPoolSize_(DEFAULT_GPU_POOL_SIZE)
+{
+}
+
+GpuMemoryPool::~GpuMemoryPool()
+{
+    clear();
+}
+
+GpuMemoryPool& GpuMemoryPool::instance()
+{
+    static GpuMemoryPool instance;
+    return instance;
+}
+
+cv::cuda::GpuMat GpuMemoryPool::allocate(int rows, int cols, int type)
+{
+    totalAllocations_++;
+
+    PoolKey key{rows, cols, type};
+
+    QMutexLocker locker(&mutex_);
+
+    auto it = pool_.find(key);
+    if (it != pool_.end() && !it->second.empty()) {
+        cacheHits_++;
+        cv::cuda::GpuMat mat = it->second.back();
+        it->second.pop_back();
+        return mat;
+    }
+
+    cacheMisses_++;
+    locker.unlock();
+
+    return cv::cuda::GpuMat(rows, cols, type);
+}
+
+void GpuMemoryPool::release(cv::cuda::GpuMat& mat)
+{
+    if (mat.empty()) {
+        return;
+    }
+
+    PoolKey key{mat.rows, mat.cols, mat.type()};
+
+    QMutexLocker locker(&mutex_);
+
+    auto& vec = pool_[key];
+    if (vec.size() >= maxPoolSize_) {
+        return;  // 让mat自动释放
+    }
+
+    vec.push_back(mat);
+    mat = cv::cuda::GpuMat();  // 清空原引用
+}
+
+void GpuMemoryPool::preallocate(int rows, int cols, int type, int count)
+{
+    std::vector<cv::cuda::GpuMat> mats;
+    mats.reserve(count);
+
+    for (int i = 0; i < count; ++i) {
+        mats.emplace_back(rows, cols, type);
+    }
+
+    PoolKey key{rows, cols, type};
+
+    QMutexLocker locker(&mutex_);
+    auto& vec = pool_[key];
+    vec.insert(vec.end(), mats.begin(), mats.end());
+
+    LOG_DEBUG(QString("GPU内存池预分配: %1x%2, 类型=%3, 数量=%4")
+             .arg(rows).arg(cols).arg(type).arg(count));
+}
+
+void GpuMemoryPool::clear()
+{
+    QMutexLocker locker(&mutex_);
+    pool_.clear();
+    LOG_DEBUG("GPU内存池已清空");
+}
+
+size_t GpuMemoryPool::getTotalMemoryUsage() const
+{
+    QMutexLocker locker(&mutex_);
+
+    size_t total = 0;
+    for (const auto& pair : pool_) {
+        size_t count = pair.second.size();
+        size_t memPerMat = pair.first.getMemorySize();
+        total += count * memPerMat;
+    }
+
+    return total;
+}
+
+size_t GpuMemoryPool::getPoolSize() const
+{
+    QMutexLocker locker(&mutex_);
+
+    size_t total = 0;
+    for (const auto& pair : pool_) {
+        total += pair.second.size();
+    }
+
+    return total;
+}
+
+GpuMemoryPool::Statistics GpuMemoryPool::getStatistics() const
+{
+    Statistics stats;
+    stats.totalAllocations = totalAllocations_.load();
+    stats.cacheHits = cacheHits_.load();
+    stats.cacheMisses = cacheMisses_.load();
+
+    if (stats.totalAllocations > 0) {
+        stats.hitRate = static_cast<double>(stats.cacheHits) / stats.totalAllocations;
+    } else {
+        stats.hitRate = 0.0;
+    }
+
+    stats.poolSize = getPoolSize();
+    stats.memoryUsage = getTotalMemoryUsage();
+
+    return stats;
+}
+
+void GpuMemoryPool::resetStatistics()
+{
+    totalAllocations_.store(0);
+    cacheHits_.store(0);
+    cacheMisses_.store(0);
+}
+
 #endif // USE_CUDA
 
 } // namespace Base
