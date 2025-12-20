@@ -131,6 +131,75 @@ void ParallelProcessor::processBatchIndexed(std::vector<ImageData::Ptr>& images,
 #endif
 }
 
+size_t ParallelProcessor::processBatchFiles(
+    const QStringList& imageFiles,
+    const std::function<BatchProcessResult(const QString&, size_t)>& processor,
+    const std::function<void(size_t current, size_t total)>& progressCallback)
+{
+    if (imageFiles.isEmpty()) return 0;
+
+    totalTasks_++;
+
+    size_t totalFiles = imageFiles.size();
+    std::atomic<size_t> successCount{0};
+    std::atomic<size_t> processedCount{0};
+
+    if (!enabled_ || totalFiles < 2) {
+        // 串行处理
+        serialTasks_++;
+        for (size_t i = 0; i < totalFiles; ++i) {
+            auto result = processor(imageFiles[i], i);
+            if (result.success) {
+                successCount++;
+            }
+            processedCount++;
+            if (progressCallback) {
+                progressCallback(processedCount.load(), totalFiles);
+            }
+        }
+        return successCount.load();
+    }
+
+    parallelTasks_++;
+
+#ifdef _OPENMP
+    int threadsUsed = std::min(maxThreads_, static_cast<int>(totalFiles));
+    if (threadsUsed > maxThreadsUsed_.load()) {
+        maxThreadsUsed_.store(threadsUsed);
+    }
+
+    #pragma omp parallel for num_threads(threadsUsed) schedule(dynamic)
+    for (int i = 0; i < static_cast<int>(totalFiles); ++i) {
+        auto result = processor(imageFiles[i], static_cast<size_t>(i));
+        if (result.success) {
+            successCount++;
+        }
+        processedCount++;
+
+        // 进度回调（线程安全）
+        if (progressCallback) {
+            #pragma omp critical(progress_callback)
+            {
+                progressCallback(processedCount.load(), totalFiles);
+            }
+        }
+    }
+#else
+    for (size_t i = 0; i < totalFiles; ++i) {
+        auto result = processor(imageFiles[i], i);
+        if (result.success) {
+            successCount++;
+        }
+        processedCount++;
+        if (progressCallback) {
+            progressCallback(processedCount.load(), totalFiles);
+        }
+    }
+#endif
+
+    return successCount.load();
+}
+
 // ========== 图像分块处理 ==========
 
 std::vector<cv::Rect> ParallelProcessor::calculateTiles(const cv::Size& imageSize,
@@ -400,23 +469,36 @@ double ParallelProcessor::parallelMax(const double* data, size_t size)
     double maxVal = data[0];
 
 #ifdef _OPENMP
-    // 使用临界区代替reduction(max:)，兼容MSVC OpenMP 2.0
-    #pragma omp parallel
-    {
-        double localMax = data[0];
-        #pragma omp for nowait
-        for (int i = 1; i < static_cast<int>(size); ++i) {
-            if (data[i] > localMax) {
-                localMax = data[i];
+    // OpenMP 4.0+ 支持 max reduction，完全消除 critical section
+    #if _OPENMP >= 201307  // OpenMP 4.0+
+        #pragma omp parallel for reduction(max:maxVal)
+        for (int i = 0; i < static_cast<int>(size); ++i) {
+            if (data[i] > maxVal) {
+                maxVal = data[i];
             }
         }
-        #pragma omp critical
+    #else
+        // OpenMP 2.0 fallback: 使用线程局部变量 + 命名critical section优化
+        #pragma omp parallel
         {
-            if (localMax > maxVal) {
-                maxVal = localMax;
+            double localMax = -std::numeric_limits<double>::infinity();
+
+            #pragma omp for nowait
+            for (int i = 0; i < static_cast<int>(size); ++i) {
+                if (data[i] > localMax) {
+                    localMax = data[i];
+                }
+            }
+
+            // 命名critical section，避免与其他锁冲突
+            #pragma omp critical(max_reduction)
+            {
+                if (localMax > maxVal) {
+                    maxVal = localMax;
+                }
             }
         }
-    }
+    #endif
 #else
     for (size_t i = 1; i < size; ++i) {
         if (data[i] > maxVal) {
@@ -435,23 +517,36 @@ double ParallelProcessor::parallelMin(const double* data, size_t size)
     double minVal = data[0];
 
 #ifdef _OPENMP
-    // 使用临界区代替reduction(min:)，兼容MSVC OpenMP 2.0
-    #pragma omp parallel
-    {
-        double localMin = data[0];
-        #pragma omp for nowait
-        for (int i = 1; i < static_cast<int>(size); ++i) {
-            if (data[i] < localMin) {
-                localMin = data[i];
+    // OpenMP 4.0+ 支持 min reduction，完全消除 critical section
+    #if _OPENMP >= 201307  // OpenMP 4.0+
+        #pragma omp parallel for reduction(min:minVal)
+        for (int i = 0; i < static_cast<int>(size); ++i) {
+            if (data[i] < minVal) {
+                minVal = data[i];
             }
         }
-        #pragma omp critical
+    #else
+        // OpenMP 2.0 fallback: 使用线程局部变量 + 命名critical section优化
+        #pragma omp parallel
         {
-            if (localMin < minVal) {
-                minVal = localMin;
+            double localMin = std::numeric_limits<double>::infinity();
+
+            #pragma omp for nowait
+            for (int i = 0; i < static_cast<int>(size); ++i) {
+                if (data[i] < localMin) {
+                    localMin = data[i];
+                }
+            }
+
+            // 命名critical section，避免与其他锁冲突
+            #pragma omp critical(min_reduction)
+            {
+                if (localMin < minVal) {
+                    minVal = localMin;
+                }
             }
         }
-    }
+    #endif
 #else
     for (size_t i = 1; i < size; ++i) {
         if (data[i] < minVal) {
@@ -461,6 +556,188 @@ double ParallelProcessor::parallelMin(const double* data, size_t size)
 #endif
 
     return minVal;
+}
+
+// ========== 高级并行算法实现 ==========
+
+std::vector<std::vector<int>> ParallelProcessor::parallelHistogram(const cv::Mat& image, int bins)
+{
+    if (image.empty() || bins <= 0) {
+        return {};
+    }
+
+    int channels = image.channels();
+    std::vector<std::vector<int>> histograms(channels, std::vector<int>(bins, 0));
+
+    // 计算bin大小
+    double binSize = 256.0 / bins;
+
+#ifdef _OPENMP
+    // 为每个线程创建局部直方图
+    int numThreads = omp_get_max_threads();
+    std::vector<std::vector<std::vector<int>>> localHistograms(
+        numThreads, std::vector<std::vector<int>>(channels, std::vector<int>(bins, 0)));
+
+    #pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+        auto& localHist = localHistograms[tid];
+
+        #pragma omp for
+        for (int y = 0; y < image.rows; ++y) {
+            const uchar* rowPtr = image.ptr<uchar>(y);
+            for (int x = 0; x < image.cols; ++x) {
+                for (int c = 0; c < channels; ++c) {
+                    int value = rowPtr[x * channels + c];
+                    int binIdx = static_cast<int>(value / binSize);
+                    binIdx = std::min(binIdx, bins - 1);
+                    localHist[c][binIdx]++;
+                }
+            }
+        }
+    }
+
+    // 合并所有局部直方图
+    for (const auto& localHist : localHistograms) {
+        for (int c = 0; c < channels; ++c) {
+            for (int b = 0; b < bins; ++b) {
+                histograms[c][b] += localHist[c][b];
+            }
+        }
+    }
+#else
+    // 串行版本
+    for (int y = 0; y < image.rows; ++y) {
+        const uchar* rowPtr = image.ptr<uchar>(y);
+        for (int x = 0; x < image.cols; ++x) {
+            for (int c = 0; c < channels; ++c) {
+                int value = rowPtr[x * channels + c];
+                int binIdx = static_cast<int>(value / binSize);
+                binIdx = std::min(binIdx, bins - 1);
+                histograms[c][binIdx]++;
+            }
+        }
+    }
+#endif
+
+    return histograms;
+}
+
+std::pair<cv::Scalar, cv::Scalar> ParallelProcessor::parallelMeanStdDev(const cv::Mat& image)
+{
+    if (image.empty()) {
+        return {cv::Scalar(), cv::Scalar()};
+    }
+
+    int channels = image.channels();
+    cv::Scalar mean, stddev;
+
+    // 计算每个通道的均值和标准差
+    for (int c = 0; c < channels; ++c) {
+        double sum = 0.0;
+        double sumSq = 0.0;
+        int totalPixels = image.rows * image.cols;
+
+#ifdef _OPENMP
+        #pragma omp parallel for reduction(+:sum,sumSq)
+        for (int y = 0; y < image.rows; ++y) {
+            const uchar* rowPtr = image.ptr<uchar>(y);
+            for (int x = 0; x < image.cols; ++x) {
+                double value = rowPtr[x * channels + c];
+                sum += value;
+                sumSq += value * value;
+            }
+        }
+#else
+        for (int y = 0; y < image.rows; ++y) {
+            const uchar* rowPtr = image.ptr<uchar>(y);
+            for (int x = 0; x < image.cols; ++x) {
+                double value = rowPtr[x * channels + c];
+                sum += value;
+                sumSq += value * value;
+            }
+        }
+#endif
+
+        mean[c] = sum / totalPixels;
+        double variance = (sumSq / totalPixels) - (mean[c] * mean[c]);
+        stddev[c] = std::sqrt(std::max(0.0, variance));
+    }
+
+    return {mean, stddev};
+}
+
+void ParallelProcessor::parallelConvolution(const cv::Mat& input, cv::Mat& output, const cv::Mat& kernel)
+{
+    if (input.empty() || kernel.empty()) {
+        return;
+    }
+
+    // 确保输出图像大小正确
+    output.create(input.size(), input.type());
+
+    int kRows = kernel.rows;
+    int kCols = kernel.cols;
+    int kCenterX = kCols / 2;
+    int kCenterY = kRows / 2;
+
+    // 转换kernel为double类型以提高精度
+    cv::Mat kernelDouble;
+    kernel.convertTo(kernelDouble, CV_64F);
+
+#ifdef _OPENMP
+    #pragma omp parallel for collapse(2)
+    for (int y = 0; y < input.rows; ++y) {
+        for (int x = 0; x < input.cols; ++x) {
+            double sum = 0.0;
+
+            // 卷积操作
+            for (int ky = 0; ky < kRows; ++ky) {
+                for (int kx = 0; kx < kCols; ++kx) {
+                    int iy = y + ky - kCenterY;
+                    int ix = x + kx - kCenterX;
+
+                    // 边界处理（镜像）
+                    iy = std::abs(iy);
+                    ix = std::abs(ix);
+                    if (iy >= input.rows) iy = 2 * input.rows - iy - 2;
+                    if (ix >= input.cols) ix = 2 * input.cols - ix - 2;
+
+                    double pixelValue = input.at<uchar>(iy, ix);
+                    double kernelValue = kernelDouble.at<double>(ky, kx);
+                    sum += pixelValue * kernelValue;
+                }
+            }
+
+            output.at<uchar>(y, x) = cv::saturate_cast<uchar>(sum);
+        }
+    }
+#else
+    // 串行版本
+    for (int y = 0; y < input.rows; ++y) {
+        for (int x = 0; x < input.cols; ++x) {
+            double sum = 0.0;
+
+            for (int ky = 0; ky < kRows; ++ky) {
+                for (int kx = 0; kx < kCols; ++kx) {
+                    int iy = y + ky - kCenterY;
+                    int ix = x + kx - kCenterX;
+
+                    iy = std::abs(iy);
+                    ix = std::abs(ix);
+                    if (iy >= input.rows) iy = 2 * input.rows - iy - 2;
+                    if (ix >= input.cols) ix = 2 * input.cols - ix - 2;
+
+                    double pixelValue = input.at<uchar>(iy, ix);
+                    double kernelValue = kernelDouble.at<double>(ky, kx);
+                    sum += pixelValue * kernelValue;
+                }
+            }
+
+            output.at<uchar>(y, x) = cv::saturate_cast<uchar>(sum);
+        }
+    }
+#endif
 }
 
 // ========== 统计信息 ==========

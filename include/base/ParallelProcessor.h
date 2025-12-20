@@ -88,6 +88,24 @@ public:
     void processBatchIndexed(std::vector<ImageData::Ptr>& images,
                             const std::function<void(ImageData::Ptr&, size_t)>& processor);
 
+    /**
+     * @brief 批量图片并行处理（带结果返回）
+     * @param imageFiles 图片文件路径列表
+     * @param processor 处理函数，返回 {success, errorMsg, elapsedMs}
+     * @param progressCallback 进度回调函数
+     * @return 成功处理的图片数量
+     */
+    struct BatchProcessResult {
+        bool success;
+        QString errorMessage;
+        double elapsedMs;
+    };
+
+    size_t processBatchFiles(
+        const QStringList& imageFiles,
+        const std::function<BatchProcessResult(const QString&, size_t)>& processor,
+        const std::function<void(size_t current, size_t total)>& progressCallback = nullptr);
+
     // ========== 图像分块处理 ==========
 
     /**
@@ -189,6 +207,63 @@ public:
      */
     static double parallelMin(const double* data, size_t size);
 
+    // ========== 高级并行算法 ==========
+
+    /**
+     * @brief 并行变换（类似std::transform）
+     * @param input 输入数组
+     * @param output 输出数组
+     * @param size 数组大小
+     * @param op 变换函数
+     */
+    template<typename T, typename Op>
+    static void parallelTransform(const T* input, T* output, size_t size, Op op);
+
+    /**
+     * @brief 并行归约（通用版本）
+     * @param data 数据数组
+     * @param size 数组大小
+     * @param init 初始值
+     * @param op 归约操作（如相加、相乘）
+     * @return 归约结果
+     */
+    template<typename T, typename Op>
+    static T parallelReduce(const T* data, size_t size, T init, Op op);
+
+    /**
+     * @brief 并行过滤（条件筛选）
+     * @param input 输入数组
+     * @param size 输入大小
+     * @param predicate 判断函数
+     * @return 符合条件的元素向量
+     */
+    template<typename T, typename Pred>
+    static std::vector<T> parallelFilter(const T* input, size_t size, Pred predicate);
+
+    /**
+     * @brief 并行计算直方图
+     * @param image 输入图像
+     * @param bins 直方图bin数量（默认256）
+     * @return 每个通道的直方图
+     */
+    static std::vector<std::vector<int>> parallelHistogram(
+        const cv::Mat& image, int bins = 256);
+
+    /**
+     * @brief 并行计算均值和标准差
+     * @param image 输入图像
+     * @return {mean, stddev}
+     */
+    static std::pair<cv::Scalar, cv::Scalar> parallelMeanStdDev(const cv::Mat& image);
+
+    /**
+     * @brief 并行图像卷积
+     * @param input 输入图像
+     * @param output 输出图像
+     * @param kernel 卷积核
+     */
+    static void parallelConvolution(const cv::Mat& input, cv::Mat& output, const cv::Mat& kernel);
+
     // ========== 统计信息 ==========
 
     /**
@@ -253,6 +328,107 @@ private:
     #define VF_PARALLEL_FOR_COLLAPSE(n)
     #define VF_PARALLEL_REDUCE(op, var)
 #endif
+
+// ============================================================
+// 模板函数实现
+// ============================================================
+
+template<typename T, typename Op>
+void ParallelProcessor::parallelTransform(const T* input, T* output, size_t size, Op op)
+{
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(size); ++i) {
+        output[i] = op(input[i]);
+    }
+#else
+    for (size_t i = 0; i < size; ++i) {
+        output[i] = op(input[i]);
+    }
+#endif
+}
+
+template<typename T, typename Op>
+T ParallelProcessor::parallelReduce(const T* data, size_t size, T init, Op op)
+{
+    if (size == 0) return init;
+
+    T result = init;
+
+#ifdef _OPENMP
+    #pragma omp parallel
+    {
+        T localResult = init;
+
+        #pragma omp for nowait
+        for (int i = 0; i < static_cast<int>(size); ++i) {
+            localResult = op(localResult, data[i]);
+        }
+
+        #pragma omp critical(reduce_operation)
+        {
+            result = op(result, localResult);
+        }
+    }
+#else
+    for (size_t i = 0; i < size; ++i) {
+        result = op(result, data[i]);
+    }
+#endif
+
+    return result;
+}
+
+template<typename T, typename Pred>
+std::vector<T> ParallelProcessor::parallelFilter(const T* input, size_t size, Pred predicate)
+{
+    std::vector<T> result;
+
+    if (size == 0) return result;
+
+#ifdef _OPENMP
+    // 每个线程维护自己的局部结果
+    std::vector<std::vector<T>> localResults;
+
+    #pragma omp parallel
+    {
+        std::vector<T> local;
+
+        #pragma omp for nowait schedule(static)
+        for (int i = 0; i < static_cast<int>(size); ++i) {
+            if (predicate(input[i])) {
+                local.push_back(input[i]);
+            }
+        }
+
+        #pragma omp critical(filter_merge)
+        {
+            localResults.push_back(std::move(local));
+        }
+    }
+
+    // 合并所有局部结果
+    size_t totalSize = 0;
+    for (const auto& local : localResults) {
+        totalSize += local.size();
+    }
+    result.reserve(totalSize);
+
+    for (auto& local : localResults) {
+        result.insert(result.end(),
+                     std::make_move_iterator(local.begin()),
+                     std::make_move_iterator(local.end()));
+    }
+#else
+    for (size_t i = 0; i < size; ++i) {
+        if (predicate(input[i])) {
+            result.push_back(input[i]);
+        }
+    }
+#endif
+
+    return result;
+}
 
 } // namespace Base
 } // namespace VisionForge

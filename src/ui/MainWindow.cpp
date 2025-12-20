@@ -7,6 +7,7 @@
 #include "ui/Theme.h"
 #include "algorithm/ToolFactory.h"
 #include "base/Logger.h"
+#include "base/ParallelProcessor.h"
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -62,6 +63,12 @@
 #include "ui/StatisticsPanel.h"
 #include "ui/UserManagementDialog.h"
 #include "ui/UIModeManager.h"
+// 多相机多位置对位对话框
+#include "ui/MultiCameraManagerDialog.h"
+#include "ui/MultiPointAlignmentDialog.h"
+#include "ui/AlignmentOutputDialog.h"
+#include "ui/WorkStationDialog.h"
+#include "core/WorkStation.h"
 // 基础设施
 #include "base/PermissionManager.h"
 #include "base/SystemMonitor.h"
@@ -107,6 +114,144 @@
 
 namespace VisionForge {
 namespace UI {
+
+/**
+ * @brief 批量图像检测工作线程
+ *
+ * 在后台线程处理批量图像，避免阻塞UI主线程
+ */
+class InspectionWorker : public QThread {
+    Q_OBJECT
+
+public:
+    InspectionWorker(const QStringList& imageFiles,
+                     const QList<Algorithm::VisionTool*>& tools,
+                     QObject* parent = nullptr)
+        : QThread(parent)
+        , imageFiles_(imageFiles)
+        , tools_(tools)
+        , stopRequested_(false)
+    {
+    }
+
+    void requestStop() {
+        stopRequested_ = true;
+    }
+
+signals:
+    void progress(int current, int total);
+    void imageProcessed(int index, bool success, const QString& imagePath, double elapsedMs);
+    void finished(int successCount, int totalCount, double totalTime);
+
+protected:
+    void run() override {
+        int totalImages = imageFiles_.size();
+        double totalTime = 0.0;
+        QMutex timeMutex;
+
+        // 使用ParallelProcessor实现多图并行处理
+        auto& processor = Base::ParallelProcessor::instance();
+
+        // 定义单张图片处理函数
+        auto imageProcessor = [this, &totalTime, &timeMutex](const QString& filePath, size_t index)
+            -> Base::ParallelProcessor::BatchProcessResult {
+
+            if (stopRequested_) {
+                return {false, "用户中断", 0.0};
+            }
+
+            // 加载图片
+            QFile file(filePath);
+            if (!file.open(QIODevice::ReadOnly)) {
+                QString error = QString("无法打开图像文件");
+                LOG_WARNING(QString("%1: %2").arg(error).arg(filePath));
+                emit imageProcessed(index, false, filePath, 0.0);
+                return {false, error, 0.0};
+            }
+
+            QByteArray fileData = file.readAll();
+            file.close();
+
+            // 解码图像
+            std::vector<uchar> buffer(fileData.begin(), fileData.end());
+            cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
+
+            if (mat.empty()) {
+                QString error = QString("无法解码图像文件");
+                LOG_WARNING(QString("%1: %2").arg(error).arg(filePath));
+                emit imageProcessed(index, false, filePath, 0.0);
+                return {false, error, 0.0};
+            }
+
+            auto currentImage = std::make_shared<Base::ImageData>(mat);
+
+            // 记录开始时间
+            auto startTime = std::chrono::high_resolution_clock::now();
+
+            // 执行工具链处理
+            bool allSuccess = true;
+            QString errorMsg;
+
+            for (Algorithm::VisionTool* tool : tools_) {
+                if (stopRequested_) {
+                    return {false, "用户中断", 0.0};
+                }
+
+                Algorithm::ToolResult result;
+                bool success = tool->process(currentImage, result);
+
+                if (!success || !result.success) {
+                    allSuccess = false;
+                    errorMsg = QString("工具 %1 处理失败: %2")
+                               .arg(tool->toolName())
+                               .arg(result.errorMessage);
+                    LOG_WARNING(errorMsg);
+                    break;
+                }
+
+                // 更新输出图像
+                if (result.outputImage) {
+                    currentImage = result.outputImage;
+                }
+            }
+
+            // 计算处理时间
+            auto endTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> duration = endTime - startTime;
+            double elapsedMs = duration.count();
+
+            if (allSuccess) {
+                QMutexLocker locker(&timeMutex);
+                totalTime += elapsedMs;
+            }
+
+            // 发送单张图片处理完成信号（线程安全）
+            emit imageProcessed(static_cast<int>(index), allSuccess, filePath, elapsedMs);
+
+            return {allSuccess, errorMsg, elapsedMs};
+        };
+
+        // 进度回调
+        auto progressCallback = [this](size_t current, size_t total) {
+            emit progress(static_cast<int>(current), static_cast<int>(total));
+        };
+
+        // 并行处理所有图片
+        size_t successCount = processor.processBatchFiles(
+            imageFiles_,
+            imageProcessor,
+            progressCallback
+        );
+
+        // 发送完成信号
+        emit finished(static_cast<int>(successCount), totalImages, totalTime);
+    }
+
+private:
+    QStringList imageFiles_;
+    QList<Algorithm::VisionTool*> tools_;
+    bool stopRequested_;
+};
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -319,57 +464,64 @@ void MainWindow::onRunAllImages()
     }
 
     int totalImages = imageSequence_.size();
-    int successCount = 0;
-    double totalTime = 0.0;
 
     statusLabel_->setText(QString("正在批量处理 %1 张图片...").arg(totalImages));
-    QApplication::processEvents();
 
-    for (int i = 0; i < totalImages; ++i) {
-        // 加载图片
-        currentImageIndex_ = i;
-        loadImageAtIndex(i);
+    // 禁用UI控件，防止在处理期间进行其他操作
+    setEnabled(false);
+    statusLabel_->setText(QString("批量处理中: 0/%1").arg(totalImages));
 
-        if (!currentImage_) {
-            LOG_WARNING(QString("无法加载图片: %1").arg(imageSequence_[i]));
-            continue;
+    // 创建工作线程
+    auto worker = new InspectionWorker(imageSequence_, tools, this);
+
+    // 连接进度信号
+    connect(worker, &InspectionWorker::progress, this, [this, totalImages](int current, int total) {
+        statusLabel_->setText(QString("批量处理中: %1/%2").arg(current).arg(total));
+    });
+
+    // 连接单张图片处理完成信号
+    connect(worker, &InspectionWorker::imageProcessed, this,
+            [this](int index, bool success, const QString& imagePath, double elapsedMs) {
+        if (success) {
+            LOG_DEBUG(QString("图片 %1 处理成功，耗时: %2 ms")
+                     .arg(QFileInfo(imagePath).fileName())
+                     .arg(elapsedMs, 0, 'f', 2));
+        } else {
+            LOG_WARNING(QString("图片 %1 处理失败").arg(QFileInfo(imagePath).fileName()));
         }
+    });
 
-        // 记录开始时间
-        auto startTime = std::chrono::high_resolution_clock::now();
+    // 连接完成信号
+    connect(worker, &InspectionWorker::finished, this,
+            [this, totalImages, worker](int successCount, int totalCount, double totalTime) {
+        // 重新启用UI
+        setEnabled(true);
 
-        // 处理图片
-        processImage(currentImage_);
+        // 显示完成信息
+        QString resultMsg = QString("批量处理完成!\n"
+                                    "处理图片: %1/%2 张\n"
+                                    "总耗时: %3 ms\n"
+                                    "平均耗时: %4 ms/张")
+            .arg(successCount)
+            .arg(totalCount)
+            .arg(totalTime, 0, 'f', 2)
+            .arg(successCount > 0 ? totalTime / successCount : 0, 0, 'f', 2);
 
-        // 计算处理时间
-        auto endTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = endTime - startTime;
-        totalTime += duration.count();
-        successCount++;
+        QMessageBox::information(this, "批量处理完成", resultMsg);
+        statusLabel_->setText(QString("批量处理完成: %1张图片, 总耗时%.2f ms")
+            .arg(successCount).arg(totalTime));
 
-        // 更新状态
-        statusLabel_->setText(QString("批量处理中: %1/%2").arg(i + 1).arg(totalImages));
-        QApplication::processEvents();
-    }
+        updateImageSequenceActions();
 
-    // 显示完成信息
-    QString resultMsg = QString("批量处理完成!\n"
-                                "处理图片: %1/%2 张\n"
-                                "总耗时: %3 ms\n"
-                                "平均耗时: %4 ms/张")
-        .arg(successCount)
-        .arg(totalImages)
-        .arg(totalTime, 0, 'f', 2)
-        .arg(successCount > 0 ? totalTime / successCount : 0, 0, 'f', 2);
+        LOG_INFO(QString("批量处理完成: %1/%2张图片, 总耗时%3ms")
+            .arg(successCount).arg(totalCount).arg(totalTime, 0, 'f', 2));
 
-    QMessageBox::information(this, "批量处理完成", resultMsg);
-    statusLabel_->setText(QString("批量处理完成: %1张图片, 总耗时%.2f ms")
-        .arg(successCount).arg(totalTime));
+        // 自动删除工作线程
+        worker->deleteLater();
+    });
 
-    updateImageSequenceActions();
-
-    LOG_INFO(QString("批量处理完成: %1/%2张图片, 总耗时%3ms")
-        .arg(successCount).arg(totalImages).arg(totalTime, 0, 'f', 2));
+    // 启动工作线程
+    worker->start();
 }
 
 void MainWindow::loadImageAtIndex(int index)
@@ -1239,6 +1391,31 @@ void MainWindow::createMenus()
     connect(ninePointCalibAction_, &QAction::triggered, this, &MainWindow::onNinePointCalibration);
     calibMenu_->addAction(ninePointCalibAction_);
 
+    // 对位菜单
+    alignmentMenu_ = menuBar()->addMenu("对位(&A)");
+
+    multiCameraManagerAction_ = new QAction(Theme::getIcon(Icons::CAMERA_PHOTO), "多相机管理(&M)...", this);
+    multiCameraManagerAction_->setStatusTip("管理多个相机和分组采集");
+    connect(multiCameraManagerAction_, &QAction::triggered, this, &MainWindow::onMultiCameraManager);
+    alignmentMenu_->addAction(multiCameraManagerAction_);
+
+    multiPointAlignmentAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "多点对位配置(&P)...", this);
+    multiPointAlignmentAction_->setStatusTip("配置多点对位检测参数");
+    connect(multiPointAlignmentAction_, &QAction::triggered, this, &MainWindow::onMultiPointAlignment);
+    alignmentMenu_->addAction(multiPointAlignmentAction_);
+
+    workStationConfigAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "工位配置(&W)...", this);
+    workStationConfigAction_->setStatusTip("配置工位位置、对位方式和补偿参数");
+    connect(workStationConfigAction_, &QAction::triggered, this, &MainWindow::onWorkStationConfig);
+    alignmentMenu_->addAction(workStationConfigAction_);
+
+    alignmentMenu_->addSeparator();
+
+    alignmentOutputAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "对位输出配置(&O)...", this);
+    alignmentOutputAction_->setStatusTip("配置对位结果输出（PLC/TCP/串口）");
+    connect(alignmentOutputAction_, &QAction::triggered, this, &MainWindow::onAlignmentOutput);
+    alignmentMenu_->addAction(alignmentOutputAction_);
+
     // 通信菜单
     commMenu_ = menuBar()->addMenu("通信(&M)");
 
@@ -2048,6 +2225,52 @@ void MainWindow::onNinePointCalibration()
     dialog.exec();
 }
 
+// ========== 多相机多位置对位 ==========
+
+void MainWindow::onMultiCameraManager()
+{
+    MultiCameraManagerDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::onMultiPointAlignment()
+{
+    MultiPointAlignmentDialog dialog(this);
+
+    // TODO: 设置对位工具实例
+    // dialog.setAlignmentTool(alignmentTool_);
+
+    dialog.exec();
+}
+
+void MainWindow::onAlignmentOutput()
+{
+    AlignmentOutputDialog dialog(this);
+
+    // TODO: 设置输出工具实例
+    // dialog.setOutputTool(outputTool_);
+
+    dialog.exec();
+}
+
+void MainWindow::onWorkStationConfig()
+{
+    WorkStationDialog dialog(this);
+
+    // 获取或创建当前工位
+    auto& wsManager = Core::WorkStationManager::instance();
+    if (wsManager.workStationCount() == 0) {
+        wsManager.createWorkStation("默认工位");
+    }
+
+    Core::WorkStation* ws = wsManager.currentWorkStation();
+    if (ws) {
+        dialog.setWorkStation(ws);
+    }
+
+    dialog.exec();
+}
+
 // ========== 系统设置 ==========
 
 void MainWindow::onSystemSettings()
@@ -2298,3 +2521,6 @@ bool MainWindow::tryAutoConnectCamera()
 
 } // namespace UI
 } // namespace VisionForge
+
+// 包含MOC生成的文件，以处理InspectionWorker的Q_OBJECT宏
+#include "MainWindow.moc"
