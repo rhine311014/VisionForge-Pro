@@ -281,8 +281,13 @@ void TokenAuthManager::revokeUserTokens(const QString& userId)
 
     for (const QString& tokenId : tokenIds) {
         if (activeTokens_.contains(tokenId)) {
-            // 需要构造完整Token来加入黑名单
-            // 这里简化处理，直接从activeTokens_移除
+            // 获取完整Token字符串并加入黑名单
+            const TokenInfo& tokenInfo = activeTokens_[tokenId];
+            if (config_.enableBlacklist) {
+                tokenBlacklist_[tokenInfo.tokenString] = tokenInfo.expiryTime;
+            }
+
+            // 从activeTokens_移除
             activeTokens_.remove(tokenId);
             count++;
         }
@@ -431,6 +436,7 @@ QString TokenAuthManager::generateToken(const QString& userId,
 
     // 记录活跃Token
     TokenInfo info;
+    info.tokenString = token;
     info.tokenId = tokenId;
     info.userId = userId;
     info.username = username;

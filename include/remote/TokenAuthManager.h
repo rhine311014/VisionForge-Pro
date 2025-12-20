@@ -52,6 +52,7 @@ struct TokenValidationResult {
  * @brief Token信息
  */
 struct TokenInfo {
+    QString tokenString;                   // 完整的Token字符串(用于黑名单撤销)
     QString tokenId;                       // Token唯一ID
     QString userId;                        // 用户ID
     QString username;                      // 用户名

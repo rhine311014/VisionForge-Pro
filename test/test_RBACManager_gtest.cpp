@@ -15,6 +15,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QDebug>
+#include <QSqlDatabase>
 #include "remote/RBACManager.h"
 
 using namespace VisionForge::Remote;
@@ -24,6 +25,12 @@ protected:
     void SetUp() override {
         tempDir = new QTemporaryDir();
         ASSERT_TRUE(tempDir->isValid());
+        qDebug() << "临时目录:" << tempDir->path();
+
+        // 检查SQLite驱动
+        QStringList drivers = QSqlDatabase::drivers();
+        qDebug() << "可用SQL驱动:" << drivers;
+        ASSERT_TRUE(drivers.contains("QSQLITE")) << "QSQLITE驱动不可用";
 
         rbacManager = new RBACManager();
 
@@ -33,10 +40,14 @@ protected:
         config.maxLoginAttempts = 5;
         config.lockoutDurationMinutes = 15;
 
-        ASSERT_TRUE(rbacManager->initialize(config));
+        qDebug() << "初始化RBAC管理器，数据库路径:" << config.databasePath;
+        bool initResult = rbacManager->initialize(config);
+        if (!initResult) {
+            qCritical() << "RBACManager初始化失败!";
+        }
+        ASSERT_TRUE(initResult);
 
-        // 添加默认测试用户
-        ASSERT_TRUE(rbacManager->addUser("admin", "admin123", UserRole::Admin));
+        // 添加测试用户（注意：initialize已自动创建admin用户）
         ASSERT_TRUE(rbacManager->addUser("operator", "oper123", UserRole::Operator));
         ASSERT_TRUE(rbacManager->addUser("viewer", "view123", UserRole::Viewer));
     }
@@ -301,6 +312,13 @@ TEST_F(RBACManagerTest, Signal_UserAdded) {
  */
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
+
+    // 添加Qt插件路径以加载SQLite驱动
+    QCoreApplication::addLibraryPath("F:/Qt/6.9.3/msvc2022_64/plugins");
+
+    qDebug() << "Qt插件路径:" << QCoreApplication::libraryPaths();
+    qDebug() << "可用SQL驱动:" << QSqlDatabase::drivers();
+
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
