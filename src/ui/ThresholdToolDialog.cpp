@@ -27,6 +27,8 @@ ThresholdToolDialog::ThresholdToolDialog(Algorithm::ThresholdTool* tool, QWidget
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("二值化参数设置");
     setMinimumSize(450, 450);
@@ -150,11 +152,23 @@ void ThresholdToolDialog::createAdaptiveParamsGroup(QVBoxLayout* layout)
 
 void ThresholdToolDialog::createButtons(QVBoxLayout* layout)
 {
-    // 预览按钮
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 150);
+
+    // 预览选项
     QHBoxLayout* previewLayout = new QHBoxLayout();
+
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+
+    previewLayout->addStretch();
+
     previewBtn_ = new QPushButton("预览效果", this);
     previewBtn_->setMinimumHeight(35);
     previewLayout->addWidget(previewBtn_);
+
     layout->addLayout(previewLayout);
 
     // 对话框按钮
@@ -189,6 +203,12 @@ void ThresholdToolDialog::connectSignals()
             this, &ThresholdToolDialog::onBlockSizeChanged);
     connect(constantCSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &ThresholdToolDialog::onConstantCChanged);
+
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &ThresholdToolDialog::onAutoPreview);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &ThresholdToolDialog::onPreviewClicked);
@@ -284,6 +304,7 @@ void ThresholdToolDialog::onThresholdTypeChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onThresholdMethodChanged(int index)
@@ -291,6 +312,7 @@ void ThresholdToolDialog::onThresholdMethodChanged(int index)
     Q_UNUSED(index);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onThresholdChanged(int value)
@@ -300,6 +322,7 @@ void ThresholdToolDialog::onThresholdChanged(int value)
     thresholdSlider_->setValue(value);
     thresholdSlider_->blockSignals(false);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onThresholdSliderChanged(int value)
@@ -309,12 +332,14 @@ void ThresholdToolDialog::onThresholdSliderChanged(int value)
     thresholdSpin_->setValue(value);
     thresholdSpin_->blockSignals(false);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onMaxValueChanged(int value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onBlockSizeChanged(int value)
@@ -325,12 +350,14 @@ void ThresholdToolDialog::onBlockSizeChanged(int value)
         return;
     }
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onConstantCChanged(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ThresholdToolDialog::onPreviewClicked()
@@ -363,6 +390,20 @@ void ThresholdToolDialog::onApplyClicked()
 {
     applyParameters();
     emit parametersApplied();
+}
+
+void ThresholdToolDialog::onAutoPreview()
+{
+    // 自动预览触发时发射预览请求信号
+    emit previewRequested();
+
+    // 更新计算阈值显示
+    if (tool_) {
+        int computed = tool_->getComputedThreshold();
+        if (computed >= 0) {
+            computedThresholdLabel_->setText(QString::number(computed));
+        }
+    }
 }
 
 } // namespace UI

@@ -1,0 +1,61 @@
+;----------------------------------------------------------------------------
+;                               Sensor to Image GmbH
+;----------------------------------------------------------------------------
+; s2iGEVFiltermp Setup File
+; Copyright (c) 2012 Sensor to Image GmbH
+; Version 2.0.4
+;
+; Install information file for s2i GigE-Vision Filter Driver.
+; 
+; This is the INF for the miniport part.
+;-----------------------------------------------------------------------------
+[Version]
+signature  = "$Windows NT$"
+Class      = Net
+ClassGUID  = {4d36e972-e325-11ce-bfc1-08002be10318}
+Provider   = %S2I%
+DriverVer  = 05/15/2012,2.0.4
+CatalogFile = s2iGEVFilter.cat
+;CatalogFile.ntx86 = s2iGEVFilter.cat
+CatalogFile.ntamd64 = s2iGEVFilter.cat
+;CatalogFile.ntia64 = s2iGEVFilter.cat
+
+[ControlFlags]
+ExcludeFromSelect = s2iGEVFiltermpDev
+
+[DestinationDirs]
+DefaultDestDir=12
+; No files to copy 
+
+[Manufacturer]
+%S2I% = S2IMFG,ntx86,ntamd64,ntia64
+
+[S2IMFG]
+%s2iGEVFilterMP_Desc% = s2iGEVFilterMP.ndi, s2iGEVFiltermpDev
+
+[S2IMFG.ntx86]
+%s2iGEVFilterMP_Desc% = s2iGEVFilterMP.ndi, s2iGEVFiltermpDev
+
+[S2IMFG.ntamd64]
+%s2iGEVFilterMP_Desc% = s2iGEVFilterMP.ndi, s2iGEVFiltermpDev
+
+[S2IMFG.ntia64]
+%s2iGEVFilterMP_Desc% = s2iGEVFilterMP.ndi, s2iGEVFiltermpDev
+
+[s2iGEVFilterMP.ndi]
+Characteristics = 0x29 ;NCF_NOT_USER_REMOVABLE | NCF_VIRTUAL | NCF_HIDDEN
+
+[s2iGEVFilterMP.ndi.Services]
+AddService = s2iGEVFilter,0x2, s2iGEVFilterMP.AddService
+
+[s2iGEVFilterMP.AddService]
+DisplayName    = %s2iGEVFilterMP_Desc%
+ServiceType    = 1 ;SERVICE_KERNEL_DRIVER
+StartType      = 3 ;SERVICE_DEMAND_START
+ErrorControl   = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\s2iGEVFilter.sys
+
+[Strings]
+S2IMFG = Sensor to Image GmbH"
+s2iGEVFilterMP_Desc = "s2i GigE-Vision Filter Driver"
+

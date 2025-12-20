@@ -39,6 +39,8 @@ RangeJudgeToolDialog::RangeJudgeToolDialog(Algorithm::RangeJudgeTool* tool, QWid
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("范围判定设置");
     setMinimumSize(700, 600);
@@ -88,6 +90,18 @@ void RangeJudgeToolDialog::createUI()
     createTestGroup(mainLayout);
     createResultGroup(mainLayout);
     createButtonGroup(mainLayout);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新判定结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -246,8 +260,15 @@ void RangeJudgeToolDialog::connectSignals()
         if (!key.isEmpty()) {
             tool_->setInputValue(key, testValueSpin_->value());
             LOG_INFO(QString("设置测试值: %1 = %2").arg(key).arg(testValueSpin_->value()));
+            previewHelper_->requestPreview();
         }
     });
+
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &RangeJudgeToolDialog::onAutoCalc);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &RangeJudgeToolDialog::onPreviewClicked);
@@ -258,12 +279,14 @@ void RangeJudgeToolDialog::connectSignals()
 
 void RangeJudgeToolDialog::onCombineLogicChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto logic = static_cast<Algorithm::RangeJudgeTool::CombineLogic>(
         combineLogicCombo_->currentData().toInt());
     tool_->setCombineLogic(logic);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void RangeJudgeToolDialog::onAddCondition()
@@ -279,6 +302,7 @@ void RangeJudgeToolDialog::onAddCondition()
     tool_->addCondition(condition);
     updateConditionsTable();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void RangeJudgeToolDialog::onRemoveCondition()
@@ -290,6 +314,7 @@ void RangeJudgeToolDialog::onRemoveCondition()
         tool_->removeCondition(row);
         updateConditionsTable();
         emit parameterChanged();
+        previewHelper_->requestPreview();
     }
 }
 
@@ -306,7 +331,10 @@ void RangeJudgeToolDialog::onClearConditions()
 
 void RangeJudgeToolDialog::onConditionCellChanged(int row, int column)
 {
+    Q_UNUSED(row);
+    Q_UNUSED(column);
     syncConditionsFromTable();
+    previewHelper_->requestPreview();
 }
 
 void RangeJudgeToolDialog::onTestValueChanged(double value)
@@ -462,6 +490,18 @@ void RangeJudgeToolDialog::syncConditionsFromTable()
     }
 
     conditionsTable_->blockSignals(false);
+}
+
+void RangeJudgeToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+
+    // 执行判定
+    Algorithm::ToolResult result;
+    tool_->process(nullptr, result);
+    updateResultDisplay();
 }
 
 } // namespace UI

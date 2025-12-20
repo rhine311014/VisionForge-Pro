@@ -15,6 +15,61 @@ namespace VisionForge {
 namespace HAL {
 
 /**
+ * @brief 触发模式枚举（扩展版）
+ */
+enum class TriggerModeEx {
+    Continuous,         ///< 连续采集
+    Software,           ///< 软件触发（原有）
+    Hardware,           ///< 硬件触发（新增）
+    ActionCommand,      ///< Action Command（新增，用于多相机同步）
+    ExternalGPIO        ///< 外部GPIO（新增）
+};
+
+/**
+ * @brief Action Command配置
+ * 用于GenICam Action Command多相机同步触发
+ */
+struct ActionCommandConfig {
+    uint32_t deviceKey = 0x1;           ///< 设备密钥
+    uint32_t groupKey = 0x1;            ///< 组密钥
+    uint32_t groupMask = 0xFFFFFFFF;    ///< 组掩码
+    QString multicastAddress = "239.192.0.1";  ///< 组播地址
+    uint16_t multicastPort = 42424;     ///< 组播端口
+    bool enabled = false;               ///< 是否启用
+
+    ActionCommandConfig() = default;
+};
+
+/**
+ * @brief GPIO触发配置
+ */
+struct GPIOTriggerConfig {
+    QString devicePath;                 ///< GPIO设备路径
+    int pinNumber = 0;                  ///< 引脚号
+    int pulseWidthUs = 100;             ///< 脉冲宽度（微秒）
+    bool activeHigh = true;             ///< 高电平有效
+    int debounceUs = 10;                ///< 去抖延时（微秒）
+    bool enabled = false;               ///< 是否启用
+
+    GPIOTriggerConfig() = default;
+};
+
+/**
+ * @brief 硬件同步配置
+ */
+struct HardwareSyncConfig {
+    TriggerModeEx triggerMode = TriggerModeEx::Software;  ///< 触发模式
+    ActionCommandConfig actionCmd;      ///< Action Command配置
+    GPIOTriggerConfig gpioConfig;       ///< GPIO触发配置
+    int preTriggerDelayUs = 0;          ///< 预触发延迟（微秒）
+    int postTriggerDelayUs = 0;         ///< 后触发延迟（微秒）
+    int exposureDelayUs = 0;            ///< 曝光延迟（微秒）
+    bool syncEnabled = false;           ///< 是否启用同步
+
+    HardwareSyncConfig() = default;
+};
+
+/**
  * @brief 相机抽象接口
  *
  * 定义统一的相机接口，支持多种工业相机
@@ -24,7 +79,7 @@ class ICamera : public QObject {
 
 public:
     /**
-     * @brief 触发模式
+     * @brief 触发模式（兼容旧版本）
      */
     enum TriggerMode {
         Continuous,    // 连续采集
@@ -165,6 +220,90 @@ public:
      * @brief 获取触发模式
      */
     virtual TriggerMode getTriggerMode() const = 0;
+
+    // ========== 扩展触发模式接口 ==========
+
+    /**
+     * @brief 设置扩展触发模式
+     */
+    virtual void setTriggerModeEx(TriggerModeEx mode) {
+        // 默认实现：转换为基础触发模式
+        switch (mode) {
+        case TriggerModeEx::Continuous:
+            setTriggerMode(Continuous);
+            break;
+        case TriggerModeEx::Software:
+            setTriggerMode(Software);
+            break;
+        case TriggerModeEx::Hardware:
+        case TriggerModeEx::ActionCommand:
+        case TriggerModeEx::ExternalGPIO:
+            setTriggerMode(Hardware);
+            break;
+        }
+    }
+
+    /**
+     * @brief 获取扩展触发模式
+     */
+    virtual TriggerModeEx getTriggerModeEx() const {
+        switch (getTriggerMode()) {
+        case Continuous: return TriggerModeEx::Continuous;
+        case Software: return TriggerModeEx::Software;
+        case Hardware: return TriggerModeEx::Hardware;
+        default: return TriggerModeEx::Software;
+        }
+    }
+
+    /**
+     * @brief 配置Action Command
+     */
+    virtual bool configureActionCommand(const ActionCommandConfig& config) {
+        Q_UNUSED(config);
+        return false;  // 默认不支持
+    }
+
+    /**
+     * @brief 获取Action Command配置
+     */
+    virtual ActionCommandConfig getActionCommandConfig() const {
+        return ActionCommandConfig();
+    }
+
+    /**
+     * @brief 检查是否支持Action Command
+     */
+    virtual bool supportsActionCommand() const { return false; }
+
+    /**
+     * @brief 配置硬件同步
+     */
+    virtual bool configureHardwareSync(const HardwareSyncConfig& config) {
+        Q_UNUSED(config);
+        return false;  // 默认不支持
+    }
+
+    /**
+     * @brief 获取硬件同步配置
+     */
+    virtual HardwareSyncConfig getHardwareSyncConfig() const {
+        return HardwareSyncConfig();
+    }
+
+    /**
+     * @brief 检查是否支持硬件同步
+     */
+    virtual bool supportsHardwareSync() const { return false; }
+
+    /**
+     * @brief 等待Action Command触发
+     * @param timeoutMs 超时时间
+     * @return 是否成功接收到触发
+     */
+    virtual bool waitForActionTrigger(int timeoutMs = 5000) {
+        Q_UNUSED(timeoutMs);
+        return false;
+    }
 
 signals:
     /**

@@ -1,0 +1,50 @@
+Thu Aug 26 09:58:24 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 09:58:24 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 09:58:24 2021: [bcCreate]bcInit failed
+Thu Aug 26 09:58:28 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 09:58:28 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 09:58:28 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:16:57 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:16:57 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:16:57 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:14 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:14 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:14 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:21 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:21 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:21 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:31 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:31 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:31 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:33 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:33 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:33 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:33 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:33 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:33 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:34 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:34 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:34 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:34 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:34 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:34 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:34 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:34 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:34 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:34 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:34 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:34 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:34 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:34 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:34 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:35 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:35 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:35 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:17:35 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:17:35 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:17:35 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:26:31 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:26:31 2021: [bcInit]access to the encrypted dog failed
+Thu Aug 26 10:26:31 2021: [bcCreate]bcInit failed
+Thu Aug 26 10:43:40 2021: [bcInit]non BarcodeConfig file
+Thu Aug 26 10:44:14 2021: [bcInit]non BarcodeConfig file

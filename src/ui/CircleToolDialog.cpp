@@ -44,6 +44,8 @@ CircleToolDialog::CircleToolDialog(Algorithm::CircleTool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("圆检测设置");
     setMinimumSize(800, 550);
@@ -156,21 +158,35 @@ void CircleToolDialog::createUI()
 
     mainLayout->addWidget(mainSplitter_, 1);
 
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 200);
+
+    // 预览选项行
+    QHBoxLayout* previewLayout = new QHBoxLayout();
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+    previewLayout->addStretch();
+
+    previewBtn_ = new QPushButton("预览", this);
+    previewBtn_->setMinimumWidth(80);
+    previewLayout->addWidget(previewBtn_);
+
+    mainLayout->addLayout(previewLayout);
+
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
 
-    previewBtn_ = new QPushButton("预览", this);
     okBtn_ = new QPushButton("确定", this);
     cancelBtn_ = new QPushButton("取消", this);
     applyBtn_ = new QPushButton("应用", this);
 
-    previewBtn_->setMinimumWidth(80);
     okBtn_->setMinimumWidth(80);
     cancelBtn_->setMinimumWidth(80);
     applyBtn_->setMinimumWidth(80);
 
-    buttonLayout->addWidget(previewBtn_);
     buttonLayout->addWidget(okBtn_);
     buttonLayout->addWidget(cancelBtn_);
     buttonLayout->addWidget(applyBtn_);
@@ -396,6 +412,12 @@ void CircleToolDialog::connectSignals()
     connect(minAreaSpinBox_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &CircleToolDialog::onMinAreaChanged);
 
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &CircleToolDialog::onAutoPreview);
+
     // 对话框按钮
     connect(previewBtn_, &QPushButton::clicked, this, &CircleToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &CircleToolDialog::onOkClicked);
@@ -410,6 +432,7 @@ void CircleToolDialog::onBackendChanged(int index)
         backendCombo_->itemData(index).toInt()));
     updateMethodVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onMethodChanged(int index)
@@ -419,6 +442,7 @@ void CircleToolDialog::onMethodChanged(int index)
         methodCombo_->itemData(index).toInt()));
     updateMethodVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onRadiusRangeChanged()
@@ -427,6 +451,7 @@ void CircleToolDialog::onRadiusRangeChanged()
     tool_->setMinRadius(minRadiusSpinBox_->value());
     tool_->setMaxRadius(maxRadiusSpinBox_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onMaxCountChanged(int value)
@@ -434,6 +459,7 @@ void CircleToolDialog::onMaxCountChanged(int value)
     if (!tool_) return;
     tool_->setMaxCount(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onHoughDpChanged(double value)
@@ -441,6 +467,7 @@ void CircleToolDialog::onHoughDpChanged(double value)
     if (!tool_) return;
     tool_->setHoughDp(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onMinDistChanged(double value)
@@ -448,6 +475,7 @@ void CircleToolDialog::onMinDistChanged(double value)
     if (!tool_) return;
     tool_->setMinDist(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onCannyThresholdChanged(double value)
@@ -455,6 +483,7 @@ void CircleToolDialog::onCannyThresholdChanged(double value)
     if (!tool_) return;
     tool_->setCannyThreshold(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onAccumThresholdChanged(double value)
@@ -462,6 +491,7 @@ void CircleToolDialog::onAccumThresholdChanged(double value)
     if (!tool_) return;
     tool_->setAccumThreshold(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onMinCircularityChanged(double value)
@@ -469,6 +499,7 @@ void CircleToolDialog::onMinCircularityChanged(double value)
     if (!tool_) return;
     tool_->setMinCircularity(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onMinAreaChanged(double value)
@@ -476,6 +507,7 @@ void CircleToolDialog::onMinAreaChanged(double value)
     if (!tool_) return;
     tool_->setMinArea(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CircleToolDialog::onPreviewClicked()
@@ -544,6 +576,22 @@ void CircleToolDialog::updateMethodVisibility()
 
     houghParamGroup_->setEnabled(isHough);
     filterParamGroup_->setEnabled(!isHough);
+}
+
+void CircleToolDialog::onAutoPreview()
+{
+    if (!tool_ || !currentImage_) {
+        return;
+    }
+
+    applyParameters();
+
+    Algorithm::ToolResult result;
+    if (tool_->process(currentImage_, result)) {
+        if (result.outputImage && imageViewer_) {
+            imageViewer_->setImage(result.outputImage);
+        }
+    }
 }
 
 } // namespace UI

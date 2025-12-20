@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="22.11.2.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* ***********************************************************</c>
+<c>* 此示例展示了如何通过参数“high_noise_sample”</c>
+<c>* 结合形状模型技术在高噪声图像中进行目标匹配。</c>
+<c>* 算法包括离线模型创建与在线目标检测。</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 关闭窗口更新以提高性能</c>
+<l>dev_update_off ()</l>
+<c></c>
+<c>* 关闭已有的显示窗口</c>
+<l>dev_close_window ()</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 初始化显示窗口并加载图像</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 读取第一张样本图像</c>
+<l>read_image (Image, 'crosses/crosses_01')</l>
+<c></c>
+<c>* 根据图像大小自动调整显示窗口尺寸</c>
+<l>dev_open_window_fit_image (Image, 0, 0, 640, 640, WindowHandle)</l>
+<c></c>
+<c>* 设置显示字体、颜色和线宽，用于视觉化结果</c>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('lime green')  </l>
+<c>* 设置绘制颜色为“黄绿色”</c>
+<l>dev_set_line_width (3)        </l>
+<c>* 设置线宽为3像素</c>
+<c></c>
+<c>* 显示描述性文本，帮助用户了解当前步骤</c>
+<l>dev_display_description_text (WindowHandle)</l>
+<l>stop ()</l>
+<c></c>
+<c>* 显示样本图像，供用户观察并理解内容</c>
+<l>dev_display_sample_image (Image, WindowHandle)</l>
+<l>stop ()</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 离线阶段：创建形状模型</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 创建一个新的通用形状模型，ModelID是返回的模型句柄</c>
+<l>create_generic_shape_model (ModelID)</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 定义模型模板</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 加载形状模型的模板轮廓</c>
+<c>* 模板轮廓是基于感兴趣的对象创建的精确边界</c>
+<l>read_object (ModelContour, 'model_contour')</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 设置模型参数</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 定义模型允许的缩放范围：</c>
+<c>* iso_scale_min和iso_scale_max分别表示最小和最大比例变化</c>
+<l>set_generic_shape_model_param (ModelID, 'iso_scale_min', 0.75)</l>
+<l>set_generic_shape_model_param (ModelID, 'iso_scale_max', 1.25)</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 训练形状模型</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 使用模板轮廓对模型进行训练，这一步将模板轮廓转换为可用于搜索的形状模型</c>
+<l>train_generic_shape_model (ModelContour, ModelID)</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 设置形状模型匹配指标</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 创建一个极性图像，用于计算模型匹配的度量值</c>
+<l>gen_image_const (PolarityImage, 'byte', 512, 512)     </l>
+<c>* 生成512x512字节图像</c>
+<l>paint_region (PolarityImage, PolarityImage, PolarityImage, 255, 'fill')  </l>
+<c>* 填充整个图像为255（白色）</c>
+<l>paint_xld (ModelContour, PolarityImage, PolarityImage, 0)             </l>
+<c>* 绘制模型轮廓</c>
+<c></c>
+<c>* 根据极性图像找到单应性矩阵</c>
+<l>find_generic_shape_model (PolarityImage, ModelID, PolarityMatchResultID, NumMatchResult)</l>
+<c></c>
+<c>* 获取单应性矩阵（用于形状变换）</c>
+<l>get_generic_shape_model_result (PolarityMatchResultID, 0, 'hom_mat_2d', HomMat2D)</l>
+<c></c>
+<c>* 设置形状模型匹配度量参数为“使用极性”</c>
+<l>set_shape_model_metric (PolarityImage, ModelID, HomMat2D, 'use_polarity')</l>
+<c></c>
+<c>* 显示匹配度量的可视化结果</c>
+<l>dev_display_metric (PolarityImage, PolarityMatchResultID, WindowHandle)</l>
+<l>stop ()</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 估计最低金字塔级别（离线步骤）</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 生成一个矩形区域以减少搜索范围</c>
+<l>gen_rectangle1 (Rectangle, 97, 355, 222, 455)</l>
+<c></c>
+<c>* 在样本图像上减少域，限制到感兴趣区域</c>
+<l>reduce_domain (Image, Rectangle, ImageReduced)</l>
+<c></c>
+<c>* 使用“high_noise_sample”参数估计最低金字塔级别</c>
+<c>* 该参数针对高噪声场景优化</c>
+<l>set_generic_shape_model_object (ImageReduced, ModelID, 'high_noise_sample')</l>
+<c></c>
+<c>* 获取估计的最低金字塔级别</c>
+<l>get_generic_shape_model_param (ModelID, 'pyramid_level_lowest', PyramidLevelLowest)</l>
+<c></c>
+<c>* 显示高噪声样本及最低金字塔级别的可视化结果</c>
+<l>dev_display_high_noise_sample (ImageReduced, PyramidLevelLowest, WindowHandle)</l>
+<l>stop ()</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 设置搜索参数</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 限制角度范围，防止对称物体的多次匹配</c>
+<l>set_generic_shape_model_param (ModelID, 'angle_start', rad(-50))  </l>
+<c>* 开始角度：-50度</c>
+<l>set_generic_shape_model_param (ModelID, 'angle_end', rad(50))    </l>
+<c>* 结束角度：50度</c>
+<c></c>
+<c>* 设置最多允许的匹配数量</c>
+<l>set_generic_shape_model_param (ModelID, 'num_matches', 5)</l>
+<c></c>
+<c>* 设置最大重叠比例为0，防止多重匹配</c>
+<l>set_generic_shape_model_param (ModelID, 'max_overlap', 0.0)</l>
+<c></c>
+<c>* 设置贪婪程度，较低值可提高匹配精度</c>
+<l>set_generic_shape_model_param (ModelID, 'greediness', 0.0)</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 在线阶段：查找模型并匹配目标</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 使用模型搜索一组新图像</c>
+<l>dev_set_color ('lime green') </l>
+<c>* 设置可视化颜色</c>
+<l>NumImages := 10               </l>
+<c>* 定义要处理的图像数量</c>
+<c></c>
+<l>for Index := 1 to NumImages by 1</l>
+<c>    * 读取下一张图像</c>
+<l>    read_image (Image, 'crosses/crosses_' + Index$'02')</l>
+<c>    </c>
+<c>    * 在图像中查找形状模型</c>
+<l>    find_generic_shape_model (Image, ModelID, MatchResultID, NumMatchResult)</l>
+<c>    </c>
+<c>    * 获取匹配结果的轮廓</c>
+<l>    get_generic_shape_model_result_object (Contours, MatchResultID, 'all', 'contours')</l>
+<c>    </c>
+<c>    * 可视化匹配结果</c>
+<l>    dev_display (Image)                  </l>
+<c>    * 显示当前图像</c>
+<l>    dev_display (Contours)               </l>
+<c>    * 显示匹配的轮廓</c>
+<l>    dev_disp_text ('Detection results in search image.', 'window', 'top', 'left', 'black', 'box', 'true')</l>
+<l>    dev_disp_text ('Image ' + Index + '/' + 10, 'window', 'top', 'right', 'black', 'box', 'true')</l>
+<l>    stop()                </l>
+<c>    * 暂停0.75秒，便于观察结果</c>
+<l>endfor</l>
+<l>stop ()</l>
+<c></c>
+<c>* ***********************************************************</c>
+<c>* 清理资源并结束程序</c>
+<c>* ***********************************************************</c>
+<c></c>
+<c>* 清除窗口</c>
+<l>dev_clear_window ()</l>
+<c></c>
+<c>* 显示结束文本</c>
+<l>dev_disp_text ('End of program', 'window', 'bottom', 'right', 'black', [], [])</l>
+<c></c>
+<c>* 重新启用窗口更新</c>
+<l>dev_update_on ()</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="dev_display_description_text">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This local procedure describes the workflow for images with high noise.</c>
+<c>* </c>
+<l>Text := 'This example shows how to use the parameter \'high_noise_sample\''</l>
+<l>Text[|Text|] := 'from the set_generic_shape_model_object operator to improve'</l>
+<l>Text[|Text|] := 'the matching rate for images that have very high noise levels.'</l>
+<l>Text[|Text|] := ' '</l>
+<l>Text[|Text|] := 'The main steps of this example are as follows:'</l>
+<l>Text[|Text|] := ' '</l>
+<l>Text[|Text|] := '1. Create a shape model from an XLD contour and set the polarity.'</l>
+<l>Text[|Text|] := ' '</l>
+<l>Text[|Text|] := '2. Estimate the lowest pyramid level based on a sample search image.'</l>
+<l>Text[|Text|] := ' '</l>
+<l>Text[|Text|] := '3. Use the model to search in new images.'</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_disp_text (Text, 'window', 12, 12, 'white', 'box', 'false')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_description_text">
+<parameters>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_sample_image">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This local procedure shows a sample image with high noise.</c>
+<c>* </c>
+<l>Text := 'Sample image with high level of noise. Many matches can'</l>
+<l>Text[|Text|] := 'not be tracked to the lowest pyramid level in such images.'</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Image)</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', 'box', 'true')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_sample_image">
+<parameters>
+<parameter id="Image"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_metric">
+<interface>
+<io>
+<par name="PolarityImage" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="PolarityMatchResultID" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This local procedure shows the polarity image and the corresponding contour.</c>
+<c>* </c>
+<l>Text := 'To set the metric \'use_polarity\''</l>
+<l>Text[|Text|] := 'for a shape model created by'</l>
+<l>Text[|Text|] := 'an XLD we perform the following steps:'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := '1. Create an artificial polarity image.'</l>
+<l>Text[|Text|] := '2. Determine the associated homography'</l>
+<l>Text[|Text|] := '   by a find_generic_shape_model call.'</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (PolarityImage)</l>
+<l>dev_set_color ('red')</l>
+<l>get_generic_shape_model_result_object (Contours, PolarityMatchResultID, 0, 'contours')</l>
+<l>dev_display (Contours)</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', 'box', 'true')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_metric">
+<parameters>
+<parameter id="PolarityImage"/>
+<parameter id="PolarityMatchResultID"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="dev_display_high_noise_sample">
+<interface>
+<io>
+<par name="ImageReduced" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="PyramidLevelLowest" base_type="ctrl" dimension="0"/>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* This local procedure describes the process of estimating the lowest pyramid level.</c>
+<c>* </c>
+<l>Text := 'Provide a sample search image'</l>
+<l>Text[|Text|] := 'with a reduced domain that'</l>
+<l>Text[|Text|] := 'includes one match and some'</l>
+<l>Text[|Text|] := 'background. The operator'</l>
+<l>Text[|Text|] := 'set_generic_shape_model_object'</l>
+<l>Text[|Text|] := 'estimates the lowest pyramid'</l>
+<l>Text[|Text|] := 'level based on this image.'</l>
+<l>Text[|Text|] := ''</l>
+<l>Text[|Text|] := 'Estimated lowest pyramid level: ' + PyramidLevelLowest</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (ImageReduced)</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', 'box', 'true')</l>
+<l>dev_disp_text ('Press Run (F5) to continue', 'window', 'bottom', 'right', 'black', [], [])</l>
+<l>return ()</l>
+</body>
+<docu id="dev_display_high_noise_sample">
+<parameters>
+<parameter id="ImageReduced"/>
+<parameter id="PyramidLevelLowest"/>
+<parameter id="WindowHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

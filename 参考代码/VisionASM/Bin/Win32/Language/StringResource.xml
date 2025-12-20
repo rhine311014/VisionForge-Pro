@@ -1,0 +1,1516 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<StringTable>
+	<String Id="" Ky="Public" CHS="" ENG=""/>
+		<String Id="55" Key="IDS_SB_PLATFORM_DDD_SSS" CHS="工位%d%s" ENG="Platform %d%s"/>
+		<String Id="57" Key="IDS_SB_CAMERA_SSS" CHS="相机%s" ENG="Camera %s"/>
+		<String Id="300" Key="IDS_CPFAST_STR_POS" CHS="位置%d" ENG="Position%d"/>
+		<String Id="442" Key="IDS_STR_CHANNEL_TARGET_MARK" CHS="CH%d通道目标Mark点" ENG="CH%d Target Mark"/>
+		<String Id="58" Key="IDS_SB_CAMERA_SSS_SSS" CHS="相机%s%s" ENG="Camera %s %s"/>
+		<String Id="443" Key="IDS_STR_POS2" CHS="位置%d、" ENG="Position%d、"/>
+		<String Id="444" Key="IDS_CALCU_FAILE" CHS="计算失败" ENG="Calculate failed"/>
+		<String Id="445" Key="IDS_CALCU_SUCCESS" CHS="计算成功" ENG="Calculate success"/>
+		<String Id="168" Key="IDS_SB_GET_CUR_PLATFORM_POS_FAILED" CHS="通信获取当前平台各个轴的绝对位置失败" ENG="Get platform location failed"/>
+		<String Id="216" Key="IDS_SB_GET_CUR_PRODUCT_ALIGN_INFO_FAILED" CHS="获取当前产品对位信息失败" ENG="Get current product align information failed"/>
+		<String Id="212" Key="IDS_SB_OBJECT_SEARCH_TOOL_INVALID" CHS="实时对象定位工具无效" ENG="Object Search tool invalid"/>
+		<String Id="214" Key="IDS_SB_ALIGN_TOOL_INVALID" CHS="对位工具无效" ENG="Align tool invalid"/>
+		<String Id="332" Key="IDS_POS_NUMBER_OUT_RANGE" CHS="位置编号超出范围" ENG="Position number is out of range"/>
+		<String Id="182" Key="IDS_SB_OBJECT_SEARCH_SUCCEED" CHS="实时对象Mark定位成功" ENG="Online object search succeed"/>
+		<String Id="183" Key="IDS_SB_OBJECT_SEARCH_FAILED" CHS="实时对象Mark定位失败" ENG="Online object search failed"/>
+		<String Id="174" Key="IDS_SB_IN_CAM_PLATFORM_TARGET_SEARCH_FAILED" CHS="相机平台在第%d个实时位置目标定位失败" ENG="Camera platform in position %d target search failed"/>
+		<String Id="175" Key="IDS_SB_IN_CAM_PLATFORM_OBJECT_SEARCH_FAILED" CHS="相机平台在第%d个实时位置对象定位失败" ENG="Camera platform in position %d object search failed"/>
+		<String Id="180" Key="IDS_SB_TARGET_SEARCH_SUCCEED" CHS="实时目标Mark定位成功" ENG="Online target search succeed"/>
+		<String Id="181" Key="IDS_SB_TARGET_SEARCH_FAILED" CHS="实时目标Mark定位失败" ENG="Online target search failed"/>
+		<String Id="339" Key="IDS_OBJECT_LEN_OVERFLOW" CHS="对象距离超过设定标准，对象定位结果可能出错" ENG="Object distance overflow, maybe search wrong"/>
+		<String Id="340" Key="IDS_TARGET_LEN_OVERFLOW" CHS="目标距离超过设定标准，目标定位结果可能出错" ENG="Target distance overflow, maybe search wrong"/>
+		<String Id="217" Key="IDS_SB_PLEASE_KEEP_TARGET_SEARCH_SUCCEED_FIRST" CHS="请先保证实时目标Mark定位成功" ENG="Make sure online target mark search succeed"/>
+		<String Id="341" Key="IDS_CONFIRM_OBJECT_SEARCH_SUCCESS" CHS="请先保证实时对象Mark定位成功" ENG="Make sure online object search success"/>
+		<String Id="364" Key="IDS_STR_OUTPUT" CHS="输出:" ENG="Output:"/>
+		<String Id="365" Key="IDS_STR_INPUT" CHS="输入:" ENG="Input:"/>
+		<String Id="7079" Key="IDS_SB_GET_TARGET_MARK_COORD_SUCCEED" CHS="获取目标Mark图像坐标成功" ENG="Get target coord succeed"/>
+		<String Id="7080" Key="IDS_SB_GET_OBJECT_MARK_COORD_SUCCEED" CHS="获取对象Mark图像坐标成功" ENG="Get object coord succeed"/>
+		<String Id="330" Key="IDS_SEARCH_TIME_COST" CHS="耗时%.01fms" ENG="time consuming%.01fms"/>
+		<String Id="8137" Key="IDS_WARNING_INITIALIZATION_CONFIG" CHS="配置信息初始化失败" ENG="Config Info Initialization Failed"/>
+		<String Id="8132" Key="IDS_OPERATION_WARNING_INITIALIZATION" CHS="初始化报警" ENG="Initialization"/>
+		<String Id="213" Key="IDS_SB_PLEASE_CHECK_INIT" CHS="请检查是否初始化正确" ENG="Please check initialize"/>
+		<String Id="338" Key="IDS_COMM_STOP_OR_TIMEOUT" CHS="通信接收指令停止或超时！" ENG="Communication stop or timeout！"/>
+		<String Id="8153" Key="IDS_WARNING_PROCESSING_POSNUMERROR" CHS="位置数错误" ENG="Position Number Error"/>
+		<String Id="13457" Key="IDS_SB_PLATFORM_SET_PARAM_FAILED" CHS="系统参数设置失败" ENG="Platform Set Param Failed"/>
+		<String Id="13462" Key="IDS_SB_TARGET_SEARCH_TOOL_INVALID" CHS="目标定位工具无效" ENG="Target SearchTool Is Invalid"/>
+		<String Id="13458" Key="IDS_SB_CMD_PARAM_ERROR" CHS="通信指令参数错误" ENG="Cmd Param Is Error"/>
+		<String Id="13459" Key="IDS_SB_CAMERA_SET_EXPOSURE_FAILED" CHS="设置相机曝光失败" ENG="Camera Set Exposure Failed"/>
+		<String Id="13461" Key="IDS_SB_CAMERA_GRAB_FAILED" CHS="采集定位图像失败" ENG="Camera grab failed"/>
+		<String Id="13463" Key="IDS_SB_INSPECT_SEARCHTOOL_INVALID" CHS="检测定位工具无效" ENG="Inspect SearchTool Is Invalid"/>
+		<String Id="14018" Key="IDS_VSPC_MUL_PLAT_NO_SUPPORT" CHS="多工位同步开启，不支持指令切换产品" ENG="Open Mul Plat,No Support VSPC"/>
+	<String Id="" Ky="Camera Grabbing" CHS="" ENG=""/>
+		<String Id="31" Key="IDS_SB_FAIL_TO_STOP_GRAB" CHS="停止采集失败" ENG="fail to stop grab"/>
+		<String Id="32" Key="IDS_MB_FAIL_TO_STOP_GRAB" CHS="停止采集失败！" ENG="fail to stop grab！"/>
+		<String Id="33" Key="IDS_SB_FAIL_TO_START_GRAB" CHS="采集失败" ENG="fail to grab"/>
+		<String Id="34" Key="IDS_MB_FAIL_TO_START_GRAB" CHS="采集失败！" ENG="fail to grab！"/>
+		<String Id="35" Key="IDS_SB_LOAD_IMAGE_SUCCEED" CHS="图像加载成功" ENG="Image load succeed"/>
+		<String Id="36" Key="IDS_BTN_GRAB_IMAGE" CHS="采集图像" ENG="Grab Image"/>
+		<String Id="37" Key="IDS_SB_GRAB_FAILED" CHS="采集失败" ENG="grab failed"/>
+		<String Id="38" Key="IDS_SB_GRABBING" CHS="正在连续采集" ENG="Grabbing"/>
+		<String Id="39" Key="IDS_BTN_STOP_GRAB" CHS="停止采集" ENG="Stop Grab"/>
+		<String Id="40" Key="IDS_SB_GRAB_STOPPED" CHS="采集已停止" ENG="Grab stopped"/>
+		<String Id="41" Key="IDS_SB_CAMERA_CONNECTION_ERROR" CHS="相机连接错误" ENG="Camera connection error"/>
+	<String Id="" Ky="Calib" CHS="" ENG=""/>
+		<String Id="173" Key="IDS_SB_COMM_DRIVE_CAMERA_PLATFORM_TO_POS_FAILED" CHS="通信驱动所有相机平台移动到指定位置%d失败" ENG="Drive camera platform %d failed"/>
+		<String Id="184" Key="IDS_SB_VIRTUAL_SEARCH_SUCCEED" CHS="虚拟对象Mark定位成功" ENG="Online virtual object search succeed"/>
+		<String Id="186" Key="IDS_SB_EXCUTE_SYS_CALIB_SUCCEED" CHS="系统标定成功" ENG="System calibrate succeed"/>
+		<String Id="187" Key="IDS_SB_EXCUTE_SYS_CALIB_FAILED" CHS="系统标定失败" ENG="System calibrate failed"/>
+		<String Id="189" Key="IDS_SB_CALIB_SEARCH_TOOL_INVALID" CHS="标定定位工具无效" ENG="Calibrate search tool invalid"/>
+		<String Id="191" Key="IDS_SB_IS_CALIBRATING" CHS="正在标定" ENG="Calibrating..."/>
+		<String Id="192" Key="IDS_SB_PLEASE_WAIT" CHS="请稍后…" ENG="Please wait…"/>
+		<String Id="193" Key="IDS_SB_GET_CALIB_EIGHT_PLATFORM_POS_FAILED" CHS="获取平台标定时各轴移动的8个绝对位置失败" ENG="Get calibrate movement error"/>
+		<String Id="194" Key="IDS_SB_GET_CALIB_SEVEN_PLATFORM_MOVE_POS" CHS="平台标定时所需要移动的7个绝对位置:" ENG="Calibrate movement location:"/>
+		<String Id="195" Key="IDS_SB_IS_DRIVING_PLATFORM_MOVE" CHS="正驱动平台移动到平移及旋转标定的第%d个位置" ENG="Driving platform move to the positon %d"/>
+		<String Id="196" Key="IDS_SB_DRIVE_PLATFORM_INDEX_ARRIVED_FAILED" CHS="驱动平台到平移及旋转标定的第%d个位置失败" ENG="Drive platform move to the positon %d failed"/>
+		<String Id="200" Key="IDS_SB_EXCUTE_CALIB_CALCULATE_FAILED" CHS="执行标定计算失败" ENG="Calibrate calculate failed"/>
+		<String Id="203" Key="IDS_SB_CERTAIN_CAM_BENCH_POS_CALIB_REFINE_FAILED" CHS="针对相机第%d个基准位置所进行的平台标定求精失败" ENG="Position %d refinement calibrate failed"/>
+		<String Id="225" Key="IDS_SB_NOT_SUPPORT_VIRTUAL_SEARCH" CHS="不支持虚拟对象定位" ENG="Virtual object is not support"/>
+		<String Id="226" Key="IDS_SB_VIRTUAL_SEARCH_TOOL_VALID" CHS="虚拟对象定位工具无效" ENG="Virtual object search tool is invalid"/>
+		<String Id="228" Key="IDS_SB_CONNECT_OBJECT_MARK_AND_VIRTUAL_MARK_SUCCEED" CHS="确定实时Mark与虚拟Mark的相对位置关系成功" ENG="Get the relationship betwen object mark and virtual object mark succeed"/>
+		<String Id="279" Key="IDS_DR_XYD_VIRTUAL_SEARCH_PLATFORM_POS" CHS="虚拟对象Mark定位时平台的绝对位置：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="The absolute position of the platform when the virtual object Mark is positioned：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="280" Key="IDS_DR_XYD_THE_PLATFORM_POS" CHS="平台标定时平台的绝对位置：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="Absolute position of the platform when calibrating：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="281" Key="IDS_DR_XYD_EXCUTE_CALIB_PLATFORM_POS" CHS="平台位置%d：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="Platform Position%d：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="336" Key="IDS_COMM_GET_AXIS_POS_SUCCESS" CHS="通信获取当前平台各个轴的绝对位置成功" ENG="Get platform location success"/>
+		<String Id="453" Key="IDS_CALIBRATE_FAILE" CHS="标定失败" ENG="Calibrate failed"/>
+		<String Id="454" Key="IDS_GET_AXIS_POS" CHS="请获取平台轴位置！" ENG="Please get platform position first！"/>
+		<String Id="455" Key="IDS_GET_OBJECT_AND_TARGET_POS" CHS="请获取对象、目标位置！" ENG="Please get object and target position first！"/>
+		<String Id="458" Key="IDS_CALIBRATE_SUCCESS" CHS="标定成功" ENG="Calibrate success"/>
+		<String Id="593" Key="IDS_CALIB_TARGET_SEARCH_SUCCESS" CHS="关联模板搜索成功" ENG="Pattern of relevance mark search success"/>
+		<String Id="594" Key="IDS_CALIB_TARGET_SEARCH_FAILED" CHS="关联模板搜索失败" ENG="Pattern of relevance mark search failed"/>
+		<String Id="631" Key="IDS_SB_CALIB_COPY_POS_FAILED" CHS="标定拷贝位置数据错误！" ENG="Calib Copy Pos Data Failed！"/>
+		<String Id="704" Key="IDS_STR_PARAMETER_ERROR" CHS="参数错误" ENG="Parameter error"/>
+		<String Id="705" Key="IDS_STR_IS_SEARCHING" CHS="正在搜索" ENG="Is searching"/>
+		<String Id="707" Key="IDS_STR_POS" CHS="位置" ENG="Pos"/>
+		<String Id="709" Key="IDS_STR_DM_CODE_SEARCH_FAIL" CHS="二维码搜索失败" ENG="DM code search fail"/>
+		<String Id="710" Key="IDS_STR_DM_CODE_SEARCH_SUCCESS" CHS="二维码搜索成功" ENG="DM code search succeed"/>
+		<String Id="711" Key="IDS_STR_PLEASE_OPEN_CALIB_TARGET" CHS="请开启关联标定" ENG="Please open calibrate target"/>
+		<String Id="713" Key="IDS_STR_CALIB_TARGET_SEARCH_SUCCESS" CHS="关联搜索成功" ENG="Calibrate target search succeed"/>
+		<String Id="716" Key="IDS_SB_EXCUTE_SYS_CALIB_XY_SUCCEED" CHS="平台XY轴平移标定成功" ENG="Platform XY axis shift calibrate succeed"/>
+		<String Id="717" Key="IDS_SB_EXCUTE_SYS_CALIB_XY_FAILED" CHS="平台XY轴平移标定失败" ENG="Platform XY axis shift calibrate failed"/>
+		<String Id="718" Key="IDS_SB_EXCUTE_SYS_CALIB_D_SUCCEED" CHS="平台D轴旋转标定成功" ENG="Platform D axis shift calibrate succeed"/>
+		<String Id="719" Key="IDS_SB_EXCUTE_SYS_CALIB_D_FAILED" CHS="平台D轴旋转标定失败" ENG="Platform D axis shift calibrate failed"/>
+		<String Id="720" Key="IDS_SB_EXCUTE_SYS_CALIB_CALCU_SUCCEED" CHS="平台标定计算成功" ENG="Platform calibrate calculate succeed"/>
+		<String Id="721" Key="IDS_SB_EXCUTE_SYS_CALIB_CALCU_FAILED" CHS="平台标定计算失败" ENG="Platform calibrate calculate failed"/>
+		<String Id="7067" Key="IDS_SB_SET_CAM_AXIS_FAIL" CHS="设置相机轴位置失败" ENG="Set Camera axis fail"/>
+		<String Id="7068" Key="IDS_SB_SET_CAM_AXIS_BENCH_FAIL" CHS="设置相机基准位置失败" ENG="Set Camera axis bench fail"/>
+		<String Id="7069" Key="IDS_SB_SET_CAM_AXIS_BENCH_SUCCEED" CHS="设置相机基准位置成功" ENG="Set Camera axis bench succeed"/>
+		<String Id="7072" Key="IDS_SB_SET_CAM_AXIS_SUCCEED" CHS="设置相机当前位置成功" ENG="Set camera current axis succeed"/>
+		<String Id="7124" Key="IDS_STR_CHOOSE_WHOLE_DMCODE_CALIB_MODE" CHS="请开启全局靶标标定方式" ENG="Please Choose Whole Calibrate Mode"/>
+		<String Id="7125" Key="IDS_STR_WHOLE_CALIB_CALCU_ERROR" CHS="计算全局靶标标定错误" ENG="Whole Calibrate Caculate Error"/>
+		<String Id="7126" Key="IDS_STR_WHOLE_CALIB_IMAGE_TO_BOARD_CALCU_ERROR" CHS="执行图像到靶标映射失败" ENG="Image To Board Calculate Error"/>
+		<String Id="8145" Key="IDS_WARNING_PROCESSING_CALIBTYPE" CHS="标定类型参数错误" ENG="CalibType Param Error"/>
+		<String Id="8147" Key="IDS_WARNING_PROCESSING_GETCALIBDATA_FAILED" CHS="获取产品标定信息失败" ENG="Fail To Get CalibData"/>
+		<String Id="8148" Key="IDS_WARNING_PROCESSING_GETCALIBPARAM_FAILED" CHS="获取产品标定参数失败" ENG="Fail To Get CalibParam"/>
+		<String Id="8149" Key="IDS_WARNING_PROCESSING_DMCODETOPLATFORMCALCU_FAILED" CHS="计算二维码靶标靶标到平台坐标映射失败异常" ENG="DM Code To Platform Caculate Failed"/>
+		<String Id="8150" Key="IDS_WARNING_INITIALIZATION_PLATFORMTYPE" CHS="平台类型有误" ENG="Platform Type Invalid"/>
+		<String Id="8157" Key="IDS_WARNING_PROCESSING_COMMGETTARIMGPOS" CHS="通信获取目标图像坐标失败" ENG="Failed To Communicate Get Target Img Position"/>
+		<String Id="8158" Key="IDS_WARNING_PROCESSING_COMMGETTARPLATFORMPOS" CHS="通信获取目标平台坐标失败" ENG="Failed To Communicate Get Target Platform Position"/>
+		<String Id="32772" Key="IDS_COPY_CALIBRATE_INFO_FAILE" CHS="标定信息复制失败" ENG="Copy calibrate info faile"/>
+		<String Id="32773" Key="IDS_COPY_CALIBRATE_INFO_SUCCESS" CHS="标定信息复制成功" ENG="Copy calibrate info success"/>
+		<String Id="13466" Key="IDS_SB_CALIB_TARGET_SEARCH_TOOL_INVALID" CHS="关联模板无效" ENG="Calib target searchTool Is Invalid"/>
+		<String Id="13467" Key="IDS_SB_CALIBRATE_CHECK_BYAXIS_MOVE_COMPLETED" CHS="标定轴移动拍照验证完成" ENG="Calibrate Check ByAxis Move Completed"/>
+		<String Id="13460" Key="IDS_SB_SWITCH_QR_CODE_EXPOSURE_FAILED" CHS="切换二维码曝光失败" ENG="Switch QR code exposure Failed "/>
+		<String Id="13468" Key="IDS_SB_EXECUTE_CALIBRATE_OBJECT_BENCH_FAILED" CHS="执行对象标准基准计算失败" ENG="Execute Calibrate Object Bench Failed"/>
+		<String Id="13469" Key="IDS_SB_EXECUTE_CALIBRATE_COPYINFO_VIRTUALMODE_FAILED" CHS="执行对象目标虚拟时的标定拷贝失败！" ENG="Execute Calibrate CopyInfo VirtualMode Failed"/>
+		<String Id="13470" Key="IDS_SB_EXECUTE_COPY_CALIBRATE_DATA_FAILED" CHS="执行标定拷贝失败！" ENG="Execute Copy Calibrate Data Failed"/>
+		<String Id="13471" Key="IDS_SB_SET_CALIBRATE_POS_TO_TARGET_BENCH_POS_FAILED" CHS="设置标定位置为目标基准位置失败" ENG="Set calibrate pos to target bench pos failed"/>
+		<String Id="13472" Key="IDS_SB_CALIB_COPY_FOR_SINGLE_CAMERA_FAILED" CHS="单相机标定拷贝失败" ENG="Calib Copy for Single camera failed"/>
+		<String Id="13473" Key="IDS_SB_INITIALIZATION_PLATFORM_TYPE_ERROR" CHS="平台类型不符" ENG="InitializationPlatformtypeErr"/>
+		<String Id="13474" Key="IDS_SB_COMMUNICATION_INSTRUCTION_P2_PARAMETER_ERROR" CHS="通信指令P2参数错误" ENG="Communication instruction P2 parameter error"/>
+		<String Id="13475" Key="IDS_SB_THE_EXTENSION_NUMBER_EXCEEDS_THE_NUMBER_OF_EXTENSIONS" CHS="扩展序号超过扩展数目" ENG="The extension sequence number exceeds the number of extensions"/>
+		<String Id="13476" Key="IDS_SB_COMMUNICATE_GET_TAR_IMG_POSITION_TIMEOUT" CHS="通信获取目标图像坐标失败超时" ENG="Communicate Get Target Img Position timeout"/>
+		<String Id="13477" Key="IDS_SB_ANALYZE_GET_TARGET_BOARD_POS_FAILED" CHS="解析获取目标靶标坐标失败" ENG="Analyze Get target board pos failed"/>
+		<String Id="13478" Key="IDS_STR_PLEASE_OPEN_DM_CODE_CALIBRATE_TARGET" CHS="请开启二维码关联标定" ENG="Please open DMCode Calibrate target"/>
+		<String Id="13479" Key="IDS_SB_COMMUNICATE_GET_BOARD_POS_FOR_TARFIXOFFSET_FAILED" CHS="通信获取目标固定补偿基准靶标坐标失败" ENG="Communicate Get Board Pos For TarFixOffset failed"/>
+		<String Id="13480" Key="IDS_SB_GET_CALIB_PLATFORM_AXIS_MOVE_POS_FAILED" CHS="获取标定时平台各轴的移动位置失败" ENG="Get Calib Platform Axis Move Pos Failed"/>
+		<String Id="13481" Key="IDS_SB_SET_PRODUCT_CAMERA_SHUTTER_FAILED" CHS="设置产品相机曝光失败" ENG="Set Product Camera Shutter Failed"/>
+		<String Id="13482" Key="IDS_SB_DRIVE_PLATFORM_TO_AXIS_POS_FAILED" CHS="驱动平台到指定位置失败" ENG="Drive Platform To Axis Pos Failed"/>
+		<String Id="13493" Key="IDS_STR_ANALYZE_TARGET_BOARD_COORD_FAILED" CHS="解析获取目标靶标坐标失败" ENG="Analyze Target board coord failed"/>
+		<String Id="13492" Key="IDS_WARNING_PROCESSING_COMMGETTARPLATFORMPOS_TIMEOUT" CHS="通信获取目标图像坐标超时" ENG="Commuciate Get Target Platform Position TimeOut"/>
+		<String Id="13490" Key="IDS_STR_GET_BOARD_COORD_FAILED" CHS="获取靶标坐标失败" ENG="Get board coord failed"/>
+		<String Id="14021" Key="IDS_CALIBRATETARGET_SUCCESS" CHS="关联计算成功" ENG="Calibrate success"/>
+		<String Id="14022" Key="IDS_CALIBRATETARGET_FAILE" CHS="关联计算失败" ENG="Calibrate failed"/>
+	<String Id="" Ky="Platform" CHS="" ENG=""/>
+		<String Id="76" Key="IDS_CMB_POINTING_LEFT" CHS="向左" ENG="Pointing Left"/>
+		<String Id="77" Key="IDS_CMB_POINTING_RIGHT" CHS="向右" ENG="Pointing Right"/>
+		<String Id="78" Key="IDS_CMB_POINTING_UP" CHS="向上" ENG="Pointing Up"/>
+		<String Id="79" Key="IDS_CMB_POINTING_DOWN" CHS="向下" ENG="Pointing Down"/>
+		<String Id="535" Key="IDS_STR_SLIDER_NO_MOVE" CHS="固定滑块" ENG="Slider no move"/>
+		<String Id="536" Key="IDS_STR_SLIDER_MOVE" CHS="移动滑块" ENG="Slider move"/>
+		<String Id="80" Key="IDS_CMB_COUNTER_CLOCKWISE" CHS="逆时针" ENG="Counter Clockwise"/>
+		<String Id="81" Key="IDS_CMB_CLOCKWISE" CHS="顺时针" ENG="Clockwise"/>
+		<String Id="82" Key="IDS_CMB_DIRECTIVE_DRIVE" CHS="直接驱动" ENG="Directive-Drive"/>
+		<String Id="83" Key="IDS_CMB_LINEAR_DRIVE" CHS="直线驱动" ENG="Straight-Line-Drive"/>
+	<String Id="" Ky="Show" CHS="" ENG=""/>
+		<String Id="527" Key="IDS_STR_LIVE_DISPLAY" CHS="实时显示" ENG="Live display"/>
+		<String Id="528" Key="IDS_STR_FRAME_VALID" CHS="帧有效" ENG="Frame valid"/>
+	<String Id="" Ky="Warning" CHS="" ENG=""/>
+		<String Id="7134" Key="IDS_STR_MEM_OUT_WARNING" CHS="内存超限警告" ENG="Memory used rate over limit"/>
+		<String Id="8143" Key="IDS_WARNING_PROCESSING_SEARCHTOOLINVALID" CHS="定位工具异常" ENG="SearchTool Invalid"/>
+		<String Id="526" Key="IDS_STR_INCALID_CALI_NAME_SAVE_DATA_FAILE" CHS="保存数据失败,请确保标定名称正确！" ENG="Save calibrate data failed！"/>
+		<String Id="7130" Key="IDS_STR_COPY_SEARCHTOOL_FAIL_OF_MEM_OUT" CHS="问题描述：复制模板到位置%d候选%d失败！！！" ENG="Problem description：Copy search tool to pos%d candidate%d failed！！！"/>
+		<String Id="7145" Key="IDS_STR_MEM_OUT_REASON" CHS="问题原因：内存使用率超限" ENG="Reason：Memory used rate over limit"/>
+		<String Id="7146" Key="IDS_STR_MEM_OUT_SOLUTION1" CHS="解决方法：请清理不必要的模板或使用其它方法降低内存使用率" ENG="Solution：Clear unnecessagry search tool or other method to reduce memory use"/>
+		<String Id="13434" Key="IDS_MULTI_MARK_NONE" CHS="关闭" ENG="Closed"/>
+		<String Id="13435" Key="IDS_MULTI_MARK_MODE1" CHS="模式1" ENG="Mode1"/>
+		<String Id="13436" Key="IDS_MULTI_MARK_MODE2" CHS="模式2" ENG="Mode1"/>
+	<String Id="" Ky="Calib Target" CHS="" ENG=""/>
+		<String Id="464" Key="IDS_STR_APPLY_SAVE_SUCCESS" CHS="应用保存成功" ENG="Apply success"/>
+		<String Id="465" Key="IDS_STR_APPLY_SAVE_FAILE" CHS="应用保存失败" ENG="Apply failed"/>
+		<String Id="467" Key="IDS_STR_EXIT2" CHS="确定不保存退出吗？" ENG="Are you sure don't save and exit?"/>
+	<String Id="" Ky="Search" CHS="" ENG=""/>
+		<String Id="13" Key="IDS_CMB_INPUT_IMAGE" CHS="输入图像" ENG="Input Image"/>
+		<String Id="14" Key="IDS_CMB_TRAIN_IMAGE" CHS="训练图像" ENG="Train Image"/>
+		<String Id="15" Key="IDS_CMB_RESULT_IMAGE" CHS="结果图像" ENG="Result Image"/>
+		<String Id="764" Key="IDS_CMB_FILTER_BMP_AND_JPEG_FILE" CHS="位图文件（*.bmp）|*.bmp|JPEG文件（*.jpg）|*.jpg|PNG文件（*.png）|*.png||" ENG="位图文件（*.bmp）|*.bmp|JPEG文件（*.jpg）|*.jpg|PNG文件（*.png）|*.png||"/>
+		<String Id="7094" Key="IDS_CMB_ORIGINAL_IMAGE" CHS="原始图像" ENG="Original image"/>
+		<String Id="7095" Key="IDS_CMB_LOAD_IMAGE" CHS="加载图像" ENG="Load image"/>
+		<String Id="227" Key="IDS_SB_CONNECT_OBJECT_MARK_AND_VIRTUAL_MARK_FAILED" CHS="确定实时Mark与虚拟Mark的相对位置关系失败" ENG="Get the relationship betwen object mark and virtual object mark failed"/>
+		<String Id="456" Key="IDS_TARGET_POS_CALI_SUCCESS" CHS="目标位置%d标定成功！" ENG="Target position%d calibrate success！"/>
+		<String Id="457" Key="IDS_TARGET_POS_CALI_FAILE" CHS="目标位置%d标定失败！" ENG="Target position%d calibrate success！"/>
+		<String Id="569" Key="IDS_STR_SELECT_MARK_OBJECT_POSITION_SUCCESS" CHS="实时对象Mark手动定位成功" ENG="Online Object Mark Manual Search Success"/>
+		<String Id="570" Key="IDS_STR_SELECT_MARK_OBJECT_POSITION_FAIL" CHS="实时对象Mark手动定位失败" ENG="Online Object Mark Manual Search Fail"/>
+		<String Id="571" Key="IDS_STR_SELECT_MARK_TARGET_POSITION_SUCCESS" CHS="实时目标Mark手动定位成功" ENG="Online Target Mark Manual Search Success"/>
+		<String Id="572" Key="IDS_STR_SELECT_MARK_TARGET_POSITION_FAIL" CHS="实时目标Mark手动定位失败" ENG="Online Target Mark Manual Search Fail"/>
+		<String Id="667" Key="IDS_ACF_INSPECT_FAILE" CHS="ACF检测失败" ENG="ACF inspect failed"/>
+		<String Id="668" Key="IDS_ACF_INSPECT_SUCCESS" CHS="ACF检测成功" ENG="ACF inspect success"/>
+		<String Id="278" Key="IDS_DR_XYD_OBJECT_SEARCH_PLATFORM_POS" CHS="实时对象Mark定位时平台的绝对位置：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="The absolute position of the platform when the real-time object Mark is positioned：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="8155" Key="IDS_WARNING_PROCESSING_GETDISPLAYPOINTERFAILED" CHS="获取显示视窗指针失败" ENG="Failed To Get Display Pointer"/>
+		<String Id="7057" Key="IDS_SB_INSPECT_SUCCEED" CHS="检测成功" ENG="Inspect succeed"/>
+		<String Id="7058" Key="IDS_SB_INSPECT_ING" CHS="正在检测..." ENG="Inspecting..."/>
+		<String Id="13483" Key="IDS_SB_TARGET_IMAGE_TO_OBJECT_IMAGE_CALCULATE_ERROR" CHS="执行目标图像坐标映射对象图像失败" ENG="Target Image To object image Calculate Error"/>
+		<String Id="13491" Key="IDS_SB_MULTI_TARGET_THE_GROUPS_SEARCH_FAILED" CHS="多目标_第%d组尚未定位成功" ENG="Multi target_the %d groups search failed"/>
+		<String Id="13494" Key="IDS_SB_TARGET_POSITION_SEARCH_SUCCEED" CHS="目标位置%d已定位成功" ENG="Target Postision %d Search Succeed"/>
+		<String Id="13495" Key="IDS_SB_WITHOUT_MANUAL_SEARCH" CHS="无需手动选点！" ENG="Without Manual Search!"/>
+		<String Id="13508" Key="IDS_SB_DISTANCE_INSPECT_SUCCESS" CHS="距离检测成功" ENG="Distance inspect success"/>
+		<String Id="13509" Key="IDS_SB_DISTANCE_INSPECT_FAIL" CHS="距离检测失败" ENG="Distance inspect fail"/>
+		<String Id="13524" Key="IDS_WARNING_POSITION_INDEX_%d_ERROR" CHS="位置序号%d手动选点失败" ENG="Position index %d Manual Dearch error"/>
+		<String Id="13525" Key="IDS_CMB_TARGET_POSITION_SEARCH_SUCCEED" CHS="目标位置%d已定位成功" ENG="Target Position%d search succeed"/>
+		<String Id="13526" Key="IDS_CMB_OBJECT_POSITION_SEARCH_SUCCEED" CHS="对象位置%d已定位成功" ENG="Object Position%d search succeed"/>
+		<String Id="13464" Key="IDS_SB_OBJECT_ANGLE_OVERFLOW" CHS="对象角度超过设定标准，对象定位结果可能出错" ENG="Object Angle Is Overflow"/>
+		<String Id="13465" Key="IDS_SB_TARGET_ANGLE_OVERFLOW" CHS="目标角度超过设定标准，目标定位结果可能出错" ENG="Target Angle Is Overflow"/>
+		<String Id="14019" Key="IDS_TARGET_POS_CALIBTARGET_SUCCESS" CHS="目标位置%关联成功！" ENG="Target position%d calibrate target success！"/>
+		<String Id="14020" Key="IDS_TARGET_POS_CALIBTARGET_FAILE" CHS="目标位置%d关联失败！" ENG="Target position%d calibrate target success！"/>
+	<String Id="" Ky="Align" CHS="" ENG=""/>
+		<String Id="201" Key="IDS_SB_EXCUTE_ALIGN_CALCULATE_FAILED" CHS="执行对位计算失败" ENG="Align calculate failed"/>
+		<String Id="218" Key="IDS_SB_ALIGN_FAILED" CHS="对位失败" ENG="Align failed"/>
+		<String Id="219" Key="IDS_SB_ALIGN_SUCCEED" CHS="对位成功" ENG="Align succeed"/>
+		<String Id="220" Key="IDS_SB_ALIGN_TIMES_AND_TIME" CHS="对位次数为: %d次, 耗时: %.2fms" ENG="Align Times: %d times, align time consuming: %.2fms"/>
+		<String Id="221" Key="IDS_SB_DRIVE_PLATFORM_ARRIVED_FAILED" CHS="驱动平台到指定的对位位置失败" ENG="Drive platform to align position failed"/>
+		<String Id="222" Key="IDS_SB_CERTAIN_ALIGN_SUCCEED" CHS="第%d次对位成功" ENG="%d times align succeed"/>
+		<String Id="223" Key="IDS_SB_ALIGN_TIME" CHS="对位时间为: %.2fms" ENG="Align time consuming: %.2fms"/>
+		<String Id="257" Key="IDS_DR_ALIGN_ALL_TIMES_AND_ALL_TIME" CHS="对位总次数为: %d次, 耗时: %.2fms" ENG="Total Align Times: %dTimes, Total Align Time: %.2fms"/>
+		<String Id="258" Key="IDS_DR_FINAL_ALIGN_ACCURACY" CHS="最终对位精度为: dx=%.4fmm， dy=%.4fmm， dD=%.4f°" ENG="Final alignment accuracy: dx=%.4fmm， dy=%.4fmm， dD=%.4f°"/>
+		<String Id="259" Key="IDS_DR_CERTAIN_ALIGN_OFFSET" CHS="第%d次对位偏移量为: dx=%.4fmm， dy=%.4fmm， dD=%.4f°" ENG="Alignment offset of the %d move: dx=%.4fmm， dy=%.4fmm， dD=%.4f°"/>
+		<String Id="260" Key="IDS_DR_CERTAIN_ALIGN_TIME_OBJECT_SEARCH_TIME_ALIGN_TIME" CHS="第%d次对位时间为: %.2fms，实时对象Mark定位时间为: %.2fms，对位计算时间为: %.2fms" ENG="Alignment time of the %d move: %.2fms，Real-time object Mark search time: %.2fms，Alignment Time: %.2fms"/>
+		<String Id="282" Key="IDS_DR_XYD_EXCUTE_ALIGN_ACTION_THEN_PLATFORM_POS" CHS="执行第%d次对位动作后平台所处的绝对位置：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="The absolute position of the platform after performing the %d alignment operation：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="342" Key="IDS_PLATFORM_MOVE_OVERFLOW" CHS="平台轴移动量超过设定的最大可移动量" ENG="Platform move overflow"/>
+		<String Id="13426" Key="IDS_GUI_SHOW_PLATFORM_MOVE_STR" CHS="平台运动量" ENG="Platform movement"/>
+		<String Id="14023" Key="IDS_SB_ALIGN_TIMES_AND" CHS="对位次数为: %d次" ENG="Align Times: %d times"/>
+
+	<String Id="" Ky="Glue" CHS="" ENG=""/>
+		<String Id="13528" Key="IDS_CMB_GLUE_SEARCH_SUCCEED" CHS="点胶定位成功" ENG="Glue search succeed"/>
+		<String Id="13529" Key="IDS_CMB_GLUE_SEARCH_FAILED" CHS="点胶定位失败" ENG="Glue search failed"/>
+		<String Id="13530" Key="IDS_WARNING_PLEASE_TEACH_THE_GLUE_HEAD_FIRST" CHS="请先示教点胶头" ENG="Please teach the glue head first"/>
+		<String Id="13531" Key="IDS_WARNING_GLUE_PATH_MOVE_AXIS_IS_OUT_OF_RANGE" CHS="点胶路径规划轴位置超限" ENG="Glue path Move Axis is out of range"/>
+		<String Id="13532" Key="IDS_WARNING_GLUE_PATH_MOVE_AXIS_ORDER_ERROR" CHS="点胶路径规划轴移动顺序不正确" ENG="Glue path move axis order error"/>
+		<String Id="13533" Key="IDS_CMB_GLUE_PATH_PLANNING_SUCCEED" CHS="点胶路径规划成功" ENG="Glue path planning succeed"/>
+		<String Id="13534" Key="IDS_CMB_GLUE_PATH_PLANNING_FAILED" CHS="点胶路径规划失败" ENG="Glue path planning failed"/>
+		<String Id="13535" Key="IDS_CMB_GLUE_NEEDLE_GRAB_FAILED" CHS="胶针拍照失败" ENG="Glue needle grab failed"/>
+		<String Id="13536" Key="IDS_CMB_GET_GLUE_AXIS_POS_FAILED" CHS="获取点胶轴位置失败" ENG="Get glue axis pos failed"/>
+		<String Id="13537" Key="IDS_CMB_GET_CALIB_TARGET_AXIS_POS_FAILED" CHS="获取关联轴位置失败" ENG="Get Calib Target axis pos failed"/>
+		<String Id="13538" Key="IDS_SB_CALCULATE_THE_GLUE_NEEDLE_CAMERA_RELATIONSHIP_FAILED" CHS="计算胶针与相机关系失败" ENG="Calculate the glue needle-camera relationship failed"/>
+		<String Id="13539" Key="IDS_SB_SAVE_THE_GLUE_NEEDLE_CAMERA_RELATIONSHIP_FAILED" CHS="保存胶针与相机间关系失败" ENG="Save the glue needle-camera relationship failed"/>
+		<String Id="13540" Key="IDS_CMB_GLUE_TEACH_SUCCEED" CHS="点胶示教成功" ENG="Glue teach succeed"/>
+	<String Id="" Ky="Bend" CHS="" ENG=""/>
+		<String Id="13516" Key="IDS_WARNING_BEND_PARAM_NOT_ENABLED" CHS="折弯参数未开启" ENG="Bend param not enabled"/>
+		<String Id="13517" Key="IDS_WARNING_THE_LEFT_X_IS_LOADED_OUT_OF_RANGE" CHS="第一次对位时,左侧X上料超出范围" ENG="The first alignment, the left X is loaded out of range"/>
+		<String Id="13518" Key="IDS_WARNING_THE_LEFT_Y_IS_LOADED_OUT_OF_RANGE" CHS="第一次对位时,左侧Y上料超出范围" ENG="The first alignment, the left Y is loaded out of range"/>
+		<String Id="13519" Key="IDS_WARNING_THE_RIGHT_X_IS_LOADED_OUT_OF_RANGE" CHS="第一次对位时,右侧X上料超出范围" ENG="The first alignment, the right X is loaded out of range"/>
+		<String Id="13520" Key="IDS_WARNING_THE_RIGHT_Y_IS_LOADED_OUT_OF_RANGE" CHS="第一次对位时,右侧Y上料超出范围" ENG="The first alignment, the right Y is loaded out of range"/>
+		<String Id="13521" Key="IDS_WARNING_THE_LEFT_Y_DISTANCE_IS_OUT_OF_RANGE" CHS="第一次对位时,左侧Y向距离超出范围" ENG="The first alignment, the left Y distance is out of range"/>
+		<String Id="13522" Key="IDS_WARNING_THE_RIGHT_Y_DISTANCE_IS_OUT_OF_RANGE" CHS="第一次对位时,右侧Y向距离超出范围" ENG="The first alignment, the right Y distance is out of range"/>
+		<String Id="13523" Key="IDS_SB_WITHIN_THE_PRESSURE_FIT_THRESHOLD_ALIGN_SUCCEED" CHS="压合阈值范围内对位成功!" ENG="Within the pressure-fit threshold range align succeed!"/>
+	<String Id="" Ky="Pick" CHS="" ENG=""/>
+		<String Id="677" Key="IDS_CALCU_0_SUCCESS" CHS="0度计算成功" ENG="Angle 0 Calculate success"/>
+		<String Id="678" Key="IDS_CALCU_90_SUCCESS" CHS="90度计算成功" ENG="Angle 90 Calculate success"/>
+		<String Id="679" Key="IDS_CALCU_180_SUCCESS" CHS="180度计算成功" ENG="Angle 180 Calculate success"/>
+		<String Id="680" Key="IDS_CALCU_270_SUCCESS" CHS="270度计算成功" ENG="Angle 270 Calculate success"/>
+		<String Id="681" Key="IDS_CALCU_0_FAILE" CHS="0度计算失败" ENG="Angle 0 Calculate failed"/>
+		<String Id="682" Key="IDS_CALCU_90_FAILE" CHS="90度计算失败" ENG="Angle 90 Calculate failed"/>
+		<String Id="683" Key="IDS_CALCU_180_FAILE" CHS="180度计算失败" ENG="Angle 180 Calculate failed"/>
+		<String Id="684" Key="IDS_CALCU_270_FAILE" CHS="270度计算失败" ENG="Angle 270 Calculate failed"/>
+		<String Id="8159" Key="IDS_WARNING_PROCESSING_GETBENCHPICKPLATAXISPOSFAILED" CHS="基准拾取时，获得基准拾取位置失败" ENG="Failed To Get Bench Pick Platform Axis Pos"/>
+		<String Id="13432" Key="IDS_WARNING_PROCESSING_BENCHPICKANGLEERROR" CHS="获取拾取基准轴失败" ENG="Get Bench Axis Error"/>
+		<String Id="14017" Key="IDS_WARNING_PROCESSING_GETBENCHPICKPLATAXISPOSSUCCESS" CHS="获取拾取基准成功" ENG="Get Bench Axis Success"/>
+		<String Id="13541" Key="IDS_WARNING_GRAB_FOR_THE_DISTRIBUTION_CALCULATION_BENCH_PICK_FAILED" CHS="分布计算基准拾取,拍照失败" ENG="Failed to grab for the distribution calculation bench pick"/>
+		<String Id="13514" Key="IDS_WARNING_NO_PRODUCT_TO_PICK" CHS="没有可拾取产品" ENG="No product to pick up"/>
+		<String Id="13515" Key="IDS_WARNING_PLEASE_ENSURE_ENABLE_MULT_POINT_MODE" CHS="请确保启用多标记点模式" ENG="Please ensure Enable Mult-Point Mode"/>
+	<String Id="" Ky="Function Param" CHS="" ENG=""/>
+		<String Id="160" Key="IDS_SB_COMM_INIT_FAILED" CHS="初始化通信接口失败" ENG="Communication port initialize Failed"/>
+		<String Id="164" Key="IDS_SB_CREATE_PLATFORM_DIR_XXX_FAILED" CHS="创建平台信息文件夹“%s”失败" ENG="Create platform information folder “%s” failed"/>
+		<String Id="166" Key="IDS_SB_CREATE_SYS_DATARECORD_DIR_XXX_FAILED" CHS="创建系统数据记录文件夹“%s”失败" ENG="Create system data recording folder “%s” failed"/>
+		<String Id="188" Key="IDS_SB_COMM_ERROR" CHS="通信异常" ENG="Communicaition error"/>
+		<String Id="323" Key="IDS_MB_STR_LOAD_PRODUCT_FAILE" CHS="加载工位%d的产品%d失败,请备份软件整个文件夹！" ENG="Load platform%d product%d failed, please backup the entire software folder ！"/>
+		<String Id="325" Key="IDS_FUNCTION_RESULT_SUCCESS" CHS="成功" ENG="Success"/>
+		<String Id="326" Key="IDS_FUNCTION_RESULT_FAILE" CHS="失败" ENG="Fail"/>
+		<String Id="327" Key="IDS_LOAD_XML_FILE_AND_INFO_FAILE" CHS="加载工位配置文件和信息失败！！！\n请选择“否”，然后退出系统，备份软件整个文件夹！\n如果选择“是”，则创建新的工位配置文件，重新设置参数。" ENG="Loading platform configuration file and information failed！！！\nPlease select “No”, then exit the system and back up the entire software package！\nIf you select “Yes”, We will create a new station profile and reset the parameters."/>
+		<String Id="328" Key="IDS_LOAD_XML_FILE_FAILE" CHS="加载工位配置文件失败！！！\n请选择“否”，然后退出系统，备份软件整个文件夹！\n如果选择“是”，则创建新的工位配置文件，重新设置参数。" ENG="Loading platform configuration file and information failed！！！\nPlease select “No”, then exit the system and back up the entire software package！\nIf you select “Yes”, We will create a new station profile and reset the parameters."/>
+		<String Id="329" Key="IDS_LOAD_XML_INFO_FAILE" CHS="加载工位配置信息失败！！！\n请选择“否”，然后退出系统，备份软件整个文件夹！\n如果选择“是”，则创建新的工位配置文件，重新设置参数。" ENG="Loading platform configuration file and information failed！！！\nPlease select “No”, then exit the system and back up the entire software package！\nIf you select “Yes”, We will create a new station profile and reset the parameters."/>
+		<String Id="343" Key="IDS_CHANGE_PRODUCT_NAME_FAILE" CHS="切换产品失败" ENG="Select product failed"/>
+		<String Id="345" Key="IDS_SET_PRODUCT_NAME_FAILE" CHS="设置产品失败" ENG="Set product name failed"/>
+		<String Id="346" Key="IDS_CHANGE_PRODUCT_NAME_SUCCESS" CHS="切换产品成功" ENG="Select product success"/>
+		<String Id="347" Key="IDS_SAVE_PRODUCT_FAILE" CHS="保存产品失败" ENG="Save product failed"/>
+		<String Id="348" Key="IDS_SAVE_PRODUCT_SUCCESS" CHS="保存产品成功" ENG="Save product success"/>
+		<String Id="349" Key="IDS_GET_PRODUCT_NUMBER_SUCCESS" CHS="获取产品号成功" ENG="Get product number success"/>
+		<String Id="350" Key="IDS_GET_PRECISION_FAILE" CHS="获取对准精度失败" ENG="Get align precision failed"/>
+		<String Id="351" Key="IDS_GET_PRECISION_SUCCESS" CHS="获取对准精度成功" ENG="Get align precision success"/>
+		<String Id="352" Key="IDS_SET_PRECISION_FAILE" CHS="设置对准精度失败" ENG="Set align precision failed"/>
+		<String Id="353" Key="IDS_SET_PRECISION_SUCCESS" CHS="设置对准精度成功" ENG="Set align precision success"/>
+		<String Id="354" Key="IDS_GET_ALN_TIME_FAILE" CHS="获取对准最多次数失败" ENG="Get max align times failed"/>
+		<String Id="355" Key="IDS_GET_ALN_TIME_SUCCESS" CHS="获取对准最多次数成功" ENG="Get max align times success"/>
+		<String Id="356" Key="IDS_SET_ALN_TIME_FAILE" CHS="设置对准最多次数失败" ENG="Set max align times failed"/>
+		<String Id="357" Key="IDS_SET_ALN_TIME_SUCCESS" CHS="设置对准最多次数成功" ENG="Set max align times success"/>
+		<String Id="358" Key="IDS_GET_ALN_OFFSET_FAILE" CHS="获取对位补偿失败" ENG="Get align offset failed"/>
+		<String Id="359" Key="IDS_GET_ALN_OFFSET_SUCCESS" CHS="获取对位补偿成功" ENG="Get align offset success"/>
+		<String Id="360" Key="IDS_SET_ALN_OFFSET_FAILE" CHS="设置对位补偿失败" ENG="Set align offset failed"/>
+		<String Id="361" Key="IDS_SET_ALN_OFFSET_SUCCESS" CHS="设置对位补偿成功" ENG="Set align offset success"/>
+		<String Id="362" Key="IDS_SEND_RESET_FAILE" CHS="复位报警失败" ENG="Reset failed"/>
+		<String Id="363" Key="IDS_COMM_HAND_TO_HAND_FAILE" CHS="PLC握手通讯失败" ENG="PLC hand to hand communication failed"/>
+		<String Id="446" Key="IDS_SAVE_SUCCESS" CHS="保存成功" ENG="Save success"/>
+		<String Id="447" Key="IDS_SAVE_FAILE" CHS="保存失败" ENG="Save failed"/>
+		<String Id="597" Key="IDS_SB_COMM_RECONNECT_SUCCEED" CHS="重新连接成功！" ENG="ReConnect Succeed！"/>
+		<String Id="598" Key="IDS_SB_COMM_RECONNECT_FAILED" CHS="重新连接失败！" ENG="ReConnect Failed！"/>
+		<String Id="669" Key="IDS_VALN_SETTING_FAIL" CHS="内/外mark设置失败" ENG="Virtual mark setting failed"/>
+		<String Id="670" Key="IDS_VALN_SETTING_ON" CHS="外部mark工作模式设置成功" ENG="Virtual mark on"/>
+		<String Id="671" Key="IDS_VALN_SETTING_OFF" CHS="内部mark工作模式设置成功" ENG="Virtual mark off"/>
+		<String Id="7045" Key="IDS_SB_CHANGE_PLATFORM_FAIL" CHS="切换平台失败" ENG="Change platform fail"/>
+		<String Id="7047" Key="IDS_SB_CHANGE_PLATFORM_SUCCEED" CHS="切换平台成功" ENG="Change platform succeed"/>
+		<String Id="7048" Key="IDS_SB_SAVE_2DCODE_FAIL" CHS="存储二维码失败" ENG="Save 2D-Code fail"/>
+		<String Id="7050" Key="IDS_SB_CREATE_PATH_FAIL" CHS="创建路径失败" ENG="Create path fail"/>
+		<String Id="7051" Key="IDS_SB_SAVE_2DCODE_SUCCEED" CHS="存储二维码成功" ENG="Save 2D-Code succeed"/>
+		<String Id="7052" Key="IDS_SB_PRECISION_INSPECT_FAIL" CHS="精度检测失败" ENG="Precision inspect fail"/>
+		<String Id="7056" Key="IDS_SB_INSPECT_FAIL" CHS="检测失败" ENG="Inspect fail"/>
+		<String Id="7071" Key="IDS_SB_CHANGE_PRODUCT_EXPOSURE_SUCCEED" CHS="切换产品曝光成功" ENG="Change product exposure succeed"/>
+		<String Id="7070" Key="IDS_SB_CHANGE_PRODUCT_EXPOSURE_FAIL" CHS="切换产品曝光失败" ENG="Change product exposure fail"/>
+		<String Id="7073" Key="IDS_SB_SET_WELD_PARAM_ERROR" CHS="焊接参数设置错误" ENG="Set weld parameter error"/>
+		<String Id="7077" Key="IDS_SB_GET_PLATFORM_COORD_SUCCEED" CHS="获取平台坐标成功" ENG="Get platform coord succeed"/>
+		<String Id="7078" Key="IDS_SB_GET_RADIUS_SUCCEED" CHS="获取半径成功" ENG="Get radius succeed"/>
+		<String Id="7135" Key="IDS_STR_ATTENTION" CHS="注意" ENG="Attention"/>
+		<String Id="7136" Key="IDS_STR_DISK_OUT" CHS="盘空间不足" ENG="disk hase insufficient space"/>
+		<String Id="8133" Key="IDS_OPERATION_WARNING_COMMUNICATION" CHS="通信报警" ENG="Communicaition"/>
+		<String Id="8136" Key="IDS_OPERATION_WARNING_PROCESSING" CHS="运行过程报警" ENG="Processing"/>
+		<String Id="8152" Key="IDS_WARNING_COMMUNICATION_UNKNOWN" CHS="指令时序有误或无法识别" ENG="Command Timing Sequence Error or Command Unknown"/>
+		<String Id="8161" Key="IDS_WARNING_PROCESSING_GETPRODUCTNUMBER_FAILED" CHS="获取产品序号失败" ENG="Get product number failed"/>
+		<String Id="8162" Key="IDS_SB_GET_OBJECT_MARK_COORD_FAILED" CHS="获取对象Mark图像坐标失败" ENG="Get object coord failed"/>
+		<String Id="8164" Key="IDS_SB_GET_PLATFORM_COORD_FAILED" CHS="获取平台坐标失败" ENG="Get platform coord failed"/>
+		<String Id="8165" Key="IDS_SB_GET_RADIUS_FAILED" CHS="获取半径失败" ENG="Get radius failed"/>
+		<String Id="32774" Key="IDS_COPY_CALIBRATE_POS_TO_POS" CHS="%d位置复制到%d位置" ENG="%dPos Copy To %dPos"/>
+		<String Id="13484" Key="IDS_SB_GET_OBJECT_POS_FOR_TARFIXOFFSET_FAILED" CHS="获取目标固定补偿-对象坐标失败" ENG="Get object Pos For TarFixOffset failed"/>
+		<String Id="13485" Key="IDS_SB_GET_OBJECT_SEARCH_FOR_TARFIXOFFSET_SUCCEED" CHS="获取目标固定补偿-对象定位成功" ENG="Get object search For TarFixOffset succeed"/>
+		<String Id="13486" Key="IDS_SB_TARFIXOFFSET_ERROR" CHS="目标补偿功能未开启" ENG="TarFixOffset error"/>
+		<String Id="13487" Key="IDS_SB_CALCULATE_FOR_TARFIXOFFSET_FAILED" CHS="目标固定补偿-计算失败" ENG="Calculate for tarfixoffset failed"/>
+		<String Id="13488" Key="IDS_SB_CALCULATE_FOR_TARFIXOFFSET_SUCCEED" CHS="目标固定补偿-计算成功" ENG="Calculate for tarfixoffset succeed"/>
+		<String Id="13489" Key="IDS_SB_READ_2DCODE_FAIL" CHS="读取二维码失败" ENG="Read 2D-Code fail"/>
+		<String Id="13496" Key="IDS_SB_PARAM_SAVE_FAILED" CHS="保存参数失败" ENG="Param save failed"/>
+		<String Id="13497" Key="IDS_SB_SWITCH_VIRTUAL_POSITION_FAILED" CHS="切换虚拟位置失败" ENG="Switch virtual position failed"/>
+		<String Id="13498" Key="IDS_MB_PRODUCT_RENAMME_SUCCEED" CHS="品种重命名成功" ENG="Product rename succeed"/>
+		<String Id="13499" Key="IDS_MB_PRODUCT_RENAMME_FAILED" CHS="品种重命名失败" ENG="Product rename failed"/>
+		<String Id="13500" Key="IDS_SB_PRODUCT_INDEX_FA_OUT_OF_RANGE" CHS="大品种索引%d超限" ENG="Product IndexFa out of range"/>
+		<String Id="13501" Key="IDS_SB_PRODUCT_INDEX_CHD_OUT_OF_RANGE" CHS="小品种索引%d超限" ENG="Product IndexChd out of range"/>
+		<String Id="13502" Key="IDS_SB_PRODUCT_INDEX_ALL_OUT_OF_RANGE" CHS="全部品种索引%d超限" ENG="Product IndexAll out of range"/>
+		<String Id="13503" Key="IDS_SB_PRODUCT_LENGTH_OUT_OF_RANGE" CHS="产品名称长度%d超限" ENG="Product name length out of range"/>
+		<String Id="13504" Key="IDS_COM_ONLY_SUPPORT_REGISTER_COMMUNICATION_PROTOCOL" CHS="仅支持读写寄存器通信协议" ENG="Only support register communication protocol"/>
+		<String Id="13505" Key="IDS_SB_REGISTER_FAILED_TO_READ_PRODUCT_NAME" CHS="寄存器读取产品名称失败" ENG="Register failed to read product name"/>
+		<String Id="13506" Key="IDS_SB_PRODUCT_NAME" CHS="大品种%d,小品种%d,品种名称:" ENG="Product IndexChd %d,Product IndexChd %d,Product Name:"/>
+		<String Id="13507" Key="IDS_SB_2DCODE_ACQUISITION_RESULT_FAILED" CHS="二维码获取结果失败" ENG="2D-Code acquisition result failed"/>
+		<String Id="13510" Key="IDS_WARNING_P1_TYPE_PARAM_ERROR" CHS="P1类型参数异常,P1取值范围0或1！" ENG="P1 type param error, P1 takes the value range 0 or 1!"/>
+		<String Id="13511" Key="IDS_WARNING_P3_TYPE_PARAM_ERROR" CHS="P3候补参数异常,P3取值范围1~%d！" ENG="P3 alternate param error! P3 takes a value range of 1 to %d!"/>
+		<String Id="13512" Key="IDS_SB_P2_POSITION_PARAM_ERROR" CHS="P2位置参数异常！" ENG="P2 position param error!"/>
+		<String Id="13513" Key="IDS_WARNING_POSITION_1_2_AXIS_POSITION_IS_DIFFERENT_ERROR" CHS="位置1、2 轴位置不同错误" ENG="Position 1, 2 axis position is different error"/>
+		<String Id="13527" Key="IDS_GET_PRODUCT_NUMBER_FAILED" CHS="获取产品号失败" ENG="Get product number fail"/>
+		<String Id="13542" Key="IDS_SB_COMMUNICATE_GET_ALIGN_PROCESS_PRODUCTID_FAILED" CHS="通信获取产品ID失败" ENG="Communicate Get Align Process Product ID Failed"/>
+		<String Id="13543" Key="IDS_WARNING_NO_MOVING_GRAB_POSITION_NOT_SAME" CHS="当前不移动拍照模式，当前两个Mark拍照位不一致" ENG="The current camera mode is not moving,,and the current two Mark grab position are "/>
+		<String Id="13544" Key="IDS_WARNING_MOVING_GRAB_POSITION_SAME" CHS="当前移动拍照模式，当前两个Mark拍照位一致" ENG="The current camera mode is moving,,and the current two Mark grab position are same"/>
+		<String Id="13545" Key="IDS_SB_2DCODE_INSPECT_FAILED" CHS="二维码检测失败" ENG="2D-Code Inspect Failed"/>
+		<String Id="13546" Key="IDS_SB_2DCODE_INSPECT_SUCCEED" CHS="二维码检测成功" ENG="2D-Code Inspect Succeed"/>
+		<String Id="13547" Key="IDS_SB_GET_TARGET_SEARCH_FOR_TARFIXOFFSET_SUCCEED" CHS="获取目标固定补偿-目标定位成功" ENG="Get Target search For TarFixOffset succeed"/>
+		<String Id="13548" Key="IDS_SB_GET_TARGET_SEARCH_FOR_TARFIXOFFSET_FAILED" CHS="获取目标固定补偿-目标定位失败" ENG="Get Target search For TarFixOffset failed"/>
+		<String Id="13589" Key="IDS_SB_ALL_PRODUCT" CHS="大品种%d,小品种%d,全部品种%d" ENG="Product IndexFa %d,Product IndexChd %d,All Product %d"/>
+		<String Id="13590" Key="IDS_SB_EMPTY_THE_PRODUCT_SUCCESSFULLY" CHS="品种清空成功" ENG="Empty the product successfully"/>
+		<String Id="13591" Key="IDS_SB_PRODUCT_COPY_SUCCESSFUL" CHS="品种复制成功" ENG="Product copy successful"/>
+		<String Id="13592" Key="IDS_SB_THE_SOURCE_DESTINATION_PRODUCT_INDEXES_ARE_EXACTLY_THE_SAME" CHS="来源和目的品种索引完全相同" ENG="The source and destination product indexes are exactly the same"/>
+		<String Id="13593" Key="IDS_SB_PRODUCT_CHD_FA" CHS="大品种%d,小品种%d" ENG="Product IndexFa %d,Product IndexChd %d"/>
+		<String Id="13594" Key="IDS_SB_PRODUCT_COPY_FAIL" CHS="品种复制失败" ENG="Product copy fail"/>
+		<String Id="13595" Key="IDS_SB_BOTH_THE_SOURCE_SYBOL_INDEX_ANG_DESTIONATION_SAME" CHS="来源小品种索引%d和目的小品种索引%d,应都为0或都不为0" ENG="Both the source symbol index %d and the destination symbol index %d should "/>
+		<String Id="13596" Key="IDS_SB_PRODUCT_CHD_FA_TO_THE_SAME_SUCCESSFUL" CHS="从大%d小%d到大%d小%d复制成功" ENG="Replication from big %d small %d to big %d small %d was successful"/>
+		<String Id="13597" Key="IDS_SB_SWITCH_PROCUVT_FAILED" CHS="切换至大%d小%d全%d品种产品失败" ENG="Switching to big %d small %d full %d variety product failed"/>
+		<String Id="13598" Key="IDS_SB_SWITCH_PRODUCT_CALIB_FAILED" CHS="切换至大%d小%d全%d品种标定失败" ENG="Switching to large %d small %d full %d symbol calibration failed"/>
+		<String Id="13599" Key="IDS_SB_REPLICATION_ALL_PRODUCT_FAILED" CHS="从大%d小%d全%d到大%d小%d全%d复制失败" ENG="Replication fails from big %d small %d full %d to big %d small %d full %d"/>
+		<String Id="13600" Key="IDS_SB_PURPOSE_LARGE_SMALL_MAKE_UP_FOR_CREATION_FAIL" CHS="目的大%d小%d补齐创建失败" ENG="Purpose large %d small %d make up for creation failures"/>
+		<String Id="13601" Key="IDS_SB_PURPOSE_LARGE_SMALL_FULL_EMPTY_FAILED" CHS="目的大%d小%d全%d清空失败" ENG="Purpose large %d small %d full %d empty failed"/>
+		<String Id="13602" Key="IDS_SB_REAL_TIME_TARGET_POS" CHS="实时目标位置%d, X:%.4f, Y:%.4f, D:%.4f" ENG="Real-time target position%d, X:%.4f, Y:%.4f, D:%.4f"/>
+		<String Id="13603" Key="IDS_SB_OBJECT_POSITIOND" CHS="对象位置%d, X:%.4f, Y:%.4f, D:%.4f" ENG="Object position%d, X:%.4f, Y:%.4f, D:%.4f"/>
+		<String Id="13604" Key="IDS_SB_POSITION_REFERENCE_CAMERA_AXIS_REGISTRATION_IN_PROGRESS" CHS="正在进行位置%d基准相机轴注册…" ENG="Position %d Reference Camera Axis Registration in Progress..."/>
+		<String Id="13605" Key="IDS_SB_POSITION_REAL_TIME_CAMERA_AXIS_REGISTRATION_IN_PROGRESS" CHS="正在进行位置%d实时相机轴注册…" ENG="Position %d Real-time camera axis registration in progress..."/>
+		<String Id="13606" Key="IDS_SB_PERFORMING_ALL_POSITION_REFERENCE_CAMERA_AXIS_REGISTRATION" CHS="正在执行全部位置基准相机轴注册…" ENG="Performing all position reference camera axis registration..."/>
+		<String Id="13607" Key="IDS_SB_PERFORMING_ALL_POSITION_REAL_TIME_CAMERA_AXIS_REGISTRATION" CHS="正在执行全部位置实时相机轴注册…" ENG="Performing all position real-time camera axis registration...f"/>
+		<String Id="13608" Key="IDS_SB_OBJECT_VIRTUAL_POSITION_CLOSED" CHS="对象虚拟位置关闭" ENG="The object virtual position is closed"/>
+		<String Id="13609" Key="IDS_SB_OBJECT_VIRTUAL_POSITION_ON" CHS="对象虚拟位置开启：%d" ENG="The object virtual position on: %d"/>
+		<String Id="13610" Key="IDS_SB_TARGET_VIRTUAL_POSITION_CLOSED" CHS="目标虚拟位置关闭" ENG="The target virtual position is closed"/>
+		<String Id="13611" Key="IDS_SB_TARGET_VIRTUAL_POSITION_ON" CHS="目标虚拟位置开启：%d" ENG="The target virtual position on: %d"/>
+		<String Id="14024" Key="IDS_SEND_RESET_SUCCEED" CHS="复位成功" ENG="Reset Succeed"/>
+	<String Id="" Ky="IDD_DLG_CALIB_CHECK_BY_FIXED_TARGET" CHS="" ENG=""/>
+		<String Id="13438" Key="IDS_CPFAST_STR_POS_X" CHS="位置%d X" ENG="Position%d X"/>
+		<String Id="13439" Key="IDS_CPFAST_STR_POS_Y" CHS="位置%d Y" ENG="Position%d Y"/>
+	<String Id="" Ky="IDD_VISIONASM_DIALOG2" CHS="" ENG=""/>
+		<String Id="321" Key="IDS_MB_STR_SOFTWARE_TITLE" CHS="视觉对位系统" ENG="Vision Align System"/>
+		<String Id="778" Key="IDS_GENERAL_AUTHORITY" CHS="一般权限" ENG="General Authority"/>
+		<String Id="779" Key="IDS_SUPER_AUTHORITY" CHS="超级权限" ENG="Super Authority"/>
+		<String Id="113" Key="IDS_MB_FAIL_TO_LOAD_CONFIG_INFO" CHS="配置信息加载失败！" ENG="Fail to load configuration data!"/>
+		<String Id="125" Key="IDS_SB_CAMERA_INIT_FAILED" CHS="相机初始化失败" ENG="Camera initialize failed"/>
+		<String Id="124" Key="IDS_SB_PLEASE_CHECK_CAMERA_CONNECTION" CHS="请检查相机连接" ENG="Please check camera connection"/>
+		<String Id="126" Key="IDS_SB_CAMERA_STATUS_SET_FAILED" CHS="相机状态设置失败" ENG="Camera feature set failed"/>
+		<String Id="127" Key="IDS_SB_PLEASE_SET_CAMERA_STATUS_AGAIN" CHS="请重新设置相机参数" ENG="Please set camera feature again"/>
+		<String Id="128" Key="IDS_SB_OPEN_COMM_PORT_FAILED" CHS="打开通信接口失败" ENG="Communication port open failed"/>
+		<String Id="129" Key="IDS_SB_PLEASE_SET_COMM_PARAMS_AGAIN" CHS="请重新设置通信参数" ENG="Please set communication parameters again"/>
+		<String Id="130" Key="IDS_SB_FAIL_TO_INIT_CUR_VISION_ALIGN_TOOL" CHS="当前视觉对位工具初始化失败" ENG="Initialize current vision tool failed"/>
+		<String Id="131" Key="IDS_SB_PLEASE_SET_CALIB_OR_PRODUCT_PARAMS" CHS="请重新标定，或重新设置当前产品" ENG="Please calibrate or set current product again"/>
+		<String Id="132" Key="IDS_SB_FAIL_TO_CREATE_WORK_THREAD" CHS="工作线程创建失败" ENG="Create work thread failed"/>
+		<String Id="32775" Key="IDS_STATIC_WS" CHS="工位" ENG="WS"/>
+		<String Id="118" Key="IDS_BTN_STOP" CHS="停止" ENG="Stop"/>
+		<String Id="552" Key="IDS_STR_RUN_FAILE" CHS="开始失败" ENG="Run failed"/>
+		<String Id="553" Key="IDS_STR_EXIT_SOFTWARE_OR_NOT" CHS="确定要退出软件吗？" ENG="Sure to Exit software？"/>
+		<String Id="135" Key="IDS_MB_SHUT_DOWN_WINDOWS_CONFIRM" CHS="确定要关机吗？" ENG="Sure to shutdown the computer?"/>
+		<String Id="554" Key="IDS_STR_REGISTER_INFO_LOST" CHS="软件注册信息丢失，请重新注册！" ENG="Register Information Lost！"/>
+		<String Id="555" Key="IDS_STR_EXPIRE_DATE_COMMING" CHS="软件还有%d天到期，请联系厂商 联系电话：1**********" ENG="Software will expire in %d days，Contact Tel：+ 86 1**********"/>
+		<String Id="556" Key="IDS_STR_EXPIRE_DATE" CHS="软件已到期，请联系厂商 联系电话：1**********" ENG="Software expired，Contact Tel:+86 1**********"/>
+		<String Id="114" Key="IDS_MB_FAIL_TO_LOAD_VISION_ALIGN_TOOL" CHS="视觉对位工具加载失败！" ENG="Fail to load vision align tool!"/>
+		<String Id="115" Key="IDS_MB_FAIL_T0_LOAD_PRODUCT_INFO" CHS="产品加载失败！" ENG="Product load fail！"/>
+		<String Id="1686" Key="IDS_MB_FAIL_T0_CHECK_PRODUCT_CALIB_DIFF" CHS="检查产品与标定一致性失败" ENG="Check ProductData And CalibData Consistency NG"/>
+		<String Id="14000" Key="IDS_STR_LOG_PRODUCT_INFO" CHS="产品信息" ENG="Product Info"/>
+		<String Id="14001" Key="IDS_STR_LOG_CALIB_INFO" CHS="标定信息" ENG="Calib Info"/>
+		<String Id="14002" Key="IDS_STR_LOG_PRODUCT_INFO_LOADING" CHS="工位%d产品%d:%s载入中……" ENG="WS%dJob%d:%sLoading……"/>
+		<String Id="14003" Key="IDS_STR_LOG_PRODUCT_INFO_INIT" CHS="工位%d产品%d:%s初始化中……" ENG="WS%dJob%d:%sInitiing……"/>
+		<String Id="14004" Key="IDS_STR_LOG_CURRENT_WS_NAME" CHS="当前工位：工位%d" ENG="Cur WS：WS%d"/>
+	<String Id="" Ky="IDD_DLG_VISION_RUN_ALIGN_INFO" CHS="" ENG=""/>
+	<String Id="" Ky="IDD_DLG_VISION_RUN_ALIGN_INFO" CHS="" ENG=""/>
+		<String Id="780" Key="IDS_VISION_RUN_ALIGN_INFO" CHS="对位信息" ENG="Align Info"/>
+		<String Id="781" Key="IDS_VISION_RUN_COMM_INFO" CHS="通信信息" ENG="Comm Info"/>
+		<String Id="782" Key="IDS_VISION_RUN_PRODUCT_INFO" CHS="产品信息" ENG="Product Info"/>
+		<String Id="901" Key="IDS_VISION_RUN_BEND_INSPECT_INFO" CHS="检测信息" ENG="Inspect Info"/>
+		<String Id="539" Key="IDS_STR_CUR_PRODUCT" CHS="当前产品" ENG="Current product"/>
+	<String Id="" Ky="IDD_DLG_VISION_RUN_COMM_INFO" CHS="" ENG=""/>
+		<String Id="644" Key="IDS_STR_STATIC_ALN2P2V2_OBJECTSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="645" Key="IDS_STR_STATIC_ALN2P2V2_TARGETSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="729" Key="IDS_STR_STATIC_ALN3P3V3_OBJECTSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="730" Key="IDS_STR_STATIC_ALN3P3V3_TARGETSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="731" Key="IDS_STR_STATIC_ALN3P3V3_OBJECTSIZE1" CHS="尺寸13" ENG="Length 13"/>
+		<String Id="732" Key="IDS_STR_STATIC_ALN3P3V3_TARGETSIZE1" CHS="尺寸13" ENG="Length 13"/>
+		<String Id="733" Key="IDS_STR_STATIC_ALN3P3V3_OBJECTSIZE2" CHS="尺寸23" ENG="Length 23"/>
+		<String Id="734" Key="IDS_STR_STATIC_ALN3P3V3_TARGETSIZE2" CHS="尺寸23" ENG="Length 23"/>
+		<String Id="654" Key="IDS_STR_STATIC_ALN4P2V2_OBJECTSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="655" Key="IDS_STR_STATIC_ALN4P2V2_TARGETSIZE0" CHS="尺寸34" ENG="Length 34"/>
+		<String Id="646" Key="IDS_STR_STATIC_ALN4P4V4_OBJECTSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="647" Key="IDS_STR_STATIC_ALN4P4V4_TARGETSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="648" Key="IDS_STR_STATIC_ALN4P4V4_OBJECTSIZE1" CHS="尺寸34" ENG="Length 34"/>
+		<String Id="649" Key="IDS_STR_STATIC_ALN4P4V4_TARGETSIZE1" CHS="尺寸34" ENG="Length 34"/>
+		<String Id="650" Key="IDS_STR_STATIC_ALN4P4V4_OBJECTSIZE2" CHS="尺寸13" ENG="Length 13"/>
+		<String Id="651" Key="IDS_STR_STATIC_ALN4P4V4_TARGETSIZE2" CHS="尺寸13" ENG="Length 13"/>
+		<String Id="652" Key="IDS_STR_STATIC_ALN4P4V4_OBJECTSIZE3" CHS="尺寸24" ENG="Length 24"/>
+		<String Id="653" Key="IDS_STR_STATIC_ALN4P4V4_TARGETSIZE3" CHS="尺寸24" ENG="Length 24"/>
+		<String Id="735" Key="IDS_STR_STATIC_ALN6P3V3_OBJECTSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="736" Key="IDS_STR_STATIC_ALN6P3V3_TARGETSIZE0" CHS="尺寸45" ENG="Length 45"/>
+		<String Id="737" Key="IDS_STR_STATIC_ALN6P3V3_OBJECTSIZE1" CHS="尺寸13" ENG="Length 13"/>
+		<String Id="738" Key="IDS_STR_STATIC_ALN6P3V3_TARGETSIZE1" CHS="尺寸46" ENG="Length 46"/>
+		<String Id="739" Key="IDS_STR_STATIC_ALN6P3V3_OBJECTSIZE2" CHS="尺寸23" ENG="Length 23"/>
+		<String Id="740" Key="IDS_STR_STATIC_ALN6P3V3_TARGETSIZE2" CHS="尺寸56" ENG="Length 56"/>
+		<String Id="656" Key="IDS_STR_STATIC_ALN8P4V4_OBJECTSIZE0" CHS="尺寸12" ENG="Length 12"/>
+		<String Id="657" Key="IDS_STR_STATIC_ALN8P4V4_TARGETSIZE0" CHS="尺寸56" ENG="Length 56"/>
+		<String Id="658" Key="IDS_STR_STATIC_ALN8P4V4_OBJECTSIZE1" CHS="尺寸34" ENG="Length 34"/>
+		<String Id="659" Key="IDS_STR_STATIC_ALN8P4V4_TARGETSIZE1" CHS="尺寸78" ENG="Length 78"/>
+		<String Id="660" Key="IDS_STR_STATIC_ALN8P4V4_OBJECTSIZE2" CHS="尺寸13" ENG="Length 13"/>
+		<String Id="661" Key="IDS_STR_STATIC_ALN8P4V4_TARGETSIZE2" CHS="尺寸57" ENG="Length 57"/>
+		<String Id="662" Key="IDS_STR_STATIC_ALN8P4V4_OBJECTSIZE3" CHS="尺寸24" ENG="Length 24"/>
+		<String Id="663" Key="IDS_STR_STATIC_ALN8P4V4_TARGETSIZE3" CHS="尺寸68" ENG="Length 68"/>
+	<String Id="" Ky="IDD_DLG_VISION_RUN_BEND_INSPECT_INFO" CHS="" ENG=""/>
+		<String Id="973" Key="IDS_BEND_INSPECT_LIST_COLUMN_INDEX" CHS="序号" ENG="Index"/>
+		<String Id="974" Key="IDS_BEND_INSPECT_LIST_COLUMN_BASE" CHS="基准" ENG="Base"/>
+		<String Id="975" Key="IDS_BEND_INSPECT_LIST_COLUMN_MIN" CHS="最小" ENG="Min"/>
+		<String Id="976" Key="IDS_BEND_INSPECT_LIST_COLUMN_MAX" CHS="最大" ENG="Max"/>
+		<String Id="977" Key="IDS_BEND_INSPECT_LIST_COLUMN_LEFT" CHS="左边" ENG="Left"/>
+		<String Id="978" Key="IDS_BEND_INSPECT_LIST_COLUMN_RIGHT" CHS="右边" ENG="Right"/>
+		<String Id="979" Key="IDS_BEND_INSPECT_LIST_COLUMN_OTHER" CHS="其它" ENG="Others"/>
+		<String Id="980" Key="IDS_BEND_INSPECT_LIST_ITEM_X_LEFT" CHS="X差值(L)" ENG="XSub(L)"/>
+		<String Id="981" Key="IDS_BEND_INSPECT_LIST_ITEM_Y_LEFT" CHS="Y差值(L)" ENG="YSub(L)"/>
+		<String Id="982" Key="IDS_BEND_INSPECT_LIST_ITEM_DISTANCE_LEFT" CHS="距离(L)" ENG="Dis(L)"/>
+		<String Id="983" Key="IDS_BEND_INSPECT_LIST_ITEM_X_RIGHT" CHS="X差值(R)" ENG="XSub(R)"/>
+		<String Id="984" Key="IDS_BEND_INSPECT_LIST_ITEM_Y_RIGHT" CHS="Y差值(R)" ENG="YSub(R)"/>
+		<String Id="986" Key="IDS_BEND_INSPECT_LIST_ITEM_DISTANCE_TARGET" CHS="目标距离" ENG="TargetDis"/>
+		<String Id="987" Key="IDS_BEND_INSPECT_LIST_ITEM_DISTANCE_OBJECT" CHS="对象距离" ENG="ObjectDis"/>
+		<String Id="988" Key="IDS_BEND_INSPECT_LIST_ITEM_X_SUB" CHS="X向偏差" ENG="XSub"/>
+		<String Id="989" Key="IDS_BEND_INSPECT_LIST_ITEM_Y_SUB" CHS="Y向偏差" ENG="YSub"/>
+		<String Id="990" Key="IDS_BEND_INSPECT_LIST_ITEM_CIRCLE_RADIUS" CHS="半径" ENG="Radius"/>
+		<String Id="950" Key="IDS_BEND_INSPECT_LIST_COLUMN_TIME" CHS="Time" ENG="Time"/>
+		<String Id="951" Key="IDS_BEND_INSPECT_LIST_COLUMN_ID" CHS="ID" ENG="ID"/>
+		<String Id="952" Key="IDS_BEND_INSPECT_LIST_COLUMN_TIMES" CHS="Times" ENG="Times"/>
+		<String Id="953" Key="IDS_BEND_INSPECT_LIST_COLUMN_MOVE_X" CHS="MoveX" ENG="MoveX"/>
+		<String Id="954" Key="IDS_BEND_INSPECT_LIST_COLUMN_MOVE_Y" CHS="MoveY" ENG="MoveY"/>
+		<String Id="955" Key="IDS_BEND_INSPECT_LIST_COLUMN_MOVE_D" CHS="MoveD" ENG="MoveD"/>
+		<String Id="956" Key="IDS_BEND_INSPECT_LIST_COLUMN_PRODUCT_X" CHS="ProductX" ENG="ProductX"/>
+		<String Id="957" Key="IDS_BEND_INSPECT_LIST_COLUMN_PRODUCT_Y" CHS="ProductY" ENG="ProductY"/>
+		<String Id="958" Key="IDS_BEND_INSPECT_LIST_COLUMN_PRODUCT_D" CHS="ProductD" ENG="ProductD"/>
+		<String Id="959" Key="IDS_BEND_INSPECT_LIST_COLUMN_LEFT_X" CHS="Lx" ENG="Lx"/>
+		<String Id="960" Key="IDS_BEND_INSPECT_LIST_COLUMN_LEFT_Y" CHS="Ly" ENG="Ly"/>
+		<String Id="961" Key="IDS_BEND_INSPECT_LIST_COLUMN_RIGHT_X" CHS="Rx" ENG="Rx"/>
+		<String Id="962" Key="IDS_BEND_INSPECT_LIST_COLUMN_RIGHT_Y" CHS="Ry" ENG="Ry"/>
+		<String Id="963" Key="IDS_BEND_INSPECT_LIST_COLUMN_LEFT_DISTANCE" CHS="Left_Dis" ENG="Left_Dis"/>
+		<String Id="964" Key="IDS_BEND_INSPECT_LIST_COLUMN_RIGHT_DISTANCE" CHS="Right_Dis" ENG="Right_Dis"/>
+		<String Id="965" Key="IDS_BEND_INSPECT_LIST_COLUMN_TARGET_DISTANCE" CHS="Tar_Dis" ENG="Tar_Dis"/>
+		<String Id="966" Key="IDS_BEND_INSPECT_LIST_COLUMN_OBJECT_DISTANCE" CHS="Obj_Dis" ENG="Obj_Dis"/>
+		<String Id="967" Key="IDS_BEND_INSPECT_LIST_COLUMN_SUB_X" CHS="X_Sub" ENG="X_Sub"/>
+		<String Id="968" Key="IDS_BEND_INSPECT_LIST_COLUMN_SUB_Y" CHS="Y_Sub" ENG="Y_Sub"/>
+		<String Id="969" Key="IDS_BEND_INSPECT_LIST_COLUMN_LEFT_CENTER_X" CHS="LCenterX" ENG="LCenterX"/>
+		<String Id="970" Key="IDS_BEND_INSPECT_LIST_COLUMN_LEFT_CENTER_Y" CHS="LCenterY" ENG="LCenterY"/>
+		<String Id="971" Key="IDS_BEND_INSPECT_LIST_COLUMN_RIGHT_CENTER_X" CHS="RCenterX" ENG="RCenterX"/>
+		<String Id="972" Key="IDS_BEND_INSPECT_LIST_COLUMN_RIGHT_CENTER_Y" CHS="RCenterY" ENG="RCenterY"/>
+	<String Id="" Ky="IDD_DLG_OPERATION_INFO" CHS="" ENG=""/>
+		<String Id="8128" Key="IDS_OPERATION_DLG_PLATFORM_INDEX" CHS="工位%d" ENG="Platform%d"/>
+		<String Id="8129" Key="IDS_OPERATION_DLG_COLUMN_0_TITLE" CHS="时间" ENG="Time"/>
+		<String Id="13452" Key="IDS_SIZE_SHOW_TEXT1" CHS="保留" ENG="Save"/>
+		<String Id="13453" Key="IDS_SIZE_SHOW_TEXT2" CHS="时间" ENG="Time"/>
+		<String Id="13454" Key="IDS_SIZE_SHOW_TEXT3" CHS="类型" ENG="Type"/>
+		<String Id="13455" Key="IDS_SIZE_SHOW_TEXT4" CHS="内容描述" ENG="Content Description"/>
+		<String Id="13456" Key="IDS_SIZE_SHOW_TEXT5" CHS="错误码" ENG="ErrCode"/>
+	<String Id="1723" Ky="IDD_DLG_MANUAL_TRIGGER_CMD" CHS="手动触发指令" ENG="ManuelTriggerCMD"/>
+		<String Id="32777" Key="IDS_INSTRUCT" CHS="指令" ENG="Instruct"/>
+		<String Id="32778" Key="IDS_PARAM_DESCRIBE1" CHS="P1参数描述" ENG="P1ParamDescribe"/>
+		<String Id="32785" Key="IDS_PARAM_DESCRIBE2" CHS="P2参数描述" ENG="P2ParamDescribe"/>
+		<String Id="32779" Key="IDS_FUNCTION_DESCRIBE" CHS="功能描述" ENG="FuctionDescribe"/>
+		<String Id="32780" Key="IDS_PHOTOGRAPH_CMD" CHS="拍照指令" ENG="Photograph CMD"/>
+		<String Id="32781" Key="IDS_CALIBRATION_CMD" CHS="标定指令" ENG="Calibration CMD"/>
+		<String Id="32782" Key="IDS_ALIGN_CALCULATE" CHS="对位计算" ENG="AlignCalculate"/>
+		<String Id="32783" Key="IDS_FUNTION_CMD" CHS="功能指令" ENG="Fuction CMD"/>
+		<String Id="32784" Key="IDS_ALIGN_PARAM" CHS="对位参数" ENG="AlignParam"/>
+	<String Id="" Ky="IDD_SYS_IMGROI_PARAM" CHS="" ENG=""/>
+		<String Id="760" Key="IDS_STR_POS_5" CHS="位置5" ENG="Pos 5"/>
+		<String Id="761" Key="IDS_STR_POS_6" CHS="位置6" ENG="Pos 6"/>
+		<String Id="762" Key="IDS_STR_POS_7" CHS="位置7" ENG="Pos 7"/>
+		<String Id="763" Key="IDS_STR_POS_8" CHS="位置8" ENG="Pos 8"/>
+		<String Id="756" Key="IDS_STR_POS_1" CHS="位置1" ENG="Pos 1"/>
+		<String Id="757" Key="IDS_STR_POS_2" CHS="位置2" ENG="Pos 2"/>
+		<String Id="758" Key="IDS_STR_POS_3" CHS="位置3" ENG="Pos 3"/>
+		<String Id="759" Key="IDS_STR_POS_4" CHS="位置4" ENG="Pos 4"/>
+		<String Id="7117" Key="IDS_SB_AUTO_WHITE_BALANCE_BEGIN" CHS="开始自动白平衡，请稍等..." ENG="Auto Balance Begin，Please Wait..."/>
+		<String Id="7118" Key="IDS_SB_AUTO_WHITE_BALANCE_SUCCEED" CHS="自动白平衡成功" ENG="Auto Balance Succeed"/>
+		<String Id="7119" Key="IDS_SB_AUTO_WHITE_BALANCE_FAIL" CHS="自动白平衡失败" ENG="Auto Balance Fail"/>
+		<String Id="7120" Key="IDS_SB_SET_WHITE_BALANCE_DEFAULT_BEIGN" CHS="恢复默认白平衡，请稍等..." ENG="Set White Balance Default，Please Wait..."/>
+		<String Id="7121" Key="IDS_SB_SET_WHITE_BALANCE_DEFAULT_SUCCEED" CHS="恢复默认白平衡成功" ENG="Set White Balance Default Succeed"/>
+	<String Id="" Ky="IDD_SYS_PLATFORM_XYD_PARAM" CHS="" ENG=""/>
+		<String Id="626" Key="IDS_CMB_D_DRIVE_LINE_TYPE_FIXED" CHS="连接点固定在直线轴上" ENG="Fixed on Line"/>
+		<String Id="627" Key="IDS_CMB_D_DRIVE_LINE_TYPE_SHIFT" CHS="连接点相对直线轴移动" ENG="Shift Relative to Line"/>
+	<String Id="" Ky="IDD_DLG_COMM_PARAM_SETTING" CHS="" ENG=""/>
+		<String Id="531" Key="IDS_STR_COMM_DATA_LEN_CHANGE" CHS="变化长度" ENG="Change length"/>
+		<String Id="532" Key="IDS_STR_COMM_DATA_LEN_SAME" CHS="固定长度" ENG="Fixed length"/>
+    <String Id="" Ky="IDD_SYS_COMM_PARAM_SETTING" CHS="" ENG=""/>
+        <String Id="13549" Key="IDS_COMM_SHOW_TEXT1" CHS="无运动控制" ENG="No Motion Control"/>
+        <String Id="13550" Key="IDS_COMM_SHOW_TEXT2" CHS="雅马哈机器人" ENG="Yamaha Robot"/>
+        <String Id="13551" Key="IDS_COMM_SHOW_TEXT3" CHS="雅马哈机器人340" ENG="Yamaha Robot340"/>
+        <String Id="13552" Key="IDS_COMM_SHOW_TEXT4" CHS="原通信协议" ENG="Original Communication Protocol "/>
+        <String Id="13553" Key="IDS_COMM_SHOW_TEXT5" CHS="扩展通用指令%d" ENG="Extended Generic Command %d"/>
+	<String Id="" Ky="IDD_SYS_SERIAL_COMM_CONFIG" CHS="" ENG=""/>
+		<String Id="84" Key="IDS_CMB_NO_PARITY" CHS="无校验" ENG="No"/>
+		<String Id="85" Key="IDS_CMB_ODD_PARITY" CHS="奇校验" ENG="Odd"/>
+		<String Id="86" Key="IDS_CMB_EVEN_PARITY" CHS="偶校验" ENG="Even"/>
+		<String Id="87" Key="IDS_CMB_MARK_PARITY" CHS="标记校验" ENG="Mark"/>
+		<String Id="88" Key="IDS_CMB_SPACE_PARITY" CHS="空格校验" ENG="Space"/>
+		<String Id="89" Key="IDS_CMB_NO_STOP_CHAR" CHS="无" ENG="None"/>
+		<String Id="90" Key="IDS_BTN_CLOSE" CHS="关闭" ENG="Close"/>
+		<String Id="91" Key="IDS_BTN_OPEN" CHS="打开" ENG="Open"/>
+		<String Id="92" Key="IDS_SB_SERIAL_PORT_CLOSED" CHS="串口已关闭" ENG="Serial port closed"/>
+		<String Id="93" Key="IDS_SB_SERIAL_PORT_OPENED" CHS="串口已打开" ENG="Serial port opened"/>
+		<String Id="94" Key="IDS_SB_FAIL_TO_CLOSE_SERIAL_PORT" CHS="串口关闭失败" ENG="Serial port close failed"/>
+		<String Id="95" Key="IDS_SB_FAIL_TO_OPEN_SERIAL_PORT" CHS="串口打开失败" ENG="Serial port open failed"/>
+		<String Id="106" Key="IDS_MB_NO_CONNECTION_PLEASE_OPEN" CHS="网络连接未打开，请先打开网络连接！" ENG="Please open connection first！"/>
+		<String Id="696" Key="IDS_MB_SUCCESS_READ_PLC" CHS="读寄存器成功！" ENG="Read register successfully！"/>
+		<String Id="695" Key="IDS_MB_ERROR_PLC_REPLY" CHS="解析PLC回复的字符串失败！" ENG="Parsing the string replied by the PLC failed！"/>
+		<String Id="697" Key="IDS_MB_SUCCESS_WRITE_PLC" CHS="写寄存器成功！" ENG="Write register successfully！"/>
+		<String Id="699" Key="IDS_MB_INPUT_EVEN_NUMBER" CHS="输入值必须为偶数！" ENG="The input value must be an even number!"/>
+	<String Id="" Ky="IDD_SYS_SOCKET_COMM_CONFIG" CHS="" ENG=""/>
+		<String Id="89" Key="IDS_CMB_NO_STOP_CHAR" CHS="无" ENG="None"/>
+		<String Id="102" Key="IDS_SB_SOCKET_CONNECTION_OPEN_SUCCEED" CHS="网络连接打开成功" ENG="Socket open succeed"/>
+		<String Id="101" Key="IDS_SB_FAIL_TO_OPEN_SOCKET_CONNECTION" CHS="网络连接打开失败" ENG="Socket open failed"/>
+		<String Id="103" Key="IDS_SB_PORT_NOT_AVAILABLE" CHS="端口被占用" ENG="Port is occupied"/>
+		<String Id="104" Key="IDS_SB_NO_REPLY_FROM_SERVER" CHS="服务器没有响应" ENG="No reply from server"/>
+		<String Id="42" Key="IDS_SB_INVALID_VISION_ALIGN_TOOL" CHS="视觉对位工具无效" ENG="Vision align tool is invalid"/>
+		<String Id="338" Key="IDS_COMM_STOP_OR_TIMEOUT" CHS="通信接收指令停止或超时！" ENG="Communication stop or timeout！"/>
+		<String Id="106" Key="IDS_MB_NO_CONNECTION_PLEASE_OPEN" CHS="网络连接未打开，请先打开网络连接！" ENG="Please open connection first！"/>
+		<String Id="96" Key="IDS_SB_CLOSING_SOCKET_CONNECTION" CHS="正在关闭网络连接..." ENG="Serial port is closing..."/>
+		<String Id="97" Key="IDS_SB_SOCKET_CONNECTION_CLOSEED" CHS="网络连接已关闭" ENG="Socket closed"/>
+		<String Id="98" Key="IDS_SB_FAIL_TO_CLOSE_SOCKET_CONNECTION" CHS="网络连接关闭失败" ENG="Socket close failed"/>
+		<String Id="99" Key="IDS_SB_OPENING_SOCKET_CONNECTION" CHS="正在打开网络连接…" ENG="Socket is opening..."/>
+		<String Id="105" Key="IDS_SB_REOPEN_SOCKET_CONNECTION" CHS="正在重新打开网络连接..." ENG="Socket is reconnectting..."/>
+		<String Id="695" Key="IDS_MB_ERROR_PLC_REPLY" CHS="解析PLC回复的字符串失败！" ENG="Parsing the string replied by the PLC failed！"/>
+		<String Id="696" Key="IDS_MB_SUCCESS_READ_PLC" CHS="读寄存器成功！" ENG="Read register successfully！"/>
+		<String Id="697" Key="IDS_MB_SUCCESS_WRITE_PLC" CHS="写寄存器成功！" ENG="Write register successfully！"/>
+		<String Id="699" Key="IDS_MB_INPUT_EVEN_NUMBER" CHS="输入值必须为偶数！" ENG="The input value must be an even number!"/>
+	<String Id="" Ky="IDD_SYS_USER_LOGIN" CHS="" ENG=""/>
+		<String Id="299" Key="IDS_MB_SYS_LICENSE_LOST" CHS="系统授权文件缺失！" ENG="System license lost！"/>
+		<String Id="107" Key="IDS_MB_PASSWORD_ERROR" CHS="密码错误！" ENG="Password error！"/>
+	<String Id="" Ky="IDD_SYS_AUTHORIZE_SET" CHS="" ENG=""/>
+		<String Id="9259" Key="IDS_CMB_AUTHORIZE_MANAGEMENT" CHS="权限管理" ENG="Authorize Management"/>
+		<String Id="9262" Key="IDS_CMB_AUTHORIZE_ITEM1" CHS="启用" ENG="Enabled"/>
+		<String Id="9263" Key="IDS_CMB_AUTHORIZE_ITEM2" CHS="显示" ENG="Visiable"/>
+		<String Id="14016" Key="IDS_MB_MODEL_DEFAULT_AUTHORIZE_CONFIRM" CHS="确定恢复默认权限设置？" ENG="Confirm Clear Current Model?"/>
+	<String Id="" Ky="IDD_SYS_PLATFORM_OPTION_PARAM" CHS="" ENG=""/>
+		<String Id="808" Key="IDS_ALIGN_TYPE_SELECT" CHS="选择使用的对位方式类型" ENG="Select Align Type"/>
+		<String Id="7128" Key="IDS_STR_TAR_AUTOCALIB_ALING_ON_OBJECT" CHS="产品在对象端对位" ENG="Align on object"/>
+		<String Id="7129" Key="IDS_STR_TAR_AUTOCALIB_ALING_TO_TARGET" CHS="产品直接对位到目标" ENG="Align to target"/>
+		<String Id="40000" Key="IDS_STR_TAR_AUTOCALIB_ALING_DEFORT" CHS="默认" ENG="Defort"/>
+		<String Id="698" Key="IDS_MB_FAIL_CHOOSE_SEARCH_TOOL" CHS="定位工具不能为空,已选定当前定位工具！" ENG="The searching tool cannot be empty, the current searching tool has been selected！"/>
+		<String Id="6201" Key="IDS_CHECK_ALIGNCLEARSNAPSTATUS" CHS="对位完成后清理拍照状态" ENG="Clear Snap Status After Align"/>
+		<String Id="6202" Key="IDS_CHECK_EXE_OBJECT_CHECKMODE_WHEN_ALIGN" CHS="对象拍照时不执行检查模式，对位时执行" ENG="Enable Object Check Mode While Align,Not Snap"/>
+		<String Id="6203" Key="IDS_CHECK_EXE_TARGET_CHECKMODE_WHEN_ALIGN" CHS="目标拍照时不执行检查模式，对位时执行" ENG="Enable Target Check Mode While Align,Not Snap"/>
+		<String Id="693" Key="IDS_LIST_SEARCH_TOOL" CHS="选择使用的定位工具类型" ENG="Select Searching Tools"/>
+		<String Id="6007" Key="IDS_LIST_ALIGNER_TYPE" CHS="选择使用的对位方式类型" ENG="Select Aligner Type"/>
+		<String Id="10001" Key="IDS_CHK_SEARCH_WITH_DISTANCE_INSPECT" CHS="允许线距检测" ENG="Enable Inspect"/>
+		<String Id="10002" Key="IDS_CHK_SEND_INSPECT_DISTANCE" CHS="发送面积检测子结果" ENG="Send Area Inspect Sub Result"/>
+		<String Id="10003" Key="IDS_CHK_SEND_AREA_INSPECT_SUB_RESULT" CHS="发送检测距离" ENG="Send Inspect Result"/>
+		<String Id="40001" Key="IDS_STR_OBJ_TAR_SEP_PLATFORM" CHS="平台映射" ENG="Platform"/>
+		<String Id="40002" Key="IDS_STR_OBJ_TAR_SEP_PIXEL" CHS="像素映射" ENG="Pixel"/>
+		<String Id="40003" Key="IDS_STR_TARGT_USE_VIRTUAL_DEFORT" CHS="默认" ENG="Defort"/>
+		<String Id="40004" Key="IDS_STR_TARGT_USE_VIRTUAL_COORD" CHS="目标虚拟坐标系" ENG="Target Virtual Coord"/>
+	<String Id="" Ky="IDD_SYS_PLATFORM_OPTION_PARAM1" CHS="" ENG=""/>
+		<String Id="10040" Key="IDS_PLATFORM_OPTION_SEARCHTOOL_SET" CHS="定位工具设置" ENG="SearchTool And Align Set"/>
+		<String Id="10041" Key="IDS_PLATFORM_OPTION_OFFSET_SET" CHS="补偿设置" ENG="Offset Set"/>
+		<String Id="10042" Key="IDS_PLATFORM_OPTION_ALIGN_SET" CHS="对位设置" ENG="Align Set"/>
+		<String Id="10043" Key="IDS_PLATFORM_OPTION_CALIBRATE_SET" CHS="标定关联设置" ENG="Calibrate Set"/>
+		<String Id="10044" Key="IDS_PLATFORM_OPTION_SNAP_SET" CHS="拍照设置" ENG="Snap Set"/>
+		<String Id="10045" Key="IDS_PLATFORM_OPTION_PICK_SET" CHS="拾取设置" ENG="Pick Set"/>
+		<String Id="10046" Key="IDS_PLATFORM_OPTION_COMM_SET" CHS="平台通信设置" ENG="Comm Set"/>
+		<String Id="12170" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_GLUE" CHS="点胶设置" ENG="Glue Set"/>
+		
+		
+	<String Id="" Ky="IDD_SYS_OPTION_SETTING" CHS="" ENG=""/>
+		<String Id="529" Key="IDS_STR_SHOW_RUN_COMMANDDETAIL" CHS="显示记录" ENG="Show Command Detail"/>
+		<String Id="530" Key="IDS_STR_NOT_SHOW_RUN_COMMANDDETAIL" CHS="不显示记录" ENG="Hide Command Detail"/>
+		<String Id="531" Key="IDS_STR_COMM_DATA_LEN_CHANGE" CHS="变化长度" ENG="Change length"/>
+		<String Id="532" Key="IDS_STR_COMM_DATA_LEN_SAME" CHS="固定长度" ENG="Fixed length"/>
+		<String Id="533" Key="IDS_STR_EXIT_SOFTWARE_AND_REOPEN" CHS="注:如果选择新的视觉系统后,则必须退出软件，重新打开软件！！！" ENG="Note: If you choose a new vision system, you must quit the software and reopen the software! ! !"/>
+		<String Id="534" Key="IDS_STR_CHOOSE_THE_SOFTWARE" CHS="确定改变当前视觉系统,选择新的视觉系统吗？\r\n选择“是”,则确定选择新的视觉系统,然后必须退出软件，重新打开软件；\r\n选择“否”,则仍选择当前的视觉系统。" ENG="Are you sure to change your current vision system and choose a new vision system?\r\nChoose “yes”,you must quit the software and reopen the software! ! !\r\nChoose“NO”,Still use the current vision system"/>
+	<String Id="" Ky="IDD_DLG_SYS_OPTION_RENAME" CHS="" ENG=""/>
+		<String Id="14008" Key="IDS_STR_WS_NAME" CHS="自定义名称" ENG="Custom Name "/>
+	<String Id="" Ky="IDD_DLG_SEARCH_GRAPH_SETTING" CHS="" ENG=""/>
+		<String Id="9048" Key="TABSHEET_ITEM_TARGET_CROSS" CHS="目标十字" ENG="Target Cross"/>
+		<String Id="9049" Key="TABSHEET_ITEM_OBJECT_CROSS" CHS="对象十字" ENG="Object Cross"/>
+	<String Id="" Ky="IDD_DLG_CROSS_SETTING" CHS="结果十字" ENG="结果十字"/>
+	<String Id="" Ky="IDD_SYS_KIND" CHS="" ENG=""/>
+		<String Id="313" Key="TABSHEET_ITEM_ALIGN_VIEW" CHS="产品浏览" ENG="Product View"/>
+		<String Id="314" Key="TABSHEET_ITEM_ALIGN_SETTING" CHS="产品设置" ENG="Product Setting"/>
+		<String Id="315" Key="TABSHEET_ITEM_ALIGN_TARGET" CHS="目标模板设置" ENG="Target Pattern Setting"/>
+		<String Id="316" Key="TABSHEET_ITEM_ALIGN_OBJECT" CHS="对象模板设置" ENG="Object Pattern Setting"/>
+		<String Id="317" Key="TABSHEET_ITEM_ALIGN_VIRTUAL_OBJECT" CHS="虚拟对象模板设置" ENG="Virtual Object Pattern Setting"/>
+		<String Id="588" Key="TABSHEET_ITEM_ALIGN_CALIB_TARGET" CHS="关联模板设置" ENG="Relevance Pattern Setting"/>
+		<String Id="673" Key="TABSHEET_ITEM_ALIGN_INSPECT" CHS="检测模板" ENG="Inspect Pattern Setting"/>
+		<String Id="63" Key="IDS_MB_SAVE_CHANGE_TO_PRODUCT_OR_NOT" CHS="是否保存对当前产品的修改？" ENG="Would you like to save change to current product?"/>
+		<String Id="14015" Key="IDS_MB_MODEL_CLEAR_CONFIRM" CHS="确定要清空当前模板？" ENG="Conf"/>
+		<String Id="14006" Key="IDS_STR_MODEL_TYPE_NAME" CHS="模板" ENG="Copy Model To Other WS "/>
+		<String Id="14007" Key="IDS_STR_POS_CANDIDATE_NAME" CHS="位置%d候选%d-%s" ENG="Pos%dCandidate%d-%s"/>
+	<String Id="" Ky="IDD_SYS_KIND_ALIGN_VIEW" CHS="" ENG=""/>
+		<String Id="14005" Key="IDS_STR_MULTI_WS_COPY" CHS="拷贝模板到其他工位" ENG="Copy Model To Other WS "/>
+	<String Id="" Ky="IDD_SYS_KIND_ALIGN_SETTING_TAB" CHS="" ENG=""/>
+		<String Id="10047" Key="IDS_KIND_ALIGN_SETTING_OFFSET_SET" CHS="对位补偿设置" ENG="Align Offset Set"/>
+		<String Id="10048" Key="IDS_KIND_ALIGN_SETTING_CHECK_SET" CHS="检查模式" ENG="Check Mode"/>
+		<String Id="10049" Key="IDS_KIND_ALIGN_SETTING_ALIGN_SET" CHS="对位设置" ENG="Align Set"/>
+		<String Id="10050" Key="IDS_KIND_ALIGN_SETTING_WELD_SET" CHS="焊接设置" ENG="Weld Set"/>
+		<String Id="10051" Key="IDS_KIND_ALIGN_SETTING_BEND_SET" CHS="折弯设置" ENG="Bending Set"/>
+		<String Id="10052" Key="IDS_KIND_ALIGN_SETTING_EIGHT_SHARP_SET" CHS="八字对位设置" ENG="EightSharp Align"/>
+	<String Id="" Ky="IDD_SYS_KIND_CALIB_SETTING" CHS="" ENG=""/>
+		<String Id="7113" Key="IDS_CMB_HOMOGRAPHYDOF_AUTO" CHS="自动" ENG="Auto"/>
+		<String Id="7114" Key="IDS_CMB_HOMOGRAPHYDOF_SCALEROTATE" CHS="缩放XY一致+旋转" ENG="ScaleRotate"/>
+		<String Id="7115" Key="IDS_CMB_HOMOGRAPHYDOF_SCALEXYROTATEXY" CHS="缩放X+缩放Y+旋转" ENG="ScaleXYRotateXY"/>
+		<String Id="7116" Key="IDS_CMB_HOMOGRAPHYDOF_PROJECT" CHS="投影" ENG="Project"/>
+		<String Id="154" Key="IDS_LIST_PRODUCT_NAME" CHS="产品名称" ENG="Product Name"/>
+		<String Id="155" Key="IDS_LIST_INDEX" CHS="序号" ENG="Index"/>
+		<String Id="7098" Key="IDS_LIST_PRODUCT_NAME_FA" CHS="产品名称(大)" ENG="Product Name FA"/>
+		<String Id="319" Key="IDS_MB_SAVE_CHANGE_TO_CALIB_OR_NOT" CHS="是否保存标定数据的修改？" ENG="Save change of calibrate setting or not?"/>
+		<String Id="64" Key="IDS_MB_PRODUCT_ROMOVE_CONFIRM" CHS="确定要删除当前产品？" ENG="Do you really want to remove current product?"/>
+		<String Id="65" Key="IDS_MB_FAIL_TO_DELETE_PRODUCT_DATA_FILE" CHS="删除产品数据文件失败！" ENG="Fail to delete product data file!"/>
+		<String Id="66" Key="IDS_MB_FAIL_TO_DELETE_PRODUCT" CHS="删除产品失败！" ENG="Fail to delete product!"/>
+		<String Id="67" Key="IDS_MB_NO_PRODUCT_AVAILABLE" CHS="当前没有任何产品！" ENG="No product is available!"/>
+		<String Id="69" Key="IDS_MB_PLEASE_SELECT_CUR_PRODUCT" CHS="请选择当前产品！" ENG="Please select a product!"/>
+		<String Id="675" Key="IDS_MB_FAIL_TO_CLEAR_PRODUCT" CHS="清空产品失败！" ENG="Fail to clear product!"/>
+		<String Id="676" Key="IDS_MB_FAIL_TO_CLEAR_PRODUCT_DATA_FILE" CHS="清空产品数据文件失败！" ENG="Fail to clear product data file!"/>
+		<String Id="809" Key="IDS_MB_OK_TO_CLEAR_PRODUCT" CHS="清空产品成功！" ENG="OK to clear product!"/>
+		<String Id="70" Key="IDS_MB_FAIL_TO_SAVE_PRODUCT" CHS="产品保存失败！" ENG="Fail to save product!"/>
+		<String Id="7132" Key="IDS_STR_COPY_PRODUCT_FAIL_OF_MEM_OUT" CHS="问题描述：复制产品失败！！！" ENG="Problem description：Copy product failed！！！"/>
+		<String Id="7140" Key="IDS_STR_DAD_PRODUCNT_COPYING" CHS="请稍后，大产品正在复制中...." ENG="Please wait，Dad product is copying...."/>
+		<String Id="7144" Key="IDS_STR_DAD_PRODUCNT_COPY_SUCCEED" CHS="大产品复制成功" ENG="Dad product copy succeed"/>
+		<String Id="7139" Key="IDS_STR_CHILD_PRODUCNT_COPYING" CHS="请稍后，小产品正在复制中...." ENG="Please wait，Child product is copying...."/>
+		<String Id="7143" Key="IDS_STR_CHILD_PRODUCNT_COPY_SUCCEED" CHS="小产品复制成功" ENG="Child product copy succeed"/>
+	<DString Id="" Ky="IDD_SYS_KIND_ALIGN_SETTING" CHS="" ENG=""/>
+		<String Id="689" Key="IDS_COM_STR_ALIGNER_4VS4_CIRCLE_POS_1" CHS="位置1" ENG="Pos 1"/>
+		<String Id="690" Key="IDS_COM_STR_ALIGNER_4VS4_CIRCLE_POS_2" CHS="位置2" ENG="Pos 2"/>
+		<String Id="637" Key="IDS_COM_STR_ALIGNER_MOVE_XYD" CHS="移动XYD" ENG="Move XYD"/>
+		<String Id="638" Key="IDS_COM_STR_ALIGNER_MOVE_XY" CHS="只移动XY" ENG="Only Move XY"/>
+		<String Id="297" Key="IDS_COM_STR_MARK_COORD" CHS="Mark坐标" ENG="Mark coordinate"/>
+		<String Id="298" Key="IDS_COM_STR_PLTFM_COORD" CHS="平台坐标" ENG="Platform coordinate"/>
+		<String Id="318" Key="IDS_COM_STR_MARK_PLATFORM_COORD" CHS="Mark及平台坐标" ENG="Mark and Platform coordinate"/>
+		<String Id="562" Key="IDS_COM_STR_MARK_COORD_DIAGONAL" CHS="对角Mark坐标D0" ENG="Diagonal Mark Coordinate D0"/>
+		<String Id="563" Key="IDS_COM_STR_MARK_COORD_DIAGONAL2" CHS="对角Mark坐标D2" ENG="Diagonal Mark Coordinate D2"/>
+		<String Id="691" Key="IDS_COM_STR_ALIGNER_4VS4_CIRCLE_POS_3" CHS="位置3" ENG="Pos 3"/>
+		<String Id="692" Key="IDS_COM_STR_ALIGNER_4VS4_CIRCLE_POS_4" CHS="位置4" ENG="Pos 4"/>
+		<String Id="7020" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_1234_WEIGHT" CHS="位置1234_基准5_1234_权重" ENG="4Vs4_Dot5_1234_Weight"/>
+		<String Id="7021" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_COMBINE_WEIGHT" CHS="位置1234_基准5_综合对位_权重" ENG="4Vs4_Dot5_Combine_Weight"/>
+		<String Id="722" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_AUTO_WEIGHT" CHS="位置12_基准中心对位_权重" ENG="Pos12_Auto_Weight"/>
+		<String Id="723" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12C1_WEIGHT" CHS="位置12_基准角点1_权重" ENG="Pos12_12C1_Weight"/>
+		<String Id="724" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12C2_WEIGHT" CHS="位置12_基准角点2_权重" ENG="Pos12_12C2_Weight"/>
+		<String Id="725" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_AUTO_WEIGHT" CHS="位置123_基准中心对位_权重" ENG="Pos1234_Auto_Weight"/>
+		<String Id="726" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C1_WEIGHT" CHS="位置123_基准角点1_权重" ENG="Pos123_C1_Weight"/>
+		<String Id="727" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C2_WEIGHT" CHS="位置123_基准角点2_权重" ENG="Pos124_C2_Weight"/>
+		<String Id="728" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_AUTO_L1C_WEIGHT" CHS="位置123_基准中心边点圆对位_权重" ENG="Pos123_L1C_Weight"/>
+		<String Id="564" Key="IDS_COM_STR_PRODUCT_OBJECT_SIZE" CHS="对象" ENG="Object"/>
+		<String Id="565" Key="IDS_COM_STR_PRODUCT_TARGET_SIZE" CHS="目标" ENG="Target"/>
+	<String Id="" Ky="IDD_SYS_KIND_ALIGN_CALIB_TARGET" CHS="" ENG=""/>
+		<String Id="590" Key="IDS_COM_STR_SINGLE_PATTERN_SINGLE_MARK" CHS="单模板Mark" ENG="Single Pattern Mark"/>
+		<String Id="591" Key="IDS_COM_STR_DOUBLE_PATTERN_SINGLE_MARK" CHS="双模板Mark" ENG="Double Pattern Mark"/>
+		<String Id="592" Key="IDS_COM_STR_SINGLE_PATTERN_MULTI_MARK" CHS="单模板双标记点Mark" ENG="Single Pattern Double Cross Mark"/>
+		<String Id="702" Key="IDS_COM_STR_SINGLE_FOUR_POINTS" CHS="单模板4点关联" ENG="Single Pattern 4 points"/>
+		<String Id="703" Key="IDS_COM_STR_DM_CODE" CHS="二维码关联" ENG="DM code"/>
+	<String Id="" Ky="IDD_SYS_USER_PASSWORD_SETTING" CHS="密码设置" ENG="密码设置"/>
+		<String Id="299" Key="IDS_MB_SYS_LICENSE_LOST" CHS="系统授权文件缺失！" ENG="System license lost！"/>
+		<String Id="108" Key="IDS_MB_OLD_PASSWORD_ERROR" CHS="原密码错误！" ENG="Old password error！"/>
+		<String Id="109" Key="IDS_MB_TWO_PASSWORD_MISMATCH" CHS="两次输入的密码不一致！" ENG="Two input password is not consistent ！"/>
+		<String Id="110" Key="IDS_MB_PASSWORD_IS_TOO_SHORT" CHS="密码长度太短！" ENG="Password length is too short！"/>
+		<String Id="111" Key="IDS_MB_PASSWORD_IS_TOO_LONG" CHS="密码长度太长！" ENG="Password length is too long！"/>
+	<String Id="" Ky="IDD_DLG_SET_CAMERA_SERIAL" CHS="设置相机通道" ENG="设置相机通道"/>
+		<String Id="153" Key="IDS_STC_INIT_FAILED" CHS="初始化失败" ENG="Initialize Failed"/>
+		<String Id="56" Key="IDS_SB_PLATFORM_DDD_CAMERA_SSS_SSS" CHS="工位%d相机%s%s" ENG="Platform %d Camera %s %s"/>
+		<String Id="151" Key="IDS_STC_NO_CAMERA_AVAILABLE" CHS="没有任何可用相机！" ENG="No available camera！"/>
+		<String Id="516" Key="IDS_STR_NO_CAMERA" CHS="没有可用相机！" ENG="No camera available！"/>
+		<String Id="520" Key="IDS_STR_GRAB" CHS="采集" ENG="Granb"/>
+		<String Id="519" Key="IDS_STR_FREEZE" CHS="停止" ENG="Freeze"/>
+		<String Id="518" Key="IDS_STR_GRAB_SUCCESS" CHS="相机采集成功！" ENG="Camera grab success！"/>
+		<String Id="521" Key="IDS_STR_CAMERA_FREEZE" CHS="相机停止采集！" ENG="Camera Freeze！"/>
+		<String Id="152" Key="IDS_STC_CAMERA_SN_SAME" CHS="相机序列号相同！" ENG="At least two camera have same SN！"/>
+	<String Id="" Ky="IDD_DLG_SEARCH_TOOL_MODEL_LIBRARY" CHS="定位工具模板库" ENG="定位工具模板库"/>
+		<String Id="16" Key="IDS_CMB_QUICK_SEARCH_TOOL" CHS="几何定位工具" ENG="Quick Search Tool"/>
+		<String Id="17" Key="IDS_CMB_PATTERN_SEARCH_TOOL" CHS="区域定位工具" ENG="Pattern Search Tool"/>
+		<String Id="7037" Key="IDS_CMB_STR_CORNER_SEARCH_TOOL" CHS="角定位工具" ENG="Corner search tool"/>
+		<String Id="2509" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_TOOL" CHS="圆定位测量检测工具" ENG="CirCle Inspect Tool"/>
+		<String Id="2510" Key="IDS_CMB_STR_CIRCLE_DOUBLE_MEASURE_INSPECT_TOOL" CHS="双圆定位测量检测工具" ENG="Double CirCle Inspect Tool"/>
+		<String Id="2511" Key="IDS_CMB_STR_OBROUND_MEASURE_INSPECT_TOOL" CHS="长圆定位测量检测工具" ENG="Obround Inspect Tool"/>
+		<String Id="7038" Key="IDS_CMB_STR_CHECK_TOOL" CHS="检查工具" ENG="Check tool"/>
+		<String Id="7041" Key="IDS_CMB_STR_PATTERN_CORNER_SEARCH_TOOL" CHS="区域角定位工具" ENG="Pattern corner search tool"/>
+		<String Id="7042" Key="IDS_CMB_STR_QUICK_CORNER_SEARCH_TOOL" CHS="几何角定位工具" ENG="Quick corner search tool"/>
+		<String Id="7043" Key="IDS_CMB_STR_PATTERN_SEARCH_TOOL" CHS="区域定位工具" ENG="Pattern search tool"/>
+		<String Id="7044" Key="IDS_CMB_STR_QUICK_SEARCH_TOOL" CHS="几何定位工具" ENG="Quick search tool"/>
+		<String Id="18" Key="IDS_CMB_LINE_SEARCH_TOOL" CHS="线定位工具" ENG="Line Search Tool"/>
+		<String Id="19" Key="IDS_CMB_CORNER_SEARCH_TOOL" CHS="角定位工具" ENG="Corner Search Tool"/>
+		<String Id="20" Key="IDS_CMB_CIRCLE_SEARCH_TOOL" CHS="圆定位工具" ENG="Circle Search Tool"/>
+		<String Id="21" Key="IDS_CMB_FIXEDPOS_SEARCH_TOOL" CHS="固定位置定位工具" ENG="Fixed-Pos Search Tool"/>
+		<String Id="305" Key="IDS_CMB_CROSS_SEARCH_TOOL" CHS="十字定位工具" ENG="Cross search tool"/>
+		<String Id="306" Key="IDS_CMB_PATCORNER_SEARCH_TOOL" CHS="组合区域角定位工具" ENG="Patcorner search tool"/>
+		<String Id="307" Key="IDS_CMB_PROCIRCLE_SEARCH_TOOL" CHS="专用圆定位工具" ENG="Procircle search tool"/>
+		<String Id="308" Key="IDS_CMB_PATTERNCORNER_SEARCH_TOOL" CHS="区域角定位工具" ENG="Patterncorner search tool"/>
+		<String Id="573" Key="IDS_CMB_COMBINED_QUICK_SEARCH_TOOL" CHS="组合几何定位工具" ENG="Combined Quick Search Tool"/>
+		<String Id="574" Key="IDS_CMB_COMBINED_PATTERN_SEARCH_TOOL" CHS="组合区域定位工具" ENG="Combined Pattern Search Tool"/>
+		<String Id="575" Key="IDS_CMB_BASE_CORNER_SEARCH_TOOL" CHS="基础角定位工具" ENG="Base Corner Search Tool"/>
+		<String Id="582" Key="IDS_CMB_PATTERN_SEARCH_CHECK_TOOL" CHS="区域定位检查工具" ENG="Pattern Search Check Tool"/>
+		<String Id="583" Key="IDS_CMB_QUICK_SEARCH_CHECK_TOOL" CHS="几何定位检查工具" ENG="Quick Search Check Tool"/>
+		<String Id="595" Key="IDS_CMB_QUICK_SEARCH_OBROUND_TOOL" CHS="几何定位找长圆工具" ENG="Quick Search Obround Tool"/>
+		<String Id="596" Key="IDS_CMB_PATTERN_SEARCH_OBROUND_TOOL" CHS="区域定位找长圆工具" ENG="Pattern Search Obround Tool"/>
+		<String Id="600" Key="IDS_CMB_MPATTERN_SEARCH_TOOL" CHS="多标记点区域定位工具" ENG="Multi Mark Pattern Search Tool"/>
+		<String Id="601" Key="IDS_CMB_MQUICK_SEARCH_TOOL" CHS="多标记点几何定位工具" ENG="Multi Mark Quick Search Tool"/>
+		<String Id="613" Key="IDS_CMB_QUICK_SEARCH_GENRECT_TOOL" CHS="几何定位找圆角矩形工具" ENG="Quick Search GenRect Tool"/>
+		<String Id="614" Key="IDS_CMB_PATTERN_SEARCH_GENRECT_TOOL" CHS="区域定位找圆角矩形工具" ENG="Pattern Search GenRect Tool"/>
+		<String Id="621" Key="IDS_CMB_MQUICK_CORNER_SEARCH_TOOL" CHS="多标记点几何角定位工具" ENG="Multi Mark Quick Corner Search Tool"/>
+		<String Id="620" Key="IDS_CMB_PATTERN_LINE_SEARCH_TOOL" CHS="区域线定位工具" ENG="Pattern Line Search Tool"/>
+		<String Id="7009" Key="IDS_CMB_2PATTERN_SEARCH_TOOL" CHS="两区域定位工具" ENG="2PatternSearchTool"/>
+		<String Id="7013" Key="IDS_CMB_QUICK_LINE_CIRCLE_SEARCH_TOOL" CHS="几何线圆定位工具" ENG="Quick Line Circle Search Tool"/>
+		<String Id="7014" Key="IDS_CMB_PATTERN_LINE_CIRCLE_SEARCH_TOOL" CHS="区域线圆定位工具" ENG="Pattern Line Circle Search Tool"/>
+		<String Id="7015" Key="IDS_CMB_PATTERN_CIRCLE_SEARCH_TOOL" CHS="区域圆定位工具" ENG="Pattern Circle Search Tool"/>
+		<String Id="634" Key="IDS_CMB_QUICK_SEARCH_CHECK_LINE_TOOL" CHS="几何检查线定位工具" ENG="Quick Check Line Search Tool"/>
+		<String Id="635" Key="IDS_CMB_PATTERN_SEARCH_CHECK_LINE_TOOL" CHS="区域检查线定位工具" ENG="Pattern Check Line Search Tool"/>
+		<String Id="636" Key="IDS_CMB_PATTERN_BLOB_SEARCH_TOOL" CHS="区域Blob定位工具" ENG="Pattern Blob Search Tool"/>
+		<String Id="7012" Key="IDS_CMB_CORNER_SEARCH_CHECK_TOOL" CHS="角定位检查工具" ENG="Corner Search Check Tool"/>
+		<String Id="7016" Key="IDS_CMB_RECT_SEARCH_TOOL" CHS="矩形定位工具" ENG="Rect Search Tool"/>
+		<String Id="7017" Key="IDS_CMB_PATTERN_RECT_SEARCH_TOOL" CHS="区域矩形定位工具" ENG="Pattern Rect Search Tool"/>
+		<String Id="666" Key="IDS_CMB_AREA_INSPECT_TOOL" CHS="ACF检测工具" ENG="ACF inspect tool"/>
+		<String Id="672" Key="IDS_CMB_AREA_INSPECTEX_TOOL" CHS="ACF检测工具2" ENG="ACF inspect tool2"/>
+		<String Id="7022" Key="IDS_CMB_CHORD_SEARCH_TOOL" CHS="弦定位工具" ENG="Chord Search Tool"/>
+		<String Id="7023" Key="IDS_CMB_TWO_PAT_MODEL_SEARCH_TOOL" CHS="两区域参考点定位工具" ENG="Two Pattern Model Search Tool"/>
+		<String Id="7024" Key="IDS_CMB_MPATTERNCORNER_SEARCH_TOOL" CHS="多标记点区域角定位工具" ENG="MultiMark Pattern Corner Search Tool"/>
+		<String Id="7025" Key="IDS_CMB_PATTERN_CORNER_CIRCLE_SEARCH_TOOL" CHS="区域角圆定位工具" ENG="Pattern Corner Circle Search Tool"/>
+		<String Id="7026" Key="IDS_CMB_QUICK_CORNER_CIRCLE_SEARCH_TOOL" CHS="几何角圆定位工具" ENG="Quick Corner Circle Search Tool"/>
+		<String Id="685" Key="IDS_CMB_PATTERN_POSLINEDISTANCE_TOOL" CHS="区域点线距离工具" ENG="Pattern Pos Line Distance Tool"/>
+		<String Id="700" Key="IDS_CMB_CORNERSEARCH_CHECKINSPECT_TOOL" CHS="角定位检查测量工具" ENG="Corner Search Check Inspect Tool"/>
+		<String Id="7034" Key="IDS_CMB_PATTERN_DOUBLE_SEARCH_TOOL" CHS="区域二次定位工具" ENG="Pattern Second Search Tool"/>
+		<String Id="7035" Key="IDS_CMB_PATTERN_CHORD_SEARCH_TOOL" CHS="区域弦定位工具" ENG="Pattern Chord Search Tool"/>
+		<String Id="7036" Key="IDS_CMB_QUICK_MULCIRCLE_SEARCH_TOOL" CHS="双圆定位工具" ENG="Double Circle Search Tool"/>
+		<String Id="715" Key="IDS_CMB_DMCOLDE_CALIBRATE_TOOL" CHS="二维码定位工具" ENG="DmCode Search Tool"/>
+		<String Id="7099" Key="IDS_CMB_PATTERN_CIRCLE_4LINESEARCH_TOOL" CHS="区域四弦定位工具" ENG="Pattern Circle 4 Line Search Tool"/>
+		<String Id="7100" Key="IDS_CMB_QUICK_CIRCLE_4LINESEARCH_TOOL" CHS="几何四弦定位工具" ENG="Quick Circle 4 Line Search Tool"/>
+		<String Id="7101" Key="IDS_CMB_SPECIAL_PICK_SEARCH_TOOL" CHS="拾取专用定位工具" ENG="Special Pick Search Tool"/>
+		<String Id="7102" Key="IDS_CMB_PATTERN_CORNER_LINE_SEARCH_TOOL" CHS="区域角线定位工具" ENG="Pattern Corner Line Search Tool"/>
+		<String Id="7103" Key="IDS_CMB_PATTERN_MULCIRCLE_SEARCH_TOOL" CHS="区域双圆定位工具" ENG="Pattern Double Circle Search Tool"/>
+		<String Id="7104" Key="IDS_CMB_PATTERN_CORNERMULCIRCLE_SEARCH_TOOL" CHS="区域角双圆定位工具" ENG="Pattern Corner Double Circle Search Tool"/>
+		<String Id="7110" Key="IDS_CMB_PATTERN_CORNER_MULOBROUND_TOOL" CHS="区域角双长圆定位工具" ENG="Pattern Corner Double Obround Tool"/>
+		<String Id="7111" Key="IDS_CMB_QUICK_CORNER_MULOBROUND_TOOL" CHS="几何角双长圆定位工具" ENG="Quick Corner Double Obround Tool"/>
+		<String Id="2507" Key="IDS_CMB_CIRCLECORNERSEARCH_CHECKINSPECT_TOOL" CHS="圆角定位测量检测工具" ENG="CirCle-Corner Search Inspect Tool"/>
+		<String Id="1683" Key="IDS_CMB_ACFINSPECT_TOOL" CHS="ACF灰度和Blob检测工具" ENG="ACF Gray&amp;Blob Inspect Tool"/>
+		<String Id="9050" Key="IDS_CMB_PATTERN_VIRTUAL_RECT_SEARCH_TOOL" CHS="区域虚拟矩形定位工具" ENG="Pattern Virtual Rect Search Tool"/>
+		<String Id="9052" Key="IDS_CMB_VIRTUAL_RECT_SEARCH_TOOL" CHS="虚拟矩形定位工具" ENG="Virtual Rect Search Tool"/>
+		<String Id="6000" Key="IDS_CMB_TWO_QUICK_MODEL_SEARCH_TOOL" CHS="两几何定位参考点工具" ENG="Two Quick Model Search Tool"/>
+		<String Id="10004" Key="IDS_CMB_IDREADER_DMCODE_TOOL" CHS="二维码读码工具" ENG="DM Reader Tool"/>
+		<String Id="10036" Key="IDS_CMB_IDREADER_VCRCODE_TOOL" CHS="VCR读码工具" ENG="VCR Reader Tool"/>
+		<String Id="13341" Key="IDS_CMB_IDREADER_BARCODE_TOOL" CHS="条码读码工具" ENG="Bar Code Search Tool"/>
+	<String Id="" Ky="IDD_DLG_SEARCH_TOOL_COPY_POS" CHS="定位工具拷贝位置" ENG="定位工具拷贝位置"/>
+		<String Id="749" Key="IDS_COM_STR_COPY_POS_CANDIDATE_0" CHS="基准" ENG="Standard"/>
+		<String Id="750" Key="IDS_COM_STR_COPY_POS_CANDIDATE_1" CHS="候选1" ENG="Candidate1"/>
+		<String Id="751" Key="IDS_COM_STR_COPY_POS_CANDIDATE_2" CHS="候选2" ENG="Candidate2"/>
+		<String Id="752" Key="IDS_COM_STR_COPY_POS_CANDIDATE_3" CHS="候选3" ENG="Candidate3"/>
+		<String Id="753" Key="IDS_COM_STR_COPY_POS_CANDIDATE_4" CHS="候选4" ENG="Candidate4"/>
+		<String Id="14009" Key="IDS_SEARCH_MODEL_CALIB_OBJECT" CHS="标定模板" ENG="Calib Object"/>
+		<String Id="14010" Key="IDS_SEARCH_MODEL_TARGET" CHS="目标模板" ENG="Target"/>
+		<String Id="14011" Key="IDS_SEARCH_MODEL_OBJECT" CHS="对象模板" ENG="Object"/>
+		<String Id="14012" Key="IDS_SEARCH_MODEL_VIRTUAL_OBJECT" CHS="虚拟对象模板" ENG="Virtual Object"/>
+		<String Id="14013" Key="IDS_SEARCH_MODEL_CALIB_TARGET" CHS="关联模板" ENG="CalibTarget"/>
+		<String Id="14014" Key="IDS_SEARCH_MODEL_INSPECT" CHS="检测模板" ENG="Inspect"/>
+	<String Id="" Ky="IDD_DLG_ROBOT_TEACH_RANGE" CHS="机器人示教范围设置" ENG="机器人示教范围设置"/>
+		<String Id="462" Key="IDS_STR_CENTER" CHS="中心%d" ENG="Center%d"/>
+		<String Id="300" Key="IDS_CPFAST_STR_POS" CHS="位置%d" ENG="Position%d"/>
+	<String Id="" Ky="IDD_DLG_ROBOT_TEACH" CHS="机器人示教" ENG="机器人示教"/>
+		<String Id="462" Key="IDS_STR_CENTER" CHS="中心%d" ENG="Center%d"/>
+		<String Id="466" Key="IDS_STR_LABLE4" CHS="确定保存示教信息到配置文件并退出吗？" ENG="Are you sure to save teaching information to the configuration file and exit?"/>
+	<String Id="" Ky="IDD_DLG_PRODUCT_RENAME" CHS="产品名称修改" ENG="产品名称修改"/>
+		<String Id="147" Key="IDS_MB_NAME_TOO_LONG" CHS="产品名称太长！" ENG="Name is too long！"/>
+		<String Id="148" Key="IDS_MB_NAME_CANNOT_BE_EMPTY" CHS="产品名称不能为空！" ENG="Name can not be empty！"/>
+		<String Id="52" Key="IDS_MB_PRODUCT_WITH_SAME_NAME_ALREADY_EXISTED" CHS="相同名称产品已经存在！" ENG="Product with same name has already existed！"/>
+	<String Id="" Ky="IDD_DLG_MANUAL_SEARCH_CALIB" CHS="手动选择Mark点" ENG="手动选择Mark点"/>
+		<String Id="47" Key="IDS_MB_INPUT_VALID_STEP_LENGTH" CHS="请输入有效的微调步长！" ENG="Please input valid step length！"/>
+	<String Id="" Ky="IDD_DLG_MANUAL_MEASURE" CHS="手动测量" ENG="手动测量"/>
+		<String Id="42" Key="IDS_SB_INVALID_VISION_ALIGN_TOOL" CHS="视觉对位工具无效" ENG="Vision align tool is invalid"/>
+		<String Id="11" Key="IDS_CMB_FILTER_BMP_FILE" CHS="位图文件（*.bmp）|*.bmp||" ENG="Bitmap File（*.bmp）|*.bmp||"/>
+	<String Id="" Ky="IDD_DLG_GLUE_PATH_PLAN" CHS="点胶路径规划" ENG="点胶路径规划"/>
+		<String Id="13440" Key="IDS_LIST_TEXT1" CHS="类型" ENG="Type"/>
+		<String Id="13441" Key="IDS_LIST_TEXT2" CHS="角度" ENG="Angle"/>
+		<String Id="13442" Key="IDS_LIST_TEXT3" CHS="点胶示教起点(X,Y)" ENG="Glue Teaching Start Point(X,Y)"/>
+		<String Id="13443" Key="IDS_LIST_TEXT4" CHS="点胶示教中点(X,Y)" ENG="Glue Teaching Mid Point(X,Y)"/>
+		<String Id="13444" Key="IDS_LIST_TEXT5" CHS="点胶示教终点(X,Y)" ENG="Glue Teaching End Point(X,Y)"/>
+		<String Id="13445" Key="IDS_LIST_TEXT6" CHS="点胶轴起点(X,Y)" ENG="Glue Axis Start(X,Y)"/>
+		<String Id="13446" Key="IDS_LIST_TEXT7" CHS="点胶轴中点(X,Y) Y" ENG="Glue Axis Mid(X,Y)"/>
+		<String Id="13447" Key="IDS_LIST_TEXT8" CHS="点胶轴终点(X,Y)" ENG="Glue Axis End(X,Y)"/>
+		<String Id="13448" Key="IDS_LIST_TEXT9" CHS="速度(mm/s)" ENG="Speed (mm/s)"/>
+		<String Id="13449" Key="IDS_LIST_TEXT10" CHS="点胶示教点(X,Y)" ENG="Glue Teaching Point(X,Y)"/>
+		<String Id="13450" Key="IDS_LIST_TEXT11" CHS="点胶轴位置(X,Y)" ENG="Glue Axis(X,Y)"/>
+		<String Id="13451" Key="IDS_LIST_TEXT12" CHS="偏移距离(mm)" ENG="Offset Distance(mm)"/>
+	<String Id="" Ky="IDD_DLG_DISTORCORR_IMAGE" CHS="畸变校正" ENG="畸变校正"/>
+		<String Id="765" Key="IDS_CHECKER_COLLECT" CHS="棋盘格角点自动提取" ENG="CHECKER COLLECT"/>
+		<String Id="766" Key="IDS_GRID_COLLECT" CHS="网格角点自动提取" ENG="GRID COLLECT"/>
+		<String Id="767" Key="IDS_CIRCLE_CENTRE_COLLECT" CHS="圆心自动提取" ENG="CIRCLE CENTRE COLLECT"/>
+		<String Id="75" Key="IDS_MB_EMPTY_IMAGE" CHS="图像数据为空！" ENG="Invalid image!"/>
+		<String Id="768" Key="IDS_DATA_SET_ERROR" CHS="数据设置错误" ENG="DATA SET ERROR"/>
+	<String Id="" Ky="IDD_DLG_CALIB_TARGET_EX" CHS="关联计算" ENG="关联计算"/>
+		<String Id="450" Key="IDS_LABEL_NOTE2" CHS="注:请确保各拍照位置的平台θ轴位置一致！！！" ENG="Note:make sure θ value of grab position are same！！！"/>
+		<String Id="451" Key="IDS_STR_MOVE_POS" CHS="移动位置%d" ENG="Move Position%d"/>
+		<String Id="441" Key="IDS_STR_OBJECT_POS" CHS="对象位置%d" ENG="Object Position%d"/>
+		<String Id="576" Key="IDS_STR_TARGRE_POS" CHS="目标位置%d" ENG="Target Postision%d"/>
+	<String Id="" Ky="IDD_DLG_CALIB_TARGET_DMCODE_PARAM" CHS="[二维码]关联" ENG="[二维码]关联"/>
+		<String Id="714" Key="IDS_STR_DM_CODE_CORNERS" CHS="角点数量：%d ; 坐标：%s" ENG="Corners num：%d ; coordinate：%s"/>
+	<String Id="" Ky="IDD_DLG_CALIB_SIZE_CHECK" CHS="尺寸验证" ENG="尺寸验证"/>
+		<String Id="783" Key="IDS_OBJECT_SIZE_CHECK" CHS="对象尺寸验证" ENG="Object Size Check"/>
+		<String Id="784" Key="IDS_TARGET_SIZE_CHECK" CHS="目标尺寸验证" ENG="Target Size Check"/>
+		<String Id="785" Key="IDS_TARGET_SNAP_POS" CHS="目标%d拍照" ENG="Target%d Snap"/>
+		<String Id="786" Key="IDS_SIZE_CHECK_TEXT1" CHS="拍照次数" ENG="Snap Times"/>
+		<String Id="787" Key="IDS_SIZE_CHECK_TEXT2" CHS="图像坐标X" ENG="ImgCroodX"/>
+		<String Id="788" Key="IDS_SIZE_CHECK_TEXT3" CHS="图像坐标Y" ENG="ImgCroodY"/>
+		<String Id="789" Key="IDS_SIZE_CHECK_TEXT4" CHS="平台坐标X" ENG="PlatformCroodX"/>
+		<String Id="790" Key="IDS_SIZE_CHECK_TEXT5" CHS="平台坐标Y" ENG="PlatformCroodY"/>
+		<String Id="791" Key="IDS_SIZE_CHECK_TEXT6" CHS="统计" ENG="Statistics"/>
+		<String Id="792" Key="IDS_SIZE_CHECK_TEXT7" CHS="最大值" ENG="Max"/>
+		<String Id="793" Key="IDS_SIZE_CHECK_TEXT8" CHS="最小值" ENG="Min"/>
+		<String Id="794" Key="IDS_SIZE_CHECK_TEXT9" CHS="极差" ENG="Max-Min"/>
+		<String Id="795" Key="IDS_SIZE_CHECK_TEXT10" CHS="验证次数" ENG="No."/>
+		<String Id="796" Key="IDS_POS_NON_SNAP" CHS="位置%d未完成搜索" ENG="Pos%d Unfinished"/>
+		<String Id="448" Key="IDS_LABEL_NOTE" CHS="注:请确保对象、虚拟对象各拍照位置的平台θ轴位置一致！！！" ENG="Note:make sure θ value of object and virtual object grab position are same！！！"/>
+		<String Id="449" Key="IDS_VIRTUAL_OBJECT_POS" CHS="虚拟对象位置%d" ENG="Virtual object position%d"/>
+	<String Id="" Ky="ProtocolType" CHS="" ENG=""/>           
+		<String Id="13554" Key="IDS_COMM_TYPE1" CHS="标准通用无协议Fast" ENG="CmdFast"/>
+		<String Id="13555" Key="IDS_COMM_TYPE2" CHS="雅马哈机器人无协议" ENG="CmdYamaha"/>
+		<String Id="13556" Key="IDS_COMM_TYPE3" CHS="Epson无协议" ENG="CmdEpson"/>
+		<String Id="13557" Key="IDS_COMM_TYPE4" CHS="Modbus串口ASCII协议" ENG="RegModbusSerialAscii"/>
+		<String Id="13558" Key="IDS_COMM_TYPE5" CHS="Modbus串口RTU协议" ENG="RegModbusSerialRtu"/>
+		<String Id="13559" Key="IDS_COMM_TYPE6" CHS="Modbus网口TCP协议" ENG="RegModbusSocketTcp"/>
+		<String Id="13560" Key="IDS_COMM_TYPE7" CHS="松下FP串口Mewtocol协议" ENG="RegPanasonicSerialMewtocol"/>
+		<String Id="13561" Key="IDS_COMM_TYPE8" CHS="松下FP网口Mewtocol协议" ENG="RegPanasonicSocketMewtocol"/>
+		<String Id="13562" Key="IDS_COMM_TYPE9" CHS="三菱Q系列MC串口ASCII协议" ENG="RegMitsubishiQSerialAscii"/>
+		<String Id="13563" Key="IDS_COMM_TYPE10" CHS="三菱Q系列MC网口ASCII协议" ENG="RegMitsubishiQSocketAscii"/>
+		<String Id="13564" Key="IDS_COMM_TYPE11" CHS="三菱Q系列MC网口Binary协议" ENG="RegMitsubishiQSocketBinary"/>
+		<String Id="13565" Key="IDS_COMM_TYPE12" CHS="三菱FX系列MC串口ASCII协议" ENG="RegMitsubishiFXSerialAscii"/>
+		<String Id="13566" Key="IDS_COMM_TYPE13" CHS="三菱FX系列MC网口Binary协议" ENG="RegMitsubishiFXSocketBinaryMC1E"/>
+		<String Id="13567" Key="IDS_COMM_TYPE14" CHS="横河网口ASCII协议" ENG="RegYokogawaSocketAscii"/>
+		<String Id="13568" Key="IDS_COMM_TYPE15" CHS="横河网口Binary协议" ENG="RegYokogawaSocketBinary"/>
+		<String Id="13569" Key="IDS_COMM_TYPE16" CHS="基恩士KV系列串口ASCII协议" ENG="RegKeyenceSerialAscii"/>
+		<String Id="13570" Key="IDS_COMM_TYPE17" CHS="基恩士KV系列串口PC-Link" ENG="RegKeyenceSerialPCLink"/>
+		<String Id="13571" Key="IDS_COMM_TYPE18" CHS="基恩士KV系列使用三菱Q系列PLC的寄存器网口MC（3E）ASCII协议   (QnA兼容3E)" ENG="RegKeyenceSocketAscii"/>
+		<String Id="13572" Key="IDS_COMM_TYPE19" CHS="基恩士KV系列使用三菱Q系列PLC的寄存器网口MC（3E）二进制协议  (QnA兼容3E)" ENG="RegKeyenceSocketBinary"/>
+		<String Id="13573" Key="IDS_COMM_TYPE20" CHS="基恩士KV系列网口PC-Link协议" ENG="RegKeyenceSocketPCLink"/>
+		<String Id="13574" Key="IDS_COMM_TYPE21" CHS="富士SPH系列网口寄存器协议" ENG="RegFujiSPH"/>
+		<String Id="13575" Key="IDS_COMM_TYPE22" CHS="欧姆龙串口HostLink协议" ENG="RegOmronSerialHostLink"/>
+		<String Id="13576" Key="IDS_COMM_TYPE23" CHS="欧姆龙网口Fins协议" ENG="RegOmronSocketFins"/>
+		<String Id="13577" Key="IDS_COMM_TYPE24" CHS="Delta(台达)Modbus寄存器串口ASCII协议" ENG="RegDeltaModbusSerialAscii"/>
+		<String Id="13578" Key="IDS_COMM_TYPE25" CHS="Delta(台达)Modbus寄存器串口RTU协议" ENG="RegDeltaModbusSerialRtu"/>
+		<String Id="13579" Key="IDS_COMM_TYPE26" CHS="Delta(台达)Modbus寄存器网口TCP协议" ENG="RegDeltaModbusSocketTcp"/>
+	<String Id="" Ky="Search Tool Public" CHS="" ENG=""/>
+		<String Id="5" Key="IDS_SB_TRAIN_SUCCEED" CHS="训练成功" ENG="Train succeed"/>
+		<String Id="6" Key="IDS_SB_TRAIN_FAILED" CHS="训练失败" ENG="Train failed"/>
+		<String Id="22" Key="IDS_CMB_ACCURACY_COARSE" CHS="粗略" ENG="Coarse"/>
+		<String Id="23" Key="IDS_CMB_ACCURACY_STANDARD" CHS="标准" ENG="Standard"/>
+		<String Id="24" Key="IDS_CMB_ACCURACY_FINE" CHS="精细" ENG="Fine"/>
+		<String Id="25" Key="IDS_CMB_SPEED_QUARTER" CHS="1/4倍速" ENG="Standard x 1/4"/>
+		<String Id="26" Key="IDS_CMB_SPEED_HALF" CHS="1/2倍速" ENG="Standard x 1/2"/>
+		<String Id="27" Key="IDS_CMB_SPEED_STANDARD" CHS="标准" ENG="Standard"/>
+		<String Id="28" Key="IDS_CMB_SPEED_DOUBLE" CHS="2倍速" ENG="Standard x 2"/>
+		<String Id="29" Key="IDS_CMB_SPEED_QUARDRUPLE" CHS="4倍速" ENG="Standard x 4"/>
+		<String Id="30" Key="IDS_CMB_SPEED_OCTUPLE" CHS="8倍速" ENG="Standard x 8"/>
+		<String Id="139" Key="IDS_SB_GET_TRAIN_IMAGE_FAILED" CHS="获取训练图像失败" ENG="Get train image failed"/>
+		<String Id="140" Key="IDS_SB_INVALID_INPUT_IMAGE" CHS="输入图像数据为空" ENG="Input image is null"/>
+		<String Id="141" Key="IDS_SB_INVALID_TRAIN_IMAGE" CHS="训练图像数据为空" ENG="Train image is null"/>
+		<String Id="142" Key="IDS_SB_FULL_IMAGE_SEARCH_SUCCEED_AND_RETRAINED" CHS="全图搜索设置成功，模板已重新训练" ENG="Full image search set succeed, pattern is retrained"/>
+		<String Id="143" Key="IDS_SB_FULL_IMAGE_SEARCH_FAILED" CHS="全图搜索设置失败" ENG="Full image search set failed"/>
+		<String Id="144" Key="IDS_SB_PATTERN_RETRAIN_FAILED" CHS="模板重新训练失败" ENG="Pattern retrain failed"/>
+		<String Id="145" Key="IDS_SB_OPEN_CENTER_SET_DIALOG_FAILED" CHS="打开提取界面失败" ENG="Open center set dialog failed"/>
+		<String Id="146" Key="IDS_SB_SEARCH_TOOL_NOT_TRAINED" CHS="定位工具未训练" ENG="Search tool is not trained"/>
+		<String Id="615" Key="IDS_CMB_SEARCH_METHOD_4LINE" CHS="四边定位" ENG="4 Line Search"/>
+		<String Id="616" Key="IDS_CMB_SEARCH_METHOD_4CIRCLE" CHS="四圆定位" ENG="4 Circle Search"/>
+		<String Id="617" Key="IDS_CMB_LINE_ANGLE_TYPE_ANYANGLE" CHS="任意角度" ENG="Any Angle Line"/>
+		<String Id="618" Key="IDS_CMB_LINE_ANGLE_TYPE_HOR" CHS="水平线" ENG="Horizontal Line"/>
+		<String Id="619" Key="IDS_CMB_LINE_ANGLE_TYPE_VER" CHS="垂直线" ENG="Vertical Line"/>
+		<String Id="622" Key="IDS_CMB_SORT_BY_X" CHS="按X坐标排序" ENG="Sort by X"/>
+		<String Id="623" Key="IDS_CMB_SORT_BY_Y" CHS="按Y坐标排序" ENG="Sort by Y"/>
+		<String Id="624" Key="IDS_CMB_SORT_BY_XFIRST_Y" CHS="先X后Y坐标排序" ENG="Sort by X First then Y"/>
+		<String Id="625" Key="IDS_CMB_SORT_BY_YFIRST_X" CHS="先Y后X坐标排序" ENG="Sort by Y First then X"/>
+		<String Id="664" Key="IDS_INSPCT_ACF_COLOR_WHITE" CHS="白色" ENG="White"/>
+		<String Id="665" Key="IDS_INSPCT_ACF_COLOR_BLACK" CHS="黑色" ENG="Black"/>
+	<String Id="" Ky="IDD_DLG_SEARCH" CHS="" ENG=""/>
+		<String Id="7" Key="IDS_SB_SEARCH_SUCCEED" CHS="搜索成功" ENG="Search succeed"/>
+		<String Id="8" Key="IDS_SB_SEARCH_FAILED" CHS="搜索失败" ENG="Search failed"/>
+		<String Id="150" Key="IDS_MB_SAVE_CHANGE_TO_SEARCH_TOOL_OR_NOT" CHS="是否保存对当前定位工具的修改？" ENG="Save change to current search tool or not?"/>
+		<String Id="632" Key="IDS_BTN_GRAB_SEARCH_IMAGE" CHS="采集并定位" ENG="Grab Search"/>
+		<String Id="7131" Key="IDS_STR_SAVE_SEARCHTOOL_FAIL_OF_MEM_OUT" CHS="问题描述：模板保存失败！！！" ENG="Problem description：Search tool save failed！！！"/>
+		<String Id="7147" Key="IDS_STR_MEM_OUT_SOLUTION2" CHS="解决方法：请重新制作模板（缩小训练区域或训练角度范围等）或取消保存" ENG="Solution：Remade the search tool（narrow the train area or the train angle）or cancel"/>
+	<String Id="" Ky="IDD_DLG_CORNERSEARCH_CHECK_INSPECT_TOOL" CHS="" ENG=""/>
+		<String Id="7039" Key="IDS_CMB_STR_DISTANCE_INSPECT_TOOL1" CHS="线距检测1" ENG="L2L Insp Tool1"/>
+		<String Id="7040" Key="IDS_CMB_STR_DISTANCE_INSPECT_TOOL2" CHS="线距检测2" ENG="L2L Insp Tool12"/>
+		<String Id="9108" Key="IDS_CMB_STR_DISTANCE_INSPECT_TOOL3" CHS="圆线距检测" ENG="C2L Insp tool"/>
+	<String Id="" Ky="IDD_DLG_CIRCLECORNERSEARCH_CHECK_INSPECT_TOOL" CHS="" ENG=""/>
+		<String Id="2601" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR1" CHS="两圆心中点" ENG="DoubleCircleCenter"/>
+		<String Id="2602" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR2" CHS="圆1圆心" ENG="Circle1Center"/>
+		<String Id="2603" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR3" CHS="圆2圆心" ENG="Circle2Center"/>
+		<String Id="2604" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR4" CHS="全部" ENG="ALL"/>
+		<String Id="2605" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR5" CHS="两圆心中点距离设置" ENG="DoubleCircleCenterDisSetting"/>
+		<String Id="2606" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR6" CHS="圆1圆心距离设置" ENG="Circle1CenterDisSetting"/>
+		<String Id="2607" Key="IDS_CMB_STR_CIRCLE_MEASURE_INSPECT_STR7" CHS="圆2圆心距离设置" ENG="Circle2CenterDisSetting"/>
+	<String Id="" Ky="IDD_DLG_PATTERNDOUBLESEARCH_TOOL" CHS="" ENG=""/>
+		<String Id="7081" Key="IDS_SB_OPEN_EXTRACTION_WND_FAIL" CHS="打开提取界面失败" ENG="Open extraction window fail"/>
+		<String Id="7082" Key="IDS_SB_SET_FULL_IMAGE_AND_TRAIN_MODEL_SUCCEED" CHS="全图搜索设置成功，模板已重新训练" ENG="Set full image and train succeed"/>
+		<String Id="7083" Key="IDS_SB_SET_FULL_IMAGE_FAIL" CHS="全图搜索设置失败" ENG="Set full image fail"/>
+		<String Id="7092" Key="IDS_SB_SEARCH_TOOL_NO_TRAINED" CHS="定位工具未训练" ENG="Search tool no trained"/>
+		<String Id="7093" Key="IDS_SB_RE_TRAIN_FAIL" CHS="模板重新训练失败" ENG="retrained fail"/>
+	<String Id="" Ky="IDD_DLG_SPECIALPICKSEARCH_TOOL" CHS="拾取专用定位工具" ENG=""/>
+		<String Id="7107" Key="IDS_CMB_SPECIAL_PICK_SEARCH_FAIL" CHS="定位失败" ENG="Search Fail"/>
+		<String Id="7108" Key="IDS_CMB_SPECIAL_PICK_SEARCHSUCCEED_PICKANDROTATE" CHS="定位成功,拾取后旋转180度" ENG="Search Succeed,Pick And Rotate180"/>
+		<String Id="7109" Key="IDS_CMB_SPECIAL_PICK_SEARCHSUCCEED_ROTATEANDPICK" CHS="定位成功,旋转180度后拾取" ENG="Search Succeed,Rotate180 And Pick"/>
+	<String Id="" Ky="IDD_TOOL_ID_READER_DM_CODE_TOOL" CHS="" ENG=""/>
+		<String Id="10034" Key="IDS_CMB_SPEED_ETHAL" CHS="16倍速" ENG="Standard x 16"/>
+	<String Id="" Ky="IDD_DLG_MASK_EDIT" CHS="" ENG=""/>
+		<String Id="2" Key="IDS_BTN_CANCEL" CHS="取消" ENG="Cancel"/>
+		<String Id="9" Key="IDS_BTN_APPLY" CHS="应用" ENG="Apply"/>
+		<String Id="0" Key="2052" CHS="2052" ENG="2052"/>
+		<String Id="1" Key="IDS_BTN_OK" CHS="确定" ENG="OK"/>
+		<String Id="3" Key="IDS_CMB_FILTER_XLS_FILE" CHS="XML文件（*.xml）|*.xml||" ENG="XML File（*.xml）|*.xml||"/>
+		<String Id="4" Key="IDS_SB_INSUFFICIENT_TRAIN_PARAM" CHS="训练参数错误" ENG="Train parameter error"/>
+		<String Id="10" Key="IDS_BTN_LOAD_IMAGE" CHS="加载图像" ENG="Load image"/>
+		<String Id="12" Key="IDS_SB_INSUFFICIENT_SEARCH_PARAM" CHS="搜索参数错误" ENG="Search parameter error"/>
+		<String Id="43" Key="IDS_SB_BENCH_MARK_AMEND_SUCCEED" CHS="基准设置成功" ENG="Bench mark amend succeed"/>
+		<String Id="44" Key="IDS_SB_BENCH_MARK_AMEND_FAILED" CHS="基准设置失败" ENG="Bench mark amend failed"/>
+		<String Id="45" Key="IDS_CMB_BLACK_MARK_WIGHT_BKGRD" CHS="黑Mark白背景" ENG="Black Mark"/>
+		<String Id="46" Key="IDS_CMB_WIGHT_MARK_BLACK_BKGRD" CHS="白Mark黑背景" ENG="White Mark"/>
+		<String Id="48" Key="IDS_SB_FAIL_TO_CREATE_HISTOGRAM" CHS="创建直方图失败" ENG="Fail to create histogram"/>
+		<String Id="49" Key="IDS_SB_AUTO_ABSTRACT_CENTER_SUCCEED" CHS="自动提取Mark中心点成功" ENG="Auto abstract mark point succeed"/>
+		<String Id="50" Key="IDS_SB_CANNOT_ABSTRACT_CENTER_AUTOMATICALLY" CHS="无法准确提取Mark所在区域的位置信息" ENG="Failed to abstract mark point"/>
+		<String Id="51" Key="IDS_SB_AUTO_ABSTRACT_CENTER_FAILED" CHS="自动提取Mark中心点失败" ENG="Failed to abstract mark point automatically"/>
+		<String Id="53" Key="IDS_MB_CAMERA_INIT_FAILED" CHS="相机初始化失败！" ENG="Camera initialization failed！"/>
+		<String Id="54" Key="IDS_SB_PLATFORM_DDD" CHS="工位%d" ENG="Platform %d"/>
+		<String Id="59" Key="IDS_MB_CALIBRATED_INFO_VARIED_PLEASE_SELECT" CHS="该产品所使用的平台标定结果与当前平台的标定结果不一致。\r\n仍然要使用该产品的标定结果，请点击“是”；\r\n应用当前平台的标定结果到该产品，请点击“否”。" ENG="The calibration results of the platform used by this product are inconsistent with those of the current platform.\r\nTo still use the calibration result of this product,please click “yes”.\r\nTo use the calibration results of the current platform,please click “NO”."/>
+		<String Id="60" Key="IDS_MB_TARGET_MARK_PATTEN_SAVE_FAILED" CHS="目标Mark模板保存失败" ENG="Pattern of target mark save failed"/>
+		<String Id="61" Key="IDS_MB_OBJECT_MARK_PATTERN_SAVE_FAILED" CHS="对象Mark模板保存失败！" ENG="Pattern of object mark save failed"/>
+		<String Id="62" Key="IDS_MB_VIRTUAL_OBJ_MARK_PATTERN_SAVE_FAILED" CHS="虚拟对象Mark模板保存失败！" ENG="Pattern of virtual object mark save failed"/>
+		<String Id="63" Key="IDS_MB_SAVE_CHANGE_TO_PRODUCT_OR_NOT" CHS="是否保存对当前产品的修改？" ENG="Would you like to save change to current product?"/>
+		<String Id="68" Key="IDS_MB_RENAME_FAILED" CHS="重命名失败！" ENG="Rename failed!"/>
+		<String Id="70" Key="IDS_MB_FAIL_TO_SAVE_PRODUCT" CHS="产品保存失败！" ENG="Fail to save product!"/>
+		<String Id="71" Key="IDS_MB_CALIB_PATTERN_SAVE_FAILED" CHS="标定Mark模板保存失败！" ENG="Pattern of calibration mark save failed!"/>
+		<String Id="72" Key="IDS_TAB_CAMERA_SETTING" CHS="相机" ENG="Camera Setting"/>
+		<String Id="73" Key="IDS_TAB_PLATFORM_SETTING" CHS="平台" ENG="Platform Setting"/>
+		<String Id="74" Key="IDS_TAB_DATA_RECORD_SETTING" CHS="记录" ENG="Data Recording Setting"/>
+		<String Id="76" Key="IDS_CMB_POINTING_LEFT" CHS="向左" ENG="Pointing Left"/>
+		<String Id="77" Key="IDS_CMB_POINTING_RIGHT" CHS="向右" ENG="Pointing Right"/>
+		<String Id="78" Key="IDS_CMB_POINTING_UP" CHS="向上" ENG="Pointing Up"/>
+		<String Id="79" Key="IDS_CMB_POINTING_DOWN" CHS="向下" ENG="Pointing Down"/>
+		<String Id="80" Key="IDS_CMB_COUNTER_CLOCKWISE" CHS="逆时针" ENG="Counter Clockwise"/>
+		<String Id="81" Key="IDS_CMB_CLOCKWISE" CHS="顺时针" ENG="Clockwise"/>
+		<String Id="82" Key="IDS_CMB_DIRECTIVE_DRIVE" CHS="直接驱动" ENG="Directive-Drive"/>
+		<String Id="83" Key="IDS_CMB_LINEAR_DRIVE" CHS="直线驱动" ENG="Straight-Line-Drive"/>
+		<String Id="96" Key="IDS_SB_CLOSING_SOCKET_CONNECTION" CHS="正在关闭网络连接..." ENG="Serial port is closing..."/>
+		<String Id="97" Key="IDS_SB_SOCKET_CONNECTION_CLOSEED" CHS="网络连接已关闭" ENG="Socket closed"/>
+		<String Id="98" Key="IDS_SB_FAIL_TO_CLOSE_SOCKET_CONNECTION" CHS="网络连接关闭失败" ENG="Socket close failed"/>
+		<String Id="99" Key="IDS_SB_OPENING_SOCKET_CONNECTION" CHS="正在打开网络连接…" ENG="Socket is opening..."/>
+		<String Id="100" Key="IDS_SB_SOCKET_CONNECTION_OPENED" CHS="网络连接已打开" ENG="Socket opened"/>
+		<String Id="101" Key="IDS_SB_FAIL_TO_OPEN_SOCKET_CONNECTION" CHS="网络连接打开失败" ENG="Socket open failed"/>
+		<String Id="102" Key="IDS_SB_SOCKET_CONNECTION_OPEN_SUCCEED" CHS="网络连接打开成功" ENG="Socket open succeed"/>
+		<String Id="103" Key="IDS_SB_PORT_NOT_AVAILABLE" CHS="端口被占用" ENG="Port is occupied"/>
+		<String Id="104" Key="IDS_SB_NO_REPLY_FROM_SERVER" CHS="服务器没有响应" ENG="No reply from server"/>
+		<String Id="105" Key="IDS_SB_REOPEN_SOCKET_CONNECTION" CHS="正在重新打开网络连接..." ENG="Socket is reconnectting..."/>
+		<String Id="107" Key="IDS_MB_PASSWORD_ERROR" CHS="密码错误！" ENG="Password error！"/>
+		<String Id="112" Key="IDS_MB_SYSTEM_FILE_LOST" CHS="系统文件缺失！" ENG="System file lost！"/>
+		<String Id="116" Key="IDS_MB_ADMIN_LOGOUT_CONFIRM" CHS="注销管理员登录？" ENG="Logout Admin？"/>
+		<String Id="117" Key="IDS_BTN_RUN" CHS="开始" ENG="Run"/>
+		<String Id="119" Key="IDS_BTN_HIDE_CONTROL_PANNEL" CHS="隐藏设置" ENG="Hide Pannel"/>
+		<String Id="120" Key="IDS_BTN_SHOW_CONTROL_PANNEL" CHS="显示设置" ENG="Show Pannel"/>
+		<String Id="121" Key="IDS_BTN_LOGOUT" CHS="管理员注销" ENG="Logout"/>
+		<String Id="122" Key="IDS_BTN_LOGIN" CHS="管理员登录" ENG="Login"/>
+		<String Id="123" Key="IDS_MB_SYSTEM_FILE_LOST_OR_DAMAGED" CHS="系统文件缺失或损坏！" ENG="System file lost or damaged！"/>
+		<String Id="133" Key="IDS_SB_FAIL_TO_RUN" CHS="运行失败" ENG="Run failed"/>
+		<String Id="134" Key="IDS_SB_FAIL_TO_STOP" CHS="停止失败" ENG="Stop failed"/>
+		<String Id="136" Key="IDS_MB_ANOTHER_PROCESS_IS_RUNNING" CHS="另一个实例已经在运行！" ENG="Another process is running!"/>
+		<String Id="137" Key="IDS_SB_DISPLAY_CTRL_NOT_CREATE" CHS="显示控件未创建" ENG="Display Control not create"/>
+		<String Id="138" Key="IDS_SB_CAMERA_NUM_NOT_SUPPORT" CHS="相机数量不支持" ENG="Not support camera number"/>
+		<String Id="149" Key="IDS_MB_SAME_NAME_ALREADY_EXISTED" CHS="相同名称产品已经存在！" ENG="Name is already existed！"/>
+		<String Id="156" Key="IDS_MB_CAMERA_NOT_CONNECTED" CHS="相机未连接！" ENG="Camera is not connected！"/>
+		<String Id="157" Key="IDS_SB_RECONNECTED" CHS="已重新连接" ENG="Camera reconnected"/>
+		<String Id="158" Key="IDS_SB_CAMERA_SNAP_TIMEOUT" CHS="采集图像超时失败" ENG="Snap TimeOut"/>
+		<String Id="159" Key="IDS_MB_VIDEO_MODE_SET_FAILED" CHS="视频模式设置失败！" ENG="Video mode set failed！"/>
+		<String Id="161" Key="IDS_SB_CAMERA_CHANNEL" CHS="相机通道" ENG="Camera channel"/>
+		<String Id="162" Key="IDS_SB_CALIB_SEARCH_FAILED" CHS="标定定位失败" ENG="Calibarate search failed"/>
+		<String Id="163" Key="IDS_SB_CUR_PRODUCT_INVALID" CHS="当前产品信息有误，请重新选择当前产品信息" ENG="Current product is invalid, please reselect current product"/>
+		<String Id="165" Key="IDS_SB_CREATE_CALIBINFO_DIR_XXX_FAILED" CHS="创建标定信息文件夹“%s”失败" ENG="Create calibrate information folder “%s” failed"/>
+		<String Id="167" Key="IDS_SB_CREATE_SYS_IMAGE_SAVE_DIR_XXX_FAILED" CHS="创建记录所有图像数据的文件夹“%s”失败" ENG="Create image data recording folder “%s” failed"/>
+		<String Id="168" Key="IDS_SB_GET_CUR_PLATFORM_POS_FAILED" CHS="通信获取当前平台各个轴的绝对位置失败" ENG="Get platform location failed"/>
+		<String Id="169" Key="IDS_SB_GET_CUR_CAM_PLATFORM_POS_FAILED" CHS="通信获取相机平台各个基准位置失败" ENG="Get camera platform location failed"/>
+		<String Id="170" Key="IDS_SB_WAIT_CAMERA_ARRIVED" CHS="等待相机移动到位置" ENG="Waiting for camera move finish"/>
+		<String Id="171" Key="IDS_SB_COMM_GET_CAMERA_PLATFORM_POS_FAILED" CHS="通信获取相机平台各个轴绝对位置%d失败" ENG="Get camera platform location %d failed"/>
+		<String Id="172" Key="IDS_SB_COMM_GET_CAMERA_PLATFORM_POS_FAILED_II" CHS="通信获取相机平台各个轴的绝对位置失败" ENG="Get camera platform location failed"/>
+		<String Id="176" Key="IDS_SB_IN_CAM_PLATFORM_VIRTUAL_OBJ_SEARCH_FAILED" CHS="相机平台在第%d个位置虚拟对象定位失败" ENG="Camera platform in position %d virtual object search failed"/>
+		<String Id="177" Key="IDS_SB_OBJECT_SEARCH_CAM_PLATFORM_POS" CHS="实时对象Mark定位时相机平台的绝对位置: " ENG="Camera platform location(online object search):"/>
+		<String Id="178" Key="IDS_SB_TARGET_SEARCH_CAM_PLATFORM_POS" CHS="实时目标Mark定位时相机平台的绝对位置: " ENG="Camera platform location(online target search):"/>
+		<String Id="179" Key="IDS_SB_VIRTUAL_SEARCH_CAM_PLATFORM_POS" CHS="虚拟对象Mark定位时相机平台的绝对位置: " ENG="Camera platform location(online virtual object search):"/>
+		<String Id="185" Key="IDS_SB_VIRTUAL_SEARCH_FAILED" CHS="虚拟对象Mark定位失败" ENG="Online virtual object search failed"/>
+		<String Id="190" Key="IDS_SB_PLEASE_KEEP_CAMERA_GRABBING" CHS="请保证所有相机均处于连续采集状态" ENG="Make sure all the cameras is grabing"/>
+		<String Id="197" Key="IDS_SB_WAIT_CAMERA_ARRIVED_FAILED" CHS="等待相机移动到第%d个位置失败" ENG="Drive camera move to the positon %d failed"/>
+		<String Id="198" Key="IDS_SB_MOVE_ROTATE_POS_SEARCH_FAILED" CHS="平移及旋转标定的第%d个位置定位失败" ENG="Calibrate search (positon %d) failed"/>
+		<String Id="199" Key="IDS_SB_CAM_MOVE_THEN_SEARCH_FAILED" CHS="相机移动到第%d个位置定位失败" ENG="Camera calibrate search (positon %d) failed"/>
+		<String Id="202" Key="IDS_SB_DRIVE_PLATFORM_ARRIVED_TO_BENCH_POS_FAILED" CHS="驱动平台到达基准位置失败" ENG="Drive platform move to bench position failed"/>
+		<String Id="204" Key="IDS_SB_SINGLE_CAM_CALIB_ALL_BENCH_POS" CHS="相机平台标定时该相机平台所兼顾的各个绝对位置: " ENG="All Calibrate Position: "/>
+		<String Id="205" Key="IDS_SB_CERTAIN_CAM_PLATFORM_POS_CALIB_SEARCH_FAILED" CHS="相机平台在位置%d处标定定位失败" ENG="Position %d camera platform calibrate search failed"/>
+		<String Id="206" Key="IDS_SB_EXCUTE_CAM_PLATFORM_CALCULATE_FAILED" CHS="执行相机平台标定计算失败" ENG="Camera calibrate calculate failed"/>
+		<String Id="207" Key="IDS_SB_CERTAIN_CAM_ALIGN_PLATFORM_CALIB_REFINE_FAILED" CHS="针对第%d个相机所进行的平台标定求精失败" ENG="Camera platform %d refinement calibrate failed"/>
+		<String Id="208" Key="IDS_SB_COMM_GET_CAMERA_PLATFORM_BENCH_POS_FAILED" CHS="通信获取所有相机平台的基准位置失败" ENG="Get camera platform bench position failed"/>
+		<String Id="209" Key="IDS_SB_CAM_PLATFORM_CALIB_CAM_PLATFORM_BENCH_POS" CHS="相机平台标定时各相机平台的绝对位置: " ENG="Camera platform bench position: "/>
+		<String Id="210" Key="IDS_SB_CAM_PLATFORM_CALIB_SEARCH_FAILED" CHS="相机平台标定定位失败" ENG="Camera platform calibrate search failed"/>
+		<String Id="211" Key="IDS_SB_CAM_PLATFORM_CERTAIN_POS" CHS="相机平台标定时各相机平台在第%d次移动时所到达的绝对位置: " ENG="The %d times move position of camera platform calibrate: "/>
+		<String Id="215" Key="IDS_SB_COMM_TOOL_INVALID" CHS="通信工具无效" ENG="Communication tool invalid"/>
+		<String Id="224" Key="IDS_SB_DRIVE_CAM_PLATFORM_ARRIVED_FAILED" CHS="驱动相机平台到指定的位置失败" ENG="Drive camera platform to align position failed"/>
+		<String Id="229" Key="IDS_SB_CALCULATE_FAILED" CHS="计算失败" ENG="Calculate failed"/>
+		<String Id="230" Key="IDS_SB_SEND_WAIT_CAM_PLATFORM_ARRIVED_CMD_FAILED" CHS="发送等待相机到位信号指令失败" ENG="Send command of waiting camera platform moving failed"/>
+		<String Id="231" Key="IDS_MB_PLEASE_PLC_SEND_SINGLE_CAM_ARRIVED_CMD" CHS="请PLC发送单相机平台到位指令！" ENG="Please PLC send single camera platform move finish command！"/>
+		<String Id="232" Key="IDS_SB_RECEIVE_PLATFORM_ARRIVED_ASW_OUTTIME" CHS="接收等待相机到位信号响应超时" ENG="Camera platform move timeout"/>
+		<String Id="233" Key="IDS_SB_ANALYS_CAM_PLATFORM_ARRIVED_ASW_FAILED" CHS="解析等待相机到位信号响应失败" ENG="Camera platform move timeout"/>
+		<String Id="234" Key="IDS_SB_SEND_GET_PLATFORM_POS_CMD_FAILED" CHS="发送获取平台各轴的绝对位置指令失败" ENG="Send command of get platform position failed"/>
+		<String Id="235" Key="IDS_MB_PLEASE_PLC_SEND_CUR_PLATFORM_POS" CHS="请PLC发送当前平台各轴的绝对位置！" ENG="Please PLC send current platform position！"/>
+		<String Id="236" Key="IDS_SB_RECEIVE_GET_PLATFORM_POS_ASW_OUTTIME" CHS="接收获取平台各轴的绝对位置响应超时" ENG="Receive platform position command timeout"/>
+		<String Id="237" Key="IDS_SB_ANALYS_GET_PLATFORM_POS_ASW_FAILED" CHS="解析获取平台各轴的绝对位置响应失败" ENG="Analyze platform position command timeout"/>
+		<String Id="238" Key="IDS_SB_DATA_PROCESS_INVALID" CHS="数据处理异常" ENG="Data process error"/>
+		<String Id="239" Key="IDS_SB_PACK_DRIVE_PLATFORM_ARRIVED_CMD_FAILED" CHS="打包驱动平台各轴移动到各绝对位置指令失败" ENG="Pack command of driving platform move failed"/>
+		<String Id="240" Key="IDS_SB_SEND_DRIVE_PLATFORM_ARRIVED_CMD_FAILED" CHS="发送驱动平台各轴移动到各绝对位置指令失败" ENG="Send command of driving platform move failed"/>
+		<String Id="241" Key="IDS_MB_PLEASE_PLC_SEND_PLATFORM_ARRIVED_CMD" CHS="请PLC发送平台到位指令！" ENG="Please PLC send platform move finish command！"/>
+		<String Id="242" Key="IDS_SB_RECEIVE_DRIVE_PLATFORM_ARRIVED_ASW_OUTTIME" CHS="接收驱动平台各轴移动到各绝对位置响应超时" ENG="Receive drive platform axes move to each absolute position response timeout"/>
+		<String Id="243" Key="IDS_SB_ANALYS_DRIVE_PLATFORM_ARRIVED_ASW_FAILED" CHS="解析驱动平台各轴移动到各绝对位置响应失败" ENG="Analyze the drive platform to move to each absolute position response failure"/>
+		<String Id="244" Key="IDS_SB_SEND_GET_CAM_PLATFORM_POS_CMD_FAILED" CHS="发送获取相机平台各轴的绝对位置指令失败" ENG="Sending command to get absolute position for each axis of the camera platform failed"/>
+		<String Id="245" Key="IDS_MB_PLEASE_PLC_SEND_CUR_CAM_PLATFORM_POS" CHS="请PLC发送当前相机平台各轴的绝对位置！" ENG="Please send the absolute position of each axis of the current camera platform to the PLC!"/>
+		<String Id="246" Key="IDS_SB_RECEIVE_GET_CAM_PLATFORM_POS_ASW_OUTTIME" CHS="接收获取相机平台各轴的绝对位置响应超时" ENG="Receive and obtain the absolute position of each axis of the camera platform response timeout!"/>
+		<String Id="247" Key="IDS_SB_ANALYS_GET_CAM_PLATFORM_POS_ASW_FAILED" CHS="解析获取相机平台各轴的绝对位置响应失败" ENG="Analyze the response of getting absolute position of each axis of the camera platform failed!"/>
+		<String Id="248" Key="IDS_SB_PACK_DRIVE_ALL_CAM_PLATFORM_ARRIVED_CMD_FAILED" CHS="打包驱动所有相机平台各轴移动到各绝对位置指令失败" ENG="Drive all axes of the camera platform to each absolute position fails!"/>
+		<String Id="249" Key="IDS_SB_SEND_DRIVE_ALL_CAM_PLATFORM_ARRIVED_CMD_FAILED" CHS="发送驱动所有相机平台各轴移动到各绝对位置指令失败" ENG="Send command to drive all camera platforms to move to each absolute position fails!"/>
+		<String Id="250" Key="IDS_MB_PLEASE_PLC_SEND_CUR_CAM_PLATFORM_ARRIVED_CMD" CHS="请PLC发送当前相机平台到位指令！" ENG="PLC Must send the current camera platform in-place command!"/>
+		<String Id="251" Key="IDS_SB_RECEIVE_GET_ALL_CAM_PLATFORM_ARRIVED_ASW_OUTTIME" CHS="接收驱动所有相机平台各轴移动到各绝对位置响应超时" ENG="Receive command to drive all camera platforms to move to each absolute position timeout!"/>
+		<String Id="252" Key="IDS_SB_ANALYS_ALL_CAM_PLATFORM_ARRIVED_ASW_FAILED" CHS="解析驱动所有相机平台各轴移动到各绝对位置响应失败" ENG="Analyze response of driving all camera platforms to move to each absolute position fails!"/>
+		<String Id="253" Key="IDS_SB_CAMERA_CHX_LINK_LOST" CHS="相机CH%d连接失败" ENG="Camera CH%d connect failed"/>
+		<String Id="254" Key="IDS_SB_CAMERA_CHX_RELINKED" CHS="相机CH%d已重新连接" ENG="Camera CH%d reconnected"/>
+		<String Id="255" Key="IDS_DR_CAM_PLATFORM_POS" CHS="相机平台%d: (X轴%.3f, Y轴%.3f) " ENG="Camera Platform%d: (X%.3f, Y%.3f) "/>
+		<String Id="256" Key="IDS_DR_CALIB_CAM_PLATFORM_CERTAIN_POS" CHS="相机平台标定时在第%d次移动时所到达的绝对位置: " ENG="The absolute position that the camera platform is calibrated to at the %d move："/>
+		<String Id="261" Key="IDS_DR_ALIGN_AND_THEN_RESET_CAM_PLATFORM_POS" CHS="执行第%d次对位动作后相机平台重新调整后的绝对位置:" ENG="Absolute position after camera platform re-adjustment after performing the %d alignment operation:"/>
+		<String Id="262" Key="IDS_DR_XXY_CALIB_REFINE_PLATFORM_MOVE_POS" CHS="针对相机%d标定求精时平台移动到的绝对位置：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="The absolute position of the platform to which the camera is moved when refining the camera %d times：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="263" Key="IDS_DR_XXY_TARGET_SEARCH_PLATFORM_POS" CHS="实时目标Mark定位时平台的绝对位置：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="Absolute position of the platform when real-time target Mark is positioned：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="264" Key="IDS_DR_XXY_OBJECT_SEARCH_PLATFORM_POS" CHS="实时对象Mark定位时平台的绝对位置：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="The absolute position of the platform when the real-time object Mark is positioned：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="265" Key="IDS_DR_XXY_VIRTUAL_SEARCH_PLATFORM_POS" CHS="虚拟对象Mark定位时平台的绝对位置：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="The absolute position of the platform when the virtual object Mark is positioned：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="266" Key="IDS_DR_XXY_THE_PLATFORM_POS" CHS="平台标定时平台的绝对位置：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="Absolute position of the platform when calibrating：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="267" Key="IDS_DR_XXY_EXCUTE_CALIB_PLATFORM_POS" CHS="\n平台位置%d：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="\nPlatform Position%d：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="268" Key="IDS_DR_XXY_EXCUTE_ALIGN_ACTION_THEN_PLATFORM_POS" CHS="执行第%d次对位动作后平台所处的绝对位置：X1轴%.3f, X2轴%.3f, Y轴%.3f" ENG="The absolute position of the platform after performing the %d alignment operation：X1%.3f, X2%.3f, Y%.3f"/>
+		<String Id="269" Key="IDS_DR_XYY_CALIB_REFINE_PLATFORM_MOVE_POS" CHS="针对相机%d标定求精时平台移动到的绝对位置：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="The absolute position of the platform to which the camera is moved when refining the %d camera：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="270" Key="IDS_DR_XYY_TARGET_SEARCH_PLATFORM_POS" CHS="实时目标Mark定位时平台的绝对位置：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="Absolute position of the platform when real-time target Mark is positioned：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="271" Key="IDS_DR_XYY_OBJECT_SEARCH_PLATFORM_POS" CHS="实时对象Mark定位时平台的绝对位置：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="The absolute position of the platform when the real-time object Mark is positioned：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="272" Key="IDS_DR_XYY_VIRTUAL_SEARCH_PLATFORM_POS" CHS="虚拟对象Mark定位时平台的绝对位置：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="The absolute position of the platform when the virtual object Mark is positioned：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="273" Key="IDS_DR_XYY_THE_PLATFORM_POS" CHS="平台标定时平台的绝对位置：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="Absolute position of the platform when calibrating：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="274" Key="IDS_DR_XYY_EXCUTE_CALIB_PLATFORM_POS" CHS="平台位置%d：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="Platform Position%d：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="275" Key="IDS_DR_XYY_EXCUTE_ALIGN_ACTION_THEN_PLATFORM_POS" CHS="执行第%d次对位动作后平台所处的绝对位置：X轴%.3f, Y1轴%.3f, Y2轴%.3f" ENG="The absolute position of the platform after performing the %d alignment operation：X%.3f, Y1%.3f, Y2%.3f"/>
+		<String Id="276" Key="IDS_DR_XYD_CALIB_REFINE_PLATFORM_MOVE_POS" CHS="针对相机%d标定求精时平台移动到的绝对位置：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="The absolute position of the platform to which the camera is moved when refining the %d camera：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="277" Key="IDS_DR_XYD_TARGET_SEARCH_PLATFORM_POS" CHS="实时目标Mark定位时平台的绝对位置：X轴%.3f, Y轴%.3f, D轴%.3f" ENG="Absolute position of the platform when real-time target Mark is positioned：X%.3f, Y%.3f, D%.3f"/>
+		<String Id="283" Key="IDS_DR_YDX1X2_CALIB_REFINE_PLATFORM_MOVE_POS" CHS="针对相机%d标定求精时平台移动到的绝对位置：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="The absolute position of the platform to which the camera is moved when refining the %d camera：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="284" Key="IDS_DR_YDX1X2_TARGET_SEARCH_PLATFORM_POS" CHS="实时目标Mark定位时平台的绝对位置：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="Absolute position of the platform when real-time target Mark is positioned：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="285" Key="IDS_DR_YDX1X2_OBJECT_SEARCH_PLATFORM_POS" CHS="实时对象Mark定位时平台的绝对位置：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="The absolute position of the platform when the real-time object Mark is positioned：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="286" Key="IDS_DR_YDX1X2_VIRTUAL_SEARCH_PLATFORM_POS" CHS="虚拟对象Mark定位时平台的绝对位置：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="The absolute position of the platform when the virtual object Mark is positioned：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="287" Key="IDS_DR_YDX1X2_THE_PLATFORM_POS" CHS="平台标定时平台的绝对位置：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="Absolute position of the platform when calibrating：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="288" Key="IDS_DR_YDX1X2_EXCUTE_CALIB_PLATFORM_POS" CHS="平台位置%d：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="Platform Position%d：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="289" Key="IDS_DR_YDX1X2_EXCUTE_ALIGN_ACTION_THEN_PLATFORM_POS" CHS="执行第%d次对位动作后平台所处的绝对位置：Y轴%.3f, D轴%.3f, X1轴%.3f, X2轴%.3f" ENG="The absolute position of the platform after performing the %d alignment operation：Y%.3f, D%.3f, X1%.3f, X2%.3f"/>
+		<String Id="290" Key="IDS_DR_YX1X2D_CALIB_REFINE_PLATFORM_MOVE_POS" CHS="针对相机%d标定求精时平台移动到的绝对位置：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="The absolute position of the platform to which the camera is moved when refining the %d camera：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="291" Key="IDS_DR_YX1X2D_TARGET_SEARCH_PLATFORM_POS" CHS="实时目标Mark定位时平台的绝对位置：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="Absolute position of the platform when real-time target Mark is positioned：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="292" Key="IDS_DR_YX1X2D_OBJECT_SEARCH_PLATFORM_POS" CHS="实时对象Mark定位时平台的绝对位置：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="The absolute position of the platform when the real-time object Mark is positioned：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="293" Key="IDS_DR_YX1X2D_VIRTUAL_SEARCH_PLATFORM_POS" CHS="虚拟对象Mark定位时平台的绝对位置：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="The absolute position of the platform when the virtual object Mark is positioned：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="294" Key="IDS_DR_YX1X2D_THE_PLATFORM_POS" CHS="平台标定时平台的绝对位置：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="Absolute position of the platform when calibrating：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="295" Key="IDS_DR_YX1X2D_EXCUTE_CALIB_PLATFORM_POS" CHS="平台位置%d：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="Platform Position%d：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="296" Key="IDS_DR_YX1X2D_EXCUTE_ALIGN_ACTION_THEN_PLATFORM_POS" CHS="执行第%d次对位动作后平台所处的绝对位置：Y轴%.3f, X1轴%.3f, X2轴%.3f, D轴%.3f" ENG="The absolute position of the platform after performing the %d alignment operation：Y%.3f, X1%.3f, X2%.3f, D%.3f"/>
+		<String Id="301" Key="IDS_CPFAST_STR_TECHPAGE" CHS="示教页%d" ENG="Teach page%d"/>
+		<String Id="302" Key="IDS_CPFAST_STR_CONST" CHS="常量页" ENG="Const page"/>
+		<String Id="303" Key="IDS_CPFAST_STR_INTCONST" CHS="整型常量%d" ENG="Int const page%d"/>
+		<String Id="304" Key="IDS_CPFAST_STR_REALCONST" CHS="实数常量%d" ENG="Real const page%d"/>
+		<String Id="309" Key="TABSHEET_ITEM_CAMERA" CHS="相机" ENG="Camera"/>
+		<String Id="310" Key="TABSHEET_ITEM_PLATFORM" CHS="平台" ENG="Platform"/>
+		<String Id="311" Key="TABSHEET_ITEM_COMM" CHS="平台" ENG="Communication"/>
+		<String Id="312" Key="TABSHEET_ITEM_LOG" CHS="系统" ENG="System"/>
+		<String Id="313" Key="TABSHEET_ITEM_ALIGN_VIEW" CHS="产品浏览" ENG="Product View"/>
+		<String Id="314" Key="TABSHEET_ITEM_ALIGN_SETTING" CHS="产品设置" ENG="Product Setting"/>
+		<String Id="315" Key="TABSHEET_ITEM_ALIGN_TARGET" CHS="目标模板设置" ENG="Target Pattern Setting"/>
+		<String Id="316" Key="TABSHEET_ITEM_ALIGN_OBJECT" CHS="对象模板设置" ENG="Object Pattern Setting"/>
+		<String Id="317" Key="TABSHEET_ITEM_ALIGN_VIRTUAL_OBJECT" CHS="虚拟对象模板设置" ENG="Virtual Object Pattern Setting"/>
+		<String Id="320" Key="IDS_MB_STR_VERSION_DATE" CHS="版本 " ENG="Version "/>
+		<String Id="322" Key="IDS_MB_STR_SYSTEMNAME" CHS="系统1" ENG="System 1"/>
+		<String Id="324" Key="IDS_BASEVISION_POSITION" CHS="位置%d、" ENG="Position%d、"/>
+		<String Id="331" Key="IDS_TARGET_SEARCH_FAILE" CHS="目标拍照失败" ENG="Target search failed"/>
+		<String Id="333" Key="IDS_OBJECT_SEARCH_FAILE" CHS="对象拍照失败" ENG="Object search failed"/>
+		<String Id="334" Key="IDS_CAL_TARGET_SEARCH_SUCCESS" CHS="标定目标搜索成功!" ENG="Calibrate target search success!"/>
+		<String Id="335" Key="IDS_CAL_TARGET_SEARCH_FAILE" CHS="标定目标搜索失败!" ENG="Calibrate target search failed!"/>
+		<String Id="337" Key="IDS_DRIVER_AXIS_FAILE" CHS="驱动平台轴移动失败" ENG="Drive platform move failed"/>
+		<String Id="344" Key="IDS_COMMAND_ERR" CHS="指令名称解析错误" ENG="Command error"/>
+		<String Id="366" Key="IDS_ROBOT_SEND_GET_MODE_FAILE" CHS="发送获取工作模式出错！" ENG="Sending get working mode error!"/>
+		<String Id="367" Key="IDS_ROBOT_GET_MODE_TIMEOUT" CHS="获取工作模式通信超时！" ENG="Get working communication mode timeout!"/>
+		<String Id="368" Key="IDS_ROBOT_GET_MODE_FAILE" CHS="获取工作模式出错！" ENG="Get working mode error!"/>
+		<String Id="369" Key="IDS_ROBOT_COMM_SUCCESS" CHS="通信成功" ENG="Successful communication"/>
+		<String Id="370" Key="IDS_ROBOT_SEND_SET_MODE_FAILE" CHS="发送设置工作模式出错！" ENG="Send setup work mode error!"/>
+		<String Id="371" Key="IDS_ROBOT_SEND_SET_MODE_TIMEOUT" CHS="获取设置工作模式响应通信超时！" ENG="Get response of seting working mode timeout!"/>
+		<String Id="372" Key="IDS_ROBOT_SET_MODE_FAILE" CHS="设置工作模式响应解析出错！" ENG="Set working mode response parsing error!"/>
+		<String Id="373" Key="IDS_ROBOT_SEND_SET_AUTO_MODE_FAILE" CHS="发送设置自动模式下程序执行操作出错！" ENG="Sending program executing operation error in automatic mode!"/>
+		<String Id="374" Key="IDS_ROBOT_GET_SET_AUTO_MODE_COMM_TIMEOUT" CHS="获取设置自动模式下程序执行操作响应通信超时！" ENG="Get program executing operation response communication timeout in automatic mode!"/>
+		<String Id="375" Key="IDS_ROBOT_SET_AUTO_MODE_FAILE" CHS="设置自动模式下程序执行操作响应解析出错！" ENG="Set program executing response parsing error in automatic mode!"/>
+		<String Id="376" Key="IDS_ROBOT_SEND_MANUAL_MOVE_CHECK_FAILE" CHS="发送手动移动速度查询出错！" ENG="Send manual movement speed query error!"/>
+		<String Id="377" Key="IDS_ROBOT_GET_MANUAL_MOVE_CHECK_COMM_TIMEOUT" CHS="获取手动移动速度查询响应通信超时！" ENG="Get manual movement speed query response communication timeout!"/>
+		<String Id="378" Key="IDS_ROBOT_MANUAL_MOVE_CHECK_FAILE" CHS="手动移动速度查询响应解析出错！" ENG="Manual movement speed query response parsing error!"/>
+		<String Id="379" Key="IDS_ROBOT_SEND_MANUAL_SET_FAILE" CHS="发送手动移动速度设置出错！" ENG="Send manual movement speed setting error!"/>
+		<String Id="380" Key="IDS_ROBOT_GET_MANUAL_MOVE_SET_TIMEOUT" CHS="获取手动移动速度设置响应通信超时！" ENG="Get manual movement speed setting response communication timeout!"/>
+		<String Id="381" Key="IDS_ROBOT_MANUAL_MOVE_SET_FAILE" CHS="手动移动速度设置响应解析出错！" ENG="Manually move speed setting response parsing error!"/>
+		<String Id="382" Key="IDS_ROBOT_SEND_POINT_MOVE_FAILE" CHS="发送机器人点动移动出错！" ENG="Sending robot jog movement error!"/>
+		<String Id="383" Key="IDS_ROBOT_GET_POINT_MOVE_COMM_TIMEOUT" CHS="获取机器人点动移动响应通信超时！" ENG="Get robot jog move response communication timeout!"/>
+		<String Id="384" Key="IDS_ROBOT_POINT_MOVE_FAILE" CHS="机器人点动移动响应解析出错！" ENG="Robot jog movement response analysis error!"/>
+		<String Id="385" Key="IDS_ROBOT_SEND_CUR_POINT_CHECK_FAILE" CHS="发送机器人当前位置查询出错！" ENG="Send the robot current location query error!"/>
+		<String Id="386" Key="IDS_ROBOT_GET_CUR_POINT_CHECK_COMM_TIMEOUT" CHS="获取机器人当前位置查询响应通信超时！" ENG="Get robot's current location query response communication timeout!"/>
+		<String Id="387" Key="IDS_ROBOT_CUR_POINT_CHECK_FAILE" CHS="机器人当前位置查询响应解析出错！" ENG="Robot's current position query response parsing error!"/>
+		<String Id="388" Key="IDS_ROBOT_SEND_ROBOT_TECH_POINT_FAILE" CHS="发送机器人示教点位出错！" ENG="Send robot teaching point error!"/>
+		<String Id="389" Key="IDS_ROBOT_GET_ROBOT_TECH_POINT_COMM_TIMEOUT" CHS="获取机器人示教点位响应通信超时！" ENG="Get robot teaching point response communication timeout!"/>
+		<String Id="390" Key="IDS_ROBOT_ROBOT_TECH_POINT_FAILE" CHS="机器人示教点位响应解析出错！" ENG="Robot teaching point response analysis error!"/>
+		<String Id="391" Key="IDS_ROBOT_GET_ROBOT_POS_FAILE" CHS="获取机器人点位信息出错！" ENG="Error getting robot point information!"/>
+		<String Id="392" Key="IDS_ROBOT_GET_ROBOT_POS_COMM_TIMEOUT" CHS="获取机器人点位信息响应通信超时！" ENG="Get robot point information response communication timeout!"/>
+		<String Id="393" Key="IDS_ROBOT_GET_ROBOT_POS_AN_FAILE" CHS="获取机器人点位信息响应解析出错！" ENG="Get robot point information response analysis error!"/>
+		<String Id="394" Key="IDS_ROBOT_ROBOT_MOVE_FAILE" CHS="机器人移动出错！" ENG="Robot movement error!"/>
+		<String Id="395" Key="IDS_ROBOT_ROBOT_MOVE_COMM_TIMEOUT" CHS="机器人移动响应通信超时！" ENG="Robot movement response communication timeout!"/>
+		<String Id="396" Key="IDS_ROBOT_GET_ROBOT_MOVE_AN_FAILE" CHS="获取机器人移动响应解析出错！" ENG="Get robot movement response parsing error!"/>
+		<String Id="397" Key="IDS_ROBOT_ROBOT_EXT_FAILE" CHS="机器人中断执行出错！" ENG="Robot interrupt execution error!"/>
+		<String Id="398" Key="IDS_ROBOT_ROBOT_EXT_COMM_TIMEOUT" CHS="机器人中断执行响应通信超时！" ENG="Robot interrupt execution response communication timeout!"/>
+		<String Id="399" Key="IDS_ROBOT_ROBOT_EXT_AN_FAILE" CHS="获取机器人中断执行响应解析出错！" ENG="Get robot interrupt execution response parsing error!"/>
+		<String Id="400" Key="IDS_ROBOT_ROBOT_SET_POS_AIXS_FAILE" CHS="机器人设置点的轴位置出错！" ENG="Axis position of the robot set point error!"/>
+		<String Id="401" Key="IDS_ROBOT_ROBOT_SET_POS_AIXS_COMM_TIMEOUT" CHS="机器人设置点的轴位置响应通信超时！" ENG="Axis position of the robot set point response communication timeout!"/>
+		<String Id="402" Key="IDS_ROBOT_GET_ROBOT_SET_POS_AIXS_AN_FAILE" CHS="获取机器人设置点的轴位置响应解析出错！" ENG="Get axis position of the robot set point response parsing error!"/>
+		<String Id="403" Key="IDS_ROBOT_ROBOT_SET_POS_FAILE" CHS="机器人设置点位置出错！" ENG="Robot setting point position error!"/>
+		<String Id="404" Key="IDS_ROBOT_ROBOT_SET_POS_COMM_TIMEOUT" CHS="机器人设置点位置响应通信超时！" ENG="Robot setting point position response communication timeout!"/>
+		<String Id="405" Key="IDS_ROBOT_GET_ROBOT_SET_POS_AN_FAILE" CHS="获取机器人设置点位置响应解析出错！" ENG="Get robot setting point position response analysis error!"/>
+		<String Id="406" Key="IDS_ROBOT_ROBOT_MOVE_ORI_COMM_FAILE" CHS="机器人运动到原点位置附近通信出错！" ENG="Robot move to home position communication error!"/>
+		<String Id="407" Key="IDS_ROBOT_ROBOT_MOVE_ORI_COMM_TIMEOUT" CHS="机器人运动到原点位置附近响应通信超时！" ENG="Robot move to home position response communication timeout!"/>
+		<String Id="408" Key="IDS_ROBOT_GET_ROBOT_MOVE_ORI_AN_FAILE" CHS="获取机器人运动到原点位置附近响应解析出错！" ENG="Get robot movement to near home position response analysis error!"/>
+		<String Id="409" Key="5" CHS="机器人绝对式原点复位通信出错！" ENG="Robot absolute reset operation communication error!"/>
+		<String Id="410" Key="IDS_ROBOT_ROBOT_ABS_RESET_COMM_TIMEOUT" CHS="机器人绝对式原点复位响应通信超时！" ENG="Robot absolute reset operation response communication timeout!"/>
+		<String Id="411" Key="IDS_ROBOT_GET_ROBOT_ABS_RESET_AN_FAILE" CHS="获取机机器人绝对式原点复位响应解析出错！" ENG="Get robot absolute reset operation response analysis error!"/>
+		<String Id="412" Key="IDS_ROBOT_ROBOT_SET_INT_CONST_FAILE" CHS="机器人设置整型常量出错！" ENG="Robot set integer constant error!"/>
+		<String Id="413" Key="IDS_ROBOT_ROBOT_SET_INT_CONST_COMM_TIMEOUT" CHS="机器人设置整型常量响应通信超时！" ENG="Robot set integer constant response communication timeout!"/>
+		<String Id="414" Key="IDS_ROBOT_GET_ROBOT_SET_INT_CONST_AN_FAILE" CHS="获取机器人设置整型常量响应解析出错！" ENG="Get robot setting integer constant response parsing error!"/>
+		<String Id="415" Key="IDS_ROBOT_CHECK_INT_CONST_FAILE" CHS="查询机器人整型常量出错！" ENG="Querying robot integer constant error!"/>
+		<String Id="416" Key="IDS_ROBOT_CHECK_INT_CONST_COMM_TIMEOUT" CHS="查询机器人整型常量响应通信超时！" ENG="Query robot integer constant response communication timeout!"/>
+		<String Id="417" Key="IDS_ROBOT_GET_CHECK_INT_CONST_AN_FAILE" CHS="获取查询机器人整型常量响应解析出错！" ENG="Get query robot integer constant response parsing error!"/>
+		<String Id="418" Key="IDS_ROBOT_CHECK_ROBOT_INT_CONST_FAILE" CHS="机器人设置实数常量出错！" ENG="Robot set real constant error!"/>
+		<String Id="419" Key="IDS_ROBOT_CHECK_ROBOT_INT_CONST_COMM_TIMEOUT" CHS="机器人设置实数常量响应通信超时！" ENG="Robot set real number constant response communication timeout!"/>
+		<String Id="420" Key="IDS_ROBOT_GET_CHECK_ROBOT_INT_CONST_AN_FAILE" CHS="获取机器人设置实数常量响应解析出错！" ENG="Get robot set real number constant response parsing error!"/>
+		<String Id="421" Key="IDS_ST_TRAIN_RECT" CHS="训练区域" ENG="Train rect"/>
+		<String Id="422" Key="IDS_ST_SEARCH_RECT" CHS="搜索区域" ENG="Search rect"/>
+		<String Id="423" Key="IDS_ST_FIND_CIRCLE_TOOL" CHS="找圆工具" ENG="Find circle tool"/>
+		<String Id="424" Key="IDS_ST_MODEL_POINT" CHS="参考点" ENG="Mark point"/>
+		<String Id="425" Key="IDS_ST_FIND_LINE" CHS="找线工具%d" ENG="Find line tool%d"/>
+		<String Id="426" Key="IDS_ST_FIND_LINE2" CHS="找线工具" ENG="Find line tool"/>
+		<String Id="427" Key="IDS_ST_TRAIN_RECT1" CHS="训练区域1" ENG="Train rect1"/>
+		<String Id="428" Key="IDS_ST_SEARCH_RECT1" CHS="搜索区域1" ENG="Search rect"/>
+		<String Id="429" Key="IDS_ST_MODEL_POINT11" CHS="参考点1-1" ENG="Mark point1-1"/>
+		<String Id="430" Key="IDS_ST_MODEL_POINT12" CHS="参考点1-2" ENG="Mark point1-2"/>
+		<String Id="431" Key="IDS_ST_TRAIN_RECT2" CHS="训练区域2" ENG="Train rect2"/>
+		<String Id="432" Key="IDS_ST_SEARCH_RECT2" CHS="搜索区域2" ENG="Search rect2"/>
+		<String Id="433" Key="IDS_ST_MODEL_POINT21" CHS="参考点2-1" ENG="Mark point2-1"/>
+		<String Id="434" Key="IDS_ST_MODEL_POINT22" CHS="参考点2-2" ENG="Mark point2-2"/>
+		<String Id="435" Key="IDS_ST_TOOL1_RESULT_RECT" CHS="工具1%s_ResultRect%d" ENG="Tool1%s_ResultRect%d"/>
+		<String Id="436" Key="IDS_ST_TOLL12_RESULT_CROSS" CHS="工具1-2%s_ResultCross%d" ENG="Tool1-2%s_ResultCross%d"/>
+		<String Id="437" Key="IDS_ST_TOOL2_RESULT_RECT" CHS="工具2%s_ResultRect%d" ENG="Tool2%s_ResultRect%d"/>
+		<String Id="438" Key="IDS_ST_TOOL21_RESULT_CROSS" CHS="工具2-1%s_ResultCross%d" ENG="Tool2-1%s_ResultCross%d"/>
+		<String Id="439" Key="IDS_ST_TOOL22_RESULT_CROSS" CHS="工具2-2%s_ResultCross%d" ENG="Tool2-2%s_ResultCross%d"/>
+		<String Id="440" Key="IDS_ST_TOOL2_REULT_LINE" CHS="工具2%s_ResultLine%d_%d" ENG="Tool2%s_ResultLine%d_%d"/>
+		<String Id="452" Key="IDS_LABEL_NOTE3" CHS="请确认平台轴当前位置为对位拍照基准位置（平台对象拍照位置）!" ENG="Make sure current position is object bench position!"/>
+		<String Id="459" Key="IDS_STR_CHANNEL_OBJECT_MARK" CHS="CH%d通道对象Mark点" ENG="CH%d Object Mark"/>
+		<String Id="460" Key="IDS_STR_APPLY" CHS="应用" ENG="Apply"/>
+		<String Id="461" Key="IDS_STR_CANCLE" CHS="取消" ENG="Cancel"/>
+		<String Id="463" Key="IDS_STR_GET_PLATFORM_AXIS_POS" CHS="请获取平台轴位置！" ENG="Please get platform position first！"/>
+		<String Id="468" Key="IDS_STR_WORK_MODE_CHECK_SUCCESS" CHS="工作模式查询成功" ENG="Work mode query succeeded"/>
+		<String Id="469" Key="IDS_STR_WORK_MODE_CHECK_FAILE" CHS="工作模式查询失败" ENG="Work mode query failed"/>
+		<String Id="470" Key="IDS_STR_WORK_MODE_SET_SUCCESS" CHS="工作模式设置成功" ENG="Work mode setting succeeded"/>
+		<String Id="471" Key="IDS_STR_WORK_MODE_SET_FAILE" CHS="工作模式设置失败" ENG="Work mode setting failed"/>
+		<String Id="472" Key="IDS_STR_AUTO_MODE_SET_SUCCESS" CHS="自动模式操作设置成功" ENG="Automatic mode setting succeeded"/>
+		<String Id="473" Key="IDS_STR_AUTO_MODE_SET_FAILE" CHS="自动模式操作设置失败" ENG="Automatic mode setting failed"/>
+		<String Id="474" Key="IDS_STR_CUR_MODE_ISNOT_MANUAL_MODE" CHS="当前不是手动模式" ENG="Not manual mode"/>
+		<String Id="475" Key="IDS_STR_MANUAL_MODE_SPEED_CHECK_SUCCESS" CHS="手动移动速度查询成功" ENG="Manual movement speed query succeeded!"/>
+		<String Id="476" Key="IDS_STR_MANUAL_MODE_SPEED_CHECK_FAILE" CHS="手动移动速度查询失败" ENG="Manual movement speed query failed!"/>
+		<String Id="477" Key="IDS_STR_MANUAL_MODE_SPEED_SET_SUCCESS" CHS="手动移动速度设置成功" ENG="Manual movement speed setting succeeded"/>
+		<String Id="478" Key="IDS_STR_MANUAL_MODE_SPEED_SET_FAILE" CHS="手动移动速度设置失败" ENG="Manual movement speed setting failed"/>
+		<String Id="479" Key="IDS_STR_MOVE_OUT" CHS="点动超出范围,请反向点动！" ENG="Jog out of range, please jog in reverse!"/>
+		<String Id="480" Key="IDS_STR_POINT_MOVE_SUCCESS" CHS="点动移动成功" ENG="Jog movement succeeded!"/>
+		<String Id="481" Key="IDS_STR_POINT_MOVE_FAILE" CHS="点动移动失败" ENG="Jog Movement Failed！"/>
+		<String Id="482" Key="IDS_STR_GET_CUR_POS_SUCCESS" CHS="获取当前位置成功" ENG="Get current location succeeded"/>
+		<String Id="483" Key="IDS_STR_CUR_POS_MOVE_OUT" CHS="当前位置超出可移动范围，请移动回允许范围内！" ENG="The current position is out of the movable range, please move back to the allowed range!"/>
+		<String Id="484" Key="IDS_STR_GET_CUR_POS_FAILE" CHS="获取当前位置失败" ENG="Failed getting current location"/>
+		<String Id="485" Key="IDS_STR_CUR_POS_MOVE_TECH_OUT" CHS="当前位置超出了示教点限制范围，示教位置失败！" ENG="Current position is outside the limits of the teaching point, set teaching position failed!"/>
+		<String Id="486" Key="IDS_STR_TECH_SUCCESS" CHS="示教位置成功" ENG="Set teaching point succeeded"/>
+		<String Id="487" Key="IDS_STR_TECH_FAILE" CHS="示教位置失败" ENG="Set teaching point failed！"/>
+		<String Id="488" Key="IDS_STR_READ_POS_SUCCESS" CHS="读取点位置成功" ENG="Read point location succeeded"/>
+		<String Id="489" Key="IDS_STR_READ_POS_FAILE" CHS="读取点位置失败" ENG="Read point location failed"/>
+		<String Id="490" Key="IDS_STR_MOVE_SUCCESS" CHS="移动成功" ENG="move success！"/>
+		<String Id="491" Key="IDS_STR_MOVE_FAILE" CHS="移动失败" ENG="move failed!"/>
+		<String Id="492" Key="IDS_STR_ETX_SUCCESS" CHS="中断处理成功" ENG="Interrupt processing succeeded "/>
+		<String Id="493" Key="IDS_STR_ETX_FAILE" CHS="中断处理失败" ENG="Interrupt processing failed"/>
+		<String Id="494" Key="IDS_STR_SAVE_TECH_TO_ROBOT_SUCCESS" CHS="保存示教信息到机器人成功！" ENG="Save teaching information to robot succeeded!"/>
+		<String Id="495" Key="IDS_STR_SAVE_TECH_TO_ROBOT_FAILE" CHS="保存示教信息到机器人失败！" ENG="Save teaching information to robot failed!"/>
+		<String Id="496" Key="IDS_STR_SAVE_POS_SUCCESS" CHS="保存点位置P%d成功" ENG="Save point locationP%d succeeded!"/>
+		<String Id="497" Key="IDS_STR_SAVE_POS_FAILE" CHS="保存点位置P%d失败" ENG="Save point locationP%d failed"/>
+		<String Id="498" Key="IDS_STR_INVALID_POINT_POS" CHS="无效点位置%d，不保存" ENG="Invalid point location%d，don't save"/>
+		<String Id="499" Key="IDS_STR_READ_INT_CONST_SUCCESS" CHS="读取整数常量成功" ENG="Read integer constant succeeded"/>
+		<String Id="500" Key="IDS_STR_READ_INT_CONST_FAILE" CHS="读取整数常量失败" ENG="Read integer constant failed"/>
+		<String Id="501" Key="IDS_STR_SAVE_INT_CONST_SUCCESS" CHS="保存整数常量%d成功" ENG="Save integer constant%dsucceeded"/>
+		<String Id="502" Key="IDS_STR_SAVE_INT_CONST_FAILE" CHS="保存整数常量%d失败" ENG="Save integer constant%dfailed"/>
+		<String Id="503" Key="IDS_STR_INVALID_INT_CONST" CHS="无效整数常量%d，不保存" ENG="Invalid integer constant%d，don't save!"/>
+		<String Id="504" Key="IDS_STR_READ_REAL_CONST_SUCCESS" CHS="读取实数常量成功" ENG="Read real number constant succeeded"/>
+		<String Id="505" Key="IDS_STR_READ_REAL_CONST_FAILE" CHS="读取实数常量失败" ENG="Read real number constant failed"/>
+		<String Id="506" Key="IDS_STR_SAVE_REAL_CONST_SUCCESS" CHS="保存实数常量%d成功" ENG="Save real number constant%dsucceeded"/>
+		<String Id="507" Key="IDS_STR_SAVE_REAL_CONST_FAILE" CHS="保存实数常量%d失败" ENG="Save real number constant%dfailed"/>
+		<String Id="508" Key="IDS_STR_INVALID_REAL_CONST" CHS="无效实数常量%d，不保存" ENG="Invalid real number constant%d，don't save"/>
+		<String Id="509" Key="IDS_STR_PUT_TECH_INFO_TO_ROBOT" CHS="确定将示教信息写入机器人吗？" ENG="Are you sure to write the teaching information to the robot?"/>
+		<String Id="510" Key="IDS_STR_RESET_COMM_FAILE" CHS="重置通信失败！" ENG="Reset communication failed!"/>
+		<String Id="511" Key="IDS_STR_RESET_COMM_SUCCESS" CHS="重置通信成功！" ENG="Reset communication succeeded!"/>
+		<String Id="512" Key="IDS_STR_PUT_CUR_TECH_INFO_TO_ROBOT" CHS="确定将当前机器人位置示教到该点并保存到机器人吗？" ENG="Are you sure to teach the current robot position to this point and save it to the robot?"/>
+		<String Id="513" Key="IDS_STR_SAVE_CUR_TECH_INFO_TO_TXT" CHS="确定保存示教范围信息到配置文件并退出吗？" ENG="Are you sure to save the teaching range information to the configuration file and exit?"/>
+		<String Id="514" Key="IDS_STR_EXIT_AND_NO_SAVE" CHS="确定不保存退出吗？" ENG="Are you sure you don't want to save and exit?"/>
+		<String Id="515" Key="IDS_STR_SAVE_CUR_PAGE_DATA_TO_ROBOT_OR_NOT" CHS="确定将当前页数据保存到机器人吗？" ENG="Are you sure you want to save the current page data to the robot?"/>
+		<String Id="517" Key="IDS_STR_INIT_CAMERA_FAILE" CHS="相机初始化失败！" ENG="Camera initialize failed！"/>
+		<String Id="522" Key="IDS_STR_VALID" CHS="有效" ENG="Valid"/>
+		<String Id="523" Key="IDS_STR_INVALID" CHS="无效" ENG="Invalid"/>
+		<String Id="524" Key="IDS_STR_INVALID_NAME_SAVE_DATA_FAILE" CHS="保存数据失败,请确保产品名称正确！" ENG="Save product data failed！"/>
+		<String Id="525" Key="IDS_STR_BATCH_NEW_PRODUCT_OR_NOT" CHS="是否批量新建产品?" ENG="Create batch new product or not?"/>
+		<String Id="537" Key="IDS_STR_PRODUCT_NAME" CHS="产品名称:" ENG="Product name:"/>
+		<String Id="538" Key="IDS_STR_PRODUCT_INDEX" CHS="产品序号:" ENG="Product index:"/>
+		<String Id="540" Key="IDS_STR_3_CAMERA_VISION_SYSTEM" CHS="3相机视觉对位系统" ENG="3 camera vision align system"/>
+		<String Id="541" Key="IDS_STR_5_CAMERA_VISION_SYSTEM" CHS="5相机视觉对位系统" ENG="5 camera vision align system"/>
+		<String Id="542" Key="IDS_STR_2_CAMERA_VISION_SYSTEM" CHS="2相机视觉对位系统" ENG="2 camera vision align system"/>
+		<String Id="543" Key="IDS_STR_2_CAMERA_AND_2_PLATFORM_VISION_SYSTEM" CHS="双平台双相机视觉对位系统" ENG="2 platform 2 camera vision align system"/>
+		<String Id="544" Key="IDS_STR_6_CAMERA_AND_2_PLATFORM_VISION_SYSTEM" CHS="双平台6相机视觉对位系统" ENG="2 platform 6 camera vision align system"/>
+		<String Id="545" Key="IDS_STR_EC_VISION_SYSTEM" CHS="EC清洗机上料系统" ENG="EC cleaning machine loading system"/>
+		<String Id="546" Key="IDS_STR_1_CAMERA_AND_1_PLATFORM_VISION_SYSTEM" CHS="单平台单相机视觉对位系统" ENG="1 platform 1 camera vision align system"/>
+		<String Id="547" Key="IDS_STR_3_CAMERA_AND_1_PLATFORM_VISION_SYSTEM" CHS="单平台3相机视觉对位系统" ENG="1 platform 3 camera vision align system"/>
+		<String Id="548" Key="IDS_STR_3_CAMERA_AND_3_PLATFORM_VISION_SYSTEM" CHS="三平台三相机视觉对位系统" ENG="3 platform 3 camera vision align system"/>
+		<String Id="549" Key="IDS_STR_UNKNOWN" CHS="未知" ENG="Unknown"/>
+		<String Id="550" Key="IDS_STR_ANOTHER_IS_RUNNING" CHS="另一个实例已经在运行！" ENG="Another instance is already running！"/>
+		<String Id="551" Key="IDS_STR_LOAD_ROBOT_TECH_INFO_FAILE" CHS="加载机器人示教范围信息失败！" ENG="Load robot teach information failed！"/>
+		<String Id="557" Key="IDS_STR_EXPIRE_DATE_BEFORNOON" CHS="软件将于当天12：00到期，请联系厂商 联系电话：1**********" ENG="Software will expire after 12：00 Contact Tel：+86 1**********"/>
+		<String Id="558" Key="IDS_STR_SOFT_NOT_REGISTER" CHS="软件未注册，请联系厂商联系电话：1**********" ENG="Software do not register，Contact Tel:+86 1**********"/>
+		<String Id="559" Key="IDS_STR_REGISTER_CODE_ERROR" CHS="注册码错误，注册失败！" ENG="Register Code error，Failed！"/>
+		<String Id="560" Key="IDS_STR_REGISTER_FAILED" CHS="注册失败 使用期限：%d年%d月%d日" ENG="Register Failed Invalid date：Y%dM%dD%d"/>
+		<String Id="561" Key="IDS_STR_REGISTER_SUCCESS" CHS="注册成功 使用期限：%d年%d月%d日" ENG="Register Successs Invalid date：Y%dM%dD%d"/>
+		<String Id="566" Key="IDS_STR_SELECT_MARK_OBJECT_POSITION" CHS="手动选择Mark点---工位%d对象位置%d" ENG="Manual Select Mark Point---WS%dObjPos%d"/>
+		<String Id="567" Key="IDS_STR_SELECT_MARK_TARGET_POSITION" CHS="手动选择Mark点---工位%d目标位置%d" ENG="Manual Select Mark Point---WS%dTgtPos%d"/>
+		<String Id="568" Key="IDS_STR_SELECT_MARK_POSITION" CHS="手动选择Mark点---工位%d位置%d" ENG="Manual Select Mark Point---WS%dPos%d"/>
+		<String Id="577" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_AUTO" CHS="位置1234_基准中心" ENG="Pos1234_Auto"/>
+		<String Id="578" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_123C1" CHS="位置123_基准1" ENG="Pos123_C1"/>
+		<String Id="579" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_124C2" CHS="位置124_基准2" ENG="Pos124_C2"/>
+		<String Id="580" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_134C3" CHS="位置134_基准3" ENG="Pos134_C3"/>
+		<String Id="581" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_234C4" CHS="位置234_基准4" ENG="Pos234_C4"/>
+		<String Id="584" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_AUTO" CHS="位置123_基准中心" ENG="Pos123_Auto"/>
+		<String Id="585" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C1" CHS="位置123_基准1" ENG="Pos123_C1"/>
+		<String Id="586" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C2" CHS="位置123_基准2" ENG="Pos123_C2"/>
+		<String Id="587" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C3" CHS="位置123_基准3" ENG="Pos123_C3"/>
+		<String Id="588" Key="TABSHEET_ITEM_ALIGN_CALIB_TARGET" CHS="关联模板设置" ENG="Relevance Pattern Setting"/>
+		<String Id="589" Key="IDS_MB_CALIB_TARGET_MARK_PATTEN_SAVE_FAILED" CHS="关联标定Mark模板保存失败" ENG="Pattern of relevance mark save failed"/>
+		<String Id="599" Key="IDS_STR_SYSTEMTIME_ABNORMAL" CHS="系统时间异常" ENG="System time abnormal"/>
+		<String Id="602" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C13L12" CHS="位置123_基准角13边12" ENG="Pos123_C13L12"/>
+		<String Id="603" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_AUTO" CHS="位置12_基准中心" ENG="Pos12_AUTO"/>
+		<String Id="604" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12C1" CHS="位置12_基准1" ENG="Pos12_12C1"/>
+		<String Id="605" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12C2" CHS="位置12_基准2" ENG="Pos12_12C2"/>
+		<String Id="606" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12C1L2" CHS="位置12_基准角点1边2" ENG="Pos12_12C1L2"/>
+		<String Id="607" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12C2L1" CHS="位置12_基准角点2边1" ENG="Pos12_12C2L1"/>
+		<String Id="608" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12Dot1L2" CHS="位置12_基准任意点1边2" ENG="Pos12_12Dot1L2"/>
+		<String Id="609" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_12Dot2L1" CHS="位置12_基准任意点2边1" ENG="Pos12_12Dot2L1"/>
+		<String Id="610" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_L12L1" CHS="位置12_边对边基准边1" ENG="Pos12_L12L1"/>
+		<String Id="611" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_L12L2" CHS="位置12_边对边基准边2" ENG="Pos12_L12L2"/>
+		<String Id="612" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_L12" CHS="位置12_边对边基准边12" ENG="Pos12_L12"/>
+		<String Id="628" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C13AL12" CHS="位置123_基准角13A边12" ENG="Pos123_C13AL12"/>
+		<String Id="629" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C2L13" CHS="位置123_基准角2边13" ENG="Pos123_C2L13"/>
+		<String Id="630" Key="IDS_COM_STR_ALIGNER_3VS3_TYPE_POS123_123C2TL13" CHS="位置123_基准角2T边13" ENG="Pos123_C2TL13"/>
+		<String Id="633" Key="IDS_BTN_STOP_GRAB_SEARCH_IMAGE" CHS="停止采集定位" ENG="Stop Grab Search"/>
+		<String Id="639" Key="IDS_COM_STR_ALIGNER_MOVE_XD" CHS="只移动XD" ENG="Only Move XD"/>
+		<String Id="640" Key="IDS_COM_STR_ALIGNER_MOVE_YD" CHS="只移动YD" ENG="Only Move YD"/>
+		<String Id="641" Key="IDS_COM_STR_ALIGNER_MOVE_X" CHS="只移动X" ENG="Only Move X"/>
+		<String Id="642" Key="IDS_COM_STR_ALIGNER_MOVE_Y" CHS="只移动Y" ENG="Only Move Y"/>
+		<String Id="643" Key="IDS_COM_STR_ALIGNER_MOVE_D" CHS="只移动D" ENG="Only Move D"/>
+		<String Id="673" Key="TABSHEET_ITEM_ALIGN_INSPECT" CHS="检测模板" ENG="Inspect Pattern Setting"/>
+		<String Id="674" Key="IDS_MB_PRODUCT_CLEAR_CONFIRM" CHS="确定要清空当前产品？" ENG="Do you really want to clear current product?"/>
+		<String Id="686" Key="IDS_MB_INSPECT_MARK_PATTEN_SAVE_FAILED" CHS="检测Mark模板保存失败" ENG="Pattern of inspect mark save failed"/>
+		<String Id="687" Key="IDS_INSPECT_SEARCH_SUCCESS" CHS="检测模板搜索成功" ENG="Pattern of inspect mark search success"/>
+		<String Id="688" Key="IDS_INSPECT_SEARCH_FAILED" CHS="检测模板搜索失败" ENG="Pattern of inspect mark search failed"/>
+		<String Id="693" Key="IDS_LIST_SEARCH_TOOL" CHS="选择使用的定位工具类型" ENG="Select Searching Tools"/>
+		<String Id="694" Key="IDS_MB_NO_PLC_REPLY" CHS="未收到PLC回复！" ENG="Did not receive PLC reply！"/>
+		<String Id="698" Key="IDS_MB_FAIL_CHOOSE_SEARCH_TOOL" CHS="定位工具不能为空,已选定当前定位工具！" ENG="The searching tool cannot be empty, the current searching tool has been selected！"/>
+		<String Id="701" Key="IDS_CMB_POINTING_NONE" CHS="无" ENG="None"/>
+		<String Id="706" Key="IDS_STR_SNAP_IMAGE_FAIL" CHS="采集图像失败" ENG="Snap image fail"/>
+		<String Id="708" Key="IDS_STR_SEARCH_FAIL" CHS="搜索失败" ENG="Search fail"/>
+		<String Id="712" Key="IDS_STR_CALIB_TARGET_SEARCH_FAIL" CHS="关联搜索失败" ENG="Calibrate target search fail"/>
+		<String Id="741" Key="IDS_STR_STATIC_ALN4P4V4_OBJECTSIZE4" CHS="尺寸14" ENG="Length 14"/>
+		<String Id="742" Key="IDS_STR_STATIC_ALN4P4V4_TARGETSIZE4" CHS="尺寸14" ENG="Length 14"/>
+		<String Id="743" Key="IDS_STR_STATIC_ALN4P4V4_OBJECTSIZE5" CHS="尺寸23" ENG="Length 23"/>
+		<String Id="744" Key="IDS_STR_STATIC_ALN4P4V4_TARGETSIZE5" CHS="尺寸23" ENG="Length 23"/>
+		<String Id="745" Key="IDS_STR_STATIC_ALN8P4V4_OBJECTSIZE4" CHS="尺寸14" ENG="Length 14"/>
+		<String Id="746" Key="IDS_STR_STATIC_ALN8P4V4_TARGETSIZE4" CHS="尺寸58" ENG="Length 58"/>
+		<String Id="747" Key="IDS_STR_STATIC_ALN8P4V4_OBJECTSIZE5" CHS="尺寸23" ENG="Length 23"/>
+		<String Id="748" Key="IDS_STR_STATIC_ALN8P4V4_TARGETSIZE5" CHS="尺寸67" ENG="Length 67"/>
+		<String Id="754" Key="IDS_COM_STR_TEMPLATE_CALIB" CHS="模板标定" ENG="Template Calibrate"/>
+		<String Id="755" Key="IDS_COM_STR_DMCODE_CALIB" CHS="二维码标定" ENG="Dmcode Calibrate"/>
+		<String Id="769" Key="IDS_MB_TARGET_MARK_PATTERN_SAVE_TIMEOUT" CHS="目标Mark模板保存超时！" ENG="Pattern of target mark save timeout！"/>
+		<String Id="770" Key="IDS_MB_VIRTUAL_OBJ_MARK_PATTERN_SAVE_TIMEOUT" CHS="虚拟Mark模板保存超时！" ENG="Pattern of virtual mark save timeout！"/>
+		<String Id="771" Key="IDS_MB_OBJECT_MARK_PATTERN_SAVE_TIMEOUT" CHS="对象Mark模板保存超时！" ENG="Pattern of object mark save timeout！"/>
+		<String Id="772" Key="IDS_MB_CALIB_TARGET_MARK_PATTEN_SAVE_TIMEOUT" CHS="关联Mark模板保存超时！" ENG="Pattern of relevance mark save timeout！"/>
+		<String Id="773" Key="IDS_MB_INSPECT_MARK_PATTERN_SAVE_TIMEOUT" CHS="检测Mark模板保存超时！" ENG="Pattern of inspect mark save timeout！"/>
+		<String Id="774" Key="IDS_MB_CALIB_PATTERN_SAVE_TIMEOUT" CHS="标定Mark模板保存超时！" ENG="Pattern of calibration mark save timeout！"/>
+		<String Id="775" Key="IDS_SB_SEND_GET_PRODUCT_SIZE_CMD_FAILED" CHS="发送获取产品尺寸命令失败" ENG="Send Get Product Size  Cmd Failed"/>
+		<String Id="776" Key="IDS_SB_RECEIVE_GET_PRODUCT_SIZE_ASW_OUTTIME" CHS="接受获取产品尺寸命令超时" ENG="Receive Get Product Size OutTime"/>
+		<String Id="777" Key="IDS_DRIVER_AXIS_RETURN_FAILE" CHS="驱动平台轴移动失败-返回非VMVA指令" ENG="Drive platform move failed-Return Non VMVA Code"/>
+		<String Id="797" Key="IDS_TARGET_SEARCH_RESULT_SHOW" CHS="目标定位结果:----" ENG="Target Search Result:----"/>
+		<String Id="798" Key="IDS_OBJECT_SEARCH_RESULT_SHOW" CHS="对象定位结果:----" ENG="Object Search Result:----"/>
+		<String Id="799" Key="IDS_OBJECT_SEARCH_RESULT_SHOW2" CHS="对象定位结果: %s" ENG="Object Search Result:%s"/>
+		<String Id="800" Key="IDS_SEARCH_TOOL_IS_NULL" CHS="定位工具为空" ENG="SearchTool Nonentity"/>
+		<String Id="801" Key="IDS_VIRTUAL_OBJECT_SEARCH_RESULT_SHOW" CHS="虚拟对象定位结果: %s" ENG="Virtual Object Search Result:%s"/>
+		<String Id="802" Key="IDS_TARGET_SEARCH_RESULT_SHOW2" CHS="目标定位结果: %s" ENG="Target Search Result:%s"/>
+		<String Id="803" Key="IDS_CALIB_SEARCH_RESULT_SHOW" CHS="标定定位结果: %s" ENG="Calib Search Result:%s"/>
+		<String Id="804" Key="IDS_INSPECT_SEARCH_RESULT_SHOW" CHS="检测定位结果: %s" ENG="Inspect Search Result:%s"/>
+		<String Id="805" Key="IDS_CALIBTARGET_SEARCH_RESULT_SHOW" CHS="关联定位结果: %s" ENG="CalibTarget Search Result:%s"/>
+		<String Id="806" Key="IDS_OBJECT_POS_SHOW" CHS="对象位置  :(---,---)" ENG="Object Postision   :(---,---)"/>
+		<String Id="807" Key="IDS_TARGET_POS_SHOW" CHS="目标位置  :(---,---)" ENG="Target Postision   :(---,---)"/>
+		<String Id="808" Key="IDS_ALIGN_TYPE_SELECT" CHS="选择使用的对位方式类型" ENG="Select Align Type"/>
+		<String Id="985" Key="IDS_BEND_INSPECT_LIST_ITEM_DISTANCE_RIGHT" CHS="距离(R)" ENG="Dis(R)"/>
+		<String Id="999" Key="IDS_ABOUTBOX" CHS="关于 VisionASM(&amp;A)..." ENG="About VisionASM(&amp;A)..."/>
+		<String Id="1001" Key="IDS_RESULT_SCORE" CHS="   相似度:%.1f%%" ENG="   Result Score:%.1f%%"/>
+		<String Id="6201" Key="IDS_CHECK_ALIGNCLEARSNAPSTATUS" CHS="对位完成后清理拍照状态" ENG="Clear Snap Status After Align"/>
+		<String Id="6202" Key="IDS_CHECK_EXE_OBJECT_CHECKMODE_WHEN_ALIGN" CHS="对象拍照时不执行检查模式，对位时执行" ENG="Enable Object Check Mode While Align,Not Snap"/>
+		<String Id="6203" Key="IDS_CHECK_EXE_TARGET_CHECKMODE_WHEN_ALIGN" CHS="目标拍照时不执行检查模式，对位时执行" ENG="Enable Target Check Mode While Align,Not Snap"/>
+		<String Id="7001" Key="IDS_STR_STATIC_SHOW_TARGET_POS" CHS="目标位置 %d:(---,---)" ENG="Target Postision %d:(---,---)"/>
+		<String Id="7002" Key="IDS_STR_STATIC_SHOW_OBJECT_POS" CHS="对象位置 %d:(---,---)" ENG="Object Postision %d:(---,---)"/>
+		<String Id="7003" Key="IDS_STR_STATIC_SHOW_VIRTUAL_OBJECT_POS" CHS="虚拟对象位置 %d:(---,---)" ENG="Virtual Object Postision %d:(---,---)"/>
+		<String Id="7004" Key="IDS_STR_STATIC_SHOW_CALIB_TARGET_POS" CHS="关联位置 %d:(---,---)" ENG="Calib Target Postision %d:(---,---)"/>
+		<String Id="7005" Key="IDS_STR_AUTO_SHOW_TARGET_POS" CHS="目标位置 %d:(%.3f,%.3f)" ENG="Target Postision %d:(%.3f,%.3f)"/>
+		<String Id="7006" Key="IDS_STR_AUTO_SHOW_OBJECT_POS" CHS="对象位置 %d:(%.3f,%.3f)" ENG="Object Postision %d:(%.3f,%.3f)"/>
+		<String Id="7007" Key="IDS_STR_AUTO_SHOW_VIRTUAL_OBJECT_POS" CHS="虚拟对象位置 %d:(%.3f,%.3f)" ENG="Virtual Object Postision %d:(%.3f,%.3f)"/>
+		<String Id="7008" Key="IDS_STR_AUTO_SHOW_CALIB_TARGET_POS" CHS="关联位置 %d:(%.3f,%.3f)" ENG="Calib Target Postision %d:(%.3f,%.3f)"/>
+		<String Id="7010" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_COMBINE" CHS="4位置综合对位" ENG="4Vs4CombineAln"/>
+		<String Id="7011" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_COMBINE_4VS4" CHS="4位置综合对位4Vs4" ENG="4Vs4CombineAln4Vs4"/>
+		<String Id="7018" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_COMBINE_TARGET_4VS4" CHS="4位置目标综合对位4Vs4" ENG="4Vs4TargetCombineAln4Vs4"/>
+		<String Id="7019" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_COMBINE_OBJECT_4VS4" CHS="4位置对象综合对位4Vs4" ENG="4Vs4ObjectCombineAln4Vs4"/>
+		<String Id="7027" Key="IDS_STR_STATIC_SHOW_INSPECT_POS" CHS="检测位置 %d:(---,---)" ENG="Inspect Postision %d:(---,---)"/>
+		<String Id="7028" Key="IDS_STR_AUTO_SHOW_INSPECT_POS" CHS="检测位置 %d:(%.3f,%.3f)" ENG="Inspect Postision %d:(%.3f,%.3f)"/>
+		<String Id="7029" Key="IDS_BUTTON_NEW_PRODUCT" CHS="新建产品" ENG="New Product"/>
+		<String Id="7030" Key="IDS_BUTTON_DELETE_PRODUCT" CHS="删除产品" ENG="Delete Product"/>
+		<String Id="7031" Key="IDS_BUTTON_CLEAR_PRODUCT" CHS="清空产品" ENG="Clear Product"/>
+		<String Id="7032" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_56_4V2" CHS="位置1234_1234Vs56_4V2" ENG="Pos1234_1234Vs56_4V2"/>
+		<String Id="7033" Key="IDS_COM_STR_ALIGNER_4VS4_TYPE_POS1234_CENTER" CHS="位置1234_1234Center" ENG="Pos1234_1234Center"/>
+		<String Id="7046" Key="IDS_SB_PARAMETER_ERROR" CHS="参数错误:" ENG="Parameter error"/>
+		<String Id="7049" Key="IDS_SB_OPERATE_FILE_FAIL" CHS="操作文件失败:" ENG="Operate file fail"/>
+		<String Id="7053" Key="IDS_SB_PRECISION_INSPECT_SUCCEED" CHS="精度检测成功" ENG="Precision inspect succeed"/>
+		<String Id="7054" Key="IDS_SB_PRECISION_IN_RANGE" CHS="精度检测在允许范围之内" ENG="Precision in range"/>
+		<String Id="7055" Key="IDS_SB_PRECISION_OUT_RANGE" CHS="精度检测范围超限" ENG="Precision out of range"/>
+		<String Id="7059" Key="IDS_SB_SET_TARGET_EXPOSURE_FAIL" CHS="设置目标曝光值失败" ENG="Set target exposure fail"/>
+		<String Id="7060" Key="IDS_SB_SET_OBJECT_EXPOSURE_FAIL" CHS="设置对象曝光值失败" ENG="Set object exposure fail"/>
+		<String Id="7061" Key="IDS_SB_SET_INSPECT_EXPOSURE_FAIL" CHS="设置检测曝光值失败" ENG="Set inspect exposure fail"/>
+		<String Id="7062" Key="IDS_SB_COMM_SUCCEED" CHS="通信成功" ENG="Communication succeed"/>
+		<String Id="7063" Key="IDS_SB_TARGET_ANGLE_OUT_RANGE" CHS="目标角度超过设定标准，目标定位结果可能出错" ENG="Target angle out of range"/>
+		<String Id="7064" Key="IDS_SB_TARGET_DIS_OUT_RANGE" CHS="目标距离超过设定标准，目标定位结果可能出错" ENG="Target distance out of range"/>
+		<String Id="7065" Key="IDS_SB_OBJECT_DIS_OUT_RANGE" CHS="对象距离超过设定标准，对象定位结果可能出错"/>
+		<String Id="7066" Key="IDS_SB_SET_OBJECT_AND_EXPOSURE_FAIL" CHS="设置对象、目标曝光值失败" ENG="Set object and target exposure fail"/>
+		<String Id="7074" Key="IDS_SB_INPUT_POS_PARAM_OUT_RANGE" CHS="位置参数输入超限" ENG="Pos parameter out of range"/>
+		<String Id="7075" Key="IDS_SB_INPUT_TARGET_AND_OBJECT_PARAM_OUT_RANGE" CHS="目标对象参数输入超限" ENG="Target and object parameter out of range"/>
+		<String Id="7076" Key="IDS_SB_GET_CUR_PRODUCT_FAIL" CHS="获取当前产品失败" ENG="Get current product fail"/>
+		<String Id="7084" Key="IDS_SB_COMM_AGAIN_SUCCEED" CHS="再次通信接收指令成功！" ENG="Communication again succeed！"/>
+		<String Id="7085" Key="IDS_SB_GET_CAM_AXIS_FAIL" CHS="获取相机位置失败" ENG="Get camera axis fail"/>
+		<String Id="7086" Key="IDS_SB_SET_PRODUCT_CALIB_INFO_FAIL" CHS="设置产品标定信息失败" ENG="Set product calibrate info fail"/>
+		<String Id="7087" Key="IDS_SB_GET_WORK_MODE_ERROR" CHS="获取工作模式出错！" ENG="Get work mode error！"/>
+		<String Id="7088" Key="IDS_SB_SET_WORK_MODE_ERROR" CHS="发送设置工作模式出错！" ENG="Set work mode error！"/>
+		<String Id="7089" Key="IDS_SB_SET_WORK_MODE_RESPOND_ANALYSIS_ERROR" CHS="设置工作模式响应解析出错！" ENG="Set work mode response analysis error！"/>
+		<String Id="7090" Key="IDS_SB_SET_AUTO_WORK_MODE_EXECUTE_ERROR" CHS="发送设置自动模式下程序执行操作出错！" ENG="Set auto work mode execute error！"/>
+		<String Id="7091" Key="IDS_SB_SET_AUTO_WORK_MODE_EXECUTE__RESPOND_ANALYSIS_ERROR" CHS="设置自动模式下程序执行操作响应解析出错！" ENG="Set auto work mode execute response analysis error！"/>
+		<String Id="7096" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_COMBINE_C12" CHS="位置12_两角综合基准中心" ENG="Pos12_C12_COMBINE_AUTO"/>
+		<String Id="7097" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_COMBINE_C12V" CHS="位置12_两角垂直综合基准中心" ENG="Pos12_C12V_COMBINE_AUTO"/>
+		<String Id="7105" Key="IDS_CMB_BLOB_SEARCH_TOOL" CHS="BLOB定位工具" ENG="BLOB Search Tool"/>
+		<String Id="7106" Key="IDS_CMB_GREY_LEVEL_HISTOGRAM_SEARCH_TOOL" CHS="灰度直方图工具" ENG="GreyLevelHistigram Search Tool"/>
+		<String Id="7112" Key="IDS_CMB_MMARK_SEARCH_TOOL" CHS="多标记点" ENG="Multi Mark"/>
+		<String Id="7123" Key="IDS_CMB_WHOLE_DMCODE_CALIB" CHS="全局二维码靶标标定" ENG="Whole DMCode Calibrate"/>
+		<String Id="7127" Key="IDS_STR_WHOLE_CALIB_CALCU_SUCCESS" CHS="计算全局靶标标定成功" ENG="Whole Calibrate Caculate Success"/>
+		<String Id="7128" Key="IDS_STR_TAR_AUTOCALIB_ALING_ON_OBJECT" CHS="产品在对象端对位" ENG="Align on object"/>
+		<String Id="7129" Key="IDS_STR_TAR_AUTOCALIB_ALING_TO_TARGET" CHS="产品直接对位到目标" ENG="Align to target"/>
+		<String Id="7133" Key="IDS_STR_CHANGE_PRODUCT_FAIL_OF_MEM_OUT" CHS="问题描述：切换产品失败！！！" ENG="Problem description：Change product failed！！！"/>
+		<String Id="7137" Key="IDS_STR_CHILD_PRODUCNT_CHANGING" CHS="请稍后，小产品正在切换中...." ENG="Please wait，Child product is changing...."/>
+		<String Id="7138" Key="IDS_STR_DAD_PRODUCNT_CHANGING" CHS="请稍后，大产品正在切换中...." ENG="Please wait，Dad product is changing...."/>
+		<String Id="7141" Key="IDS_STR_CHILD_PRODUCNT_CHANGE_SUCCEED" CHS="小产品切换成功" ENG="Child product change succeed"/>
+		<String Id="7142" Key="IDS_STR_DAD_PRODUCNT_CHANGE_SUCCEED" CHS="大产品切换成功" ENG="Dad product change succeed"/>
+		<String Id="7148" Key="IDS_STR_CREATE_PRODUCT_FAIL_OF_MEM_OUT" CHS="问题描述：新建产品失败！！！" ENG="Problem description：Create product failed！！！"/>
+		<String Id="7273" Key="IDS_BUTTON_RENAME_PRODUCT" CHS="产品名称重命名" ENG="Rename Product"/>
+		<String Id="8129" Key="IDS_OPERATION_DLG_COLUMN_0_TITLE" CHS="时间" ENG="Time"/>
+		<String Id="8130" Key="IDS_OPERATION_DLG_COLUMN_1_TITLE" CHS="信息类型" ENG="Type"/>
+		<String Id="8131" Key="IDS_OPERATION_DLG_COLUMN_2_TITLE" CHS="内容描述" ENG="Description"/>
+		<String Id="8134" Key="IDS_OPERATION_WARNING_CAMERA" CHS="相机报警" ENG="Camera"/>
+		<String Id="8135" Key="IDS_OPERATION_WARNING_SEARCH" CHS="定位报警" ENG="Search"/>
+		<String Id="8138" Key="IDS_WARNING_INITIALIZATION_PLATFORMINFO" CHS="平台信息初始化失败" ENG="Platform Info Initialization Failed"/>
+		<String Id="8139" Key="IDS_WARNING_INITIALIZATION_COMMUNICATION" CHS="通信初始化失败" ENG="Communication Initialization Failed"/>
+		<String Id="8140" Key="IDS_WARNING_INITIALIZATION_SEARCHTOOL" CHS="定位工具初始化失败" ENG="SearchTool Initialization Failed"/>
+		<String Id="8141" Key="IDS_WARNING_PROCESSING_POSITIONERR" CHS="位置错误" ENG="Position Index Error"/>
+		<String Id="8142" Key="IDS_WARNING_COMMUNICATION_COMMERR" CHS="通信错误" ENG="Communication Error"/>
+		<String Id="8144" Key="IDS_WARNING_CAMERA_IS_NOT_GRABBING" CHS="请确保相机%d采集状态" ENG="Please Makesure Camera %d is Grabbing"/>
+		<String Id="8146" Key="IDS_WARNING_PROCESSING_EXPOSURESETTING_FAILED" CHS="切换曝光失败" ENG="Exposure Setting Failed"/>
+		<String Id="8151" Key="IDS_WARNING_INITIALIZATION_PLATFORMSYSTEM" CHS="平台系统配置错误" ENG="Platform System Error"/>
+		<String Id="8153" Key="IDS_WARNING_PROCESSING_POSNUMERROR" CHS="位置数错误" ENG="Position Number Error"/>
+		<String Id="8154" Key="IDS_WARNING_PROCESSING_CAMNUMERROR" CHS="相机数错误" ENG="Camera Number Error"/>
+		<String Id="8156" Key="IDS_WARNING_INITIALIZATION_CAMSEPARATE" CHS="对象目标相机独立错误" ENG="Obj and Tar Cam Should Not Be Separated"/>
+		<String Id="8160" Key="IDS_WARNING_PROCESSING_AXISPOSERROR" CHS="轴位置信息为空" ENG="Axis Position Param Is Null"/>
+		<String Id="8163" Key="IDS_SB_GET_TARGET_MARK_COORD_FAILED" CHS="获取目标Mark图像坐标失败" ENG="Get target coord failed"/>
+		<String Id="8166" Key="IDS_WARNING_PROCESSING_CALIBCHECK_FAILED" CHS="标定验证失败" ENG="Calib check failed"/>
+		<String Id="9100" Key="IDS_COM_STR_ALIGNER_2VS2_TYPE_POS12_CTO3" CHS="对象12对位目标1" ENG="Object12ToTarget1"/>
+		<String Id="9200" Key="IDS_CMB_CAMREMAAUTHORIZE_NODE" CHS="相机设置" ENG="Cam Set"/>
+		<String Id="9201" Key="IDS_CMB_CAMREMAAUTHORIZE_PARAMSET" CHS="参数设置" ENG="Param Set"/>
+		<String Id="9202" Key="IDS_CMB_CAMREMAAUTHORIZE_SHOWSET" CHS="显示设置" ENG="Show Set"/>
+		<String Id="9203" Key="IDS_CMB_CAMREMAAUTHORIZE_COLORSET" CHS="彩色相机设置" ENG="Color Cam Set"/>
+		<String Id="9204" Key="IDS_CMB_CAMREMAAUTHORIZE_OTHERITEM" CHS="其他项" ENG="Other Set"/>
+		<String Id="9205" Key="IDS_CMB_COMMAUTHORIZE_NODE" CHS="通信设置" ENG="Comm Set"/>
+		<String Id="9206" Key="IDS_CMB_COMMAUTHORIZE_PARAMSET" CHS="通信参数" ENG="Comm Param"/>
+		<String Id="9207" Key="IDS_CMB_COMMAUTHORIZE_COMMTYPESET" CHS="通信连接类型" ENG="Comm Connection Type"/>
+		<String Id="9208" Key="IDS_CMB_COMMAUTHORIZE_TESTSET" CHS="连接读写测试" ENG="Read and Write Register Test"/>
+		<String Id="9209" Key="IDS_CMB_PLATFORMAUTHORIZE_NODE" CHS="平台设置" ENG="Platform Set"/>
+		<String Id="9210" Key="IDS_CMB_PLATFORMAUTHORIZE_PARAMSET" CHS="对位平台参数" ENG="Align Platform Set"/>
+		<String Id="9211" Key="IDS_CMB_PLATFORMAUTHORIZE_CAMPLATFORM" CHS="相机平台参数" ENG="Cam Platform Set"/>
+		<String Id="9212" Key="IDS_CMB_LOGAUTHORIZE_NODE" CHS="日志设置" ENG="Log Set"/>
+		<String Id="9213" Key="IDS_CMB_LOGAUTHORIZE_CONTENT" CHS="日志内容" ENG="Log Content Set"/>
+		<String Id="9214" Key="IDS_CMB_LOGAUTHORIZE_SAVEIMG" CHS="图像文件" ENG="Save Image Set"/>
+		<String Id="9215" Key="IDS_CMB_LOGAUTHORIZE_PATHSET" CHS="自定义日志路径" ENG="FilePath Set"/>
+		<String Id="9216" Key="IDS_CMB_LOGAUTHORIZE_SAVEBYHOUR" CHS="是否定时删除" ENG="Save Image by Hour"/>
+		<String Id="9217" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_NODE" CHS="平台选项" ENG="Platform Option"/>
+		<String Id="9218" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_SEARCHTOOL" CHS="定位工具设置" ENG="SearchTool Set"/>
+		<String Id="9219" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_OFFSET" CHS="补偿设置" ENG="Offset Set"/>
+		<String Id="9220" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_ALIGNTYPE" CHS="对位方式设置" ENG="Align Type Set"/>
+		<String Id="9221" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_ALIGNOPTION" CHS="对位设置" ENG="Align Param Set"/>
+		<String Id="9222" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_PLATFORMCOMM" CHS="平台通信设置" ENG="Platform Comm Set"/>
+		<String Id="9223" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_SNAPSET" CHS="拍照设置" ENG="Snap Set"/>
+		<String Id="9224" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_PICKSET" CHS="拾取设置" ENG="Pick Set"/>
+		<String Id="9225" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_CALIBRATIONSET" CHS="标定关联设置" ENG="Calibrate Relevant Set"/>
+		<String Id="9226" Key="IDS_CMB_OPTIONAUTHORIZE_NODE" CHS="软件选项" ENG="Software Option"/>
+		<String Id="9227" Key="IDS_CMB_OPTIONAUTHORIZE_LANGUAGE" CHS="语言设置" ENG="Language Set"/>
+		<String Id="9228" Key="IDS_CMB_OPTIONAUTHORIZE_STARTSET" CHS="启动设置" ENG="Startup Set"/>
+		<String Id="9229" Key="IDS_CMB_OPTIONAUTHORIZE_KEYBOARD" CHS="键盘设置" ENG="KeyBoard Set"/>
+		<String Id="9230" Key="IDS_CMB_OPTIONAUTHORIZE_LOGSHOWSET" CHS="信息显示设置" ENG="Infor Show Set"/>
+		<String Id="9231" Key="IDS_CMB_OPTIONAUTHORIZE_SYSTEMSWITCH" CHS="系统设置" ENG="Systerm Switch Set"/>
+		<String Id="9232" Key="IDS_CMB_OPTIONAUTHORIZE_CHECKMODESET" CHS="检查模式" ENG="CheckMode Set"/>
+		<String Id="9233" Key="IDS_CMB_OPTIONAUTHORIZE_INTERFACE" CHS="主界面设置" ENG="Interface Dispalys Set"/>
+		<String Id="9234" Key="IDS_CMB_OPTIONAUTHORIZE_OTHEROPTIONSET" CHS="其他设置" ENG="Other Set"/>
+		<String Id="9235" Key="IDS_CMB_OPTIONAUTHORIZE_COMMSET" CHS="通信设置" ENG="Comm Set"/>
+		<String Id="9236" Key="IDS_CMB_OPTIONAUTHORIZE_WSLAYOUT" CHS="工位布局设置" ENG="WS Layout Set"/>
+		<String Id="9237" Key="IDS_CMB_CALIBRATEAUTHORIZE_NODE" CHS="标定设置" ENG="Calibrate Set"/>
+		<String Id="9238" Key="IDS_CMB_CALIBRATEAUTHORIZE_XYDMOVE" CHS="标定参数" ENG="Calibrate Input Set"/>
+		<String Id="9240" Key="IDS_CMB_CALIBRATEAUTHORIZE_DISTORTIONCORRECTION" CHS="畸变矫正" ENG="Distortion Correction Set"/>
+		<String Id="9241" Key="IDS_CMB_CALIBRATEAUTHORIZE_TEMPLATESET" CHS="模板设置" ENG="Template Set"/>
+		<String Id="9242" Key="IDS_CMB_CALIBRATEAUTHORIZE_CALIBRATIONALGORITHM" CHS="标定算法" ENG="Calibration Algorithm Set"/>
+		<String Id="9244" Key="IDS_CMB_CALIBRATEAUTHORIZE_DMCODESET" CHS="二维码标定设置" ENG="DM Code Calibrate Set"/>
+		<String Id="9245" Key="IDS_CMB_CALIBRATEAUTHORIZE_COPYCALIB" CHS="拷贝标定" ENG="Copy Calibration Info"/>
+		<String Id="9246" Key="IDS_CMB_CALIBRATEAUTHORIZE_CALIBLIST" CHS="标定产品列表" ENG="Calibration Products list"/>
+		<String Id="9247" Key="IDS_CMB_PRODUCTAUTHORIZE_NODE" CHS="产品设置" ENG="Product Set"/>
+		<String Id="9248" Key="IDS_CMB_PRODUCTAUTHORIZE_CHECKMODE" CHS="检查模式" ENG="Check Mode"/>
+		<String Id="9249" Key="IDS_CMB_PRODUCTAUTHORIZE_OFFSET" CHS="对位补偿设置" ENG="OffSet Set"/>
+		<String Id="9250" Key="IDS_CMB_PRODUCTAUTHORIZE_ALIGNTOOLPARAMSET" CHS="对位设置" ENG="Align Snap DelayTime and Precision"/>
+		<String Id="9251" Key="IDS_CMB_PRODUCTAUTHORIZE_ALIGNTYPESET" CHS="对位模式切换设置" ENG="Align Type Set"/>
+		<String Id="9252" Key="IDS_CMB_PRODUCTAUTHORIZE_ALIGNOTHER" CHS="其他对位设置" ENG="Other ALign Opiton"/>
+		<String Id="9254" Key="IDS_CMB_OTHERAUTHORIZE_NODE" CHS="其他设置" ENG="Other Set"/>
+		<String Id="9255" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_INSPECTSET" CHS="检测设置" ENG="Inspect Set"/>
+		<String Id="9256" Key="IDS_CMB_PLATFORMOPTIONAUTHORIZE_MORE_SET" CHS="更多设置" ENG="More Set"/>
+		<String Id="9257" Key="IDS_CMB_PRODUCTAUTHORIZE_PROLISTSET" CHS="产品列表设置" ENG="Products List Set"/>
+		<String Id="9258" Key="IDS_CMB_COMMAUTHORIZE_OTHER_SET" CHS="其他通信设置" ENG="Other Set"/>
+		<String Id="9264" Key="IDS_CMB_COMMAUTHORIZE_COMMDELAYSET" CHS="通信延时超时设置" ENG="Comm Delay Set"/>
+		<String Id="9265" Key="IDS_CMB_PRODUCTAUTHORIZE_TARGET_TEMPLATESET" CHS="目标模板设置" ENG="Target Template Set"/>
+		<String Id="9266" Key="IDS_CMB_PRODUCTAUTHORIZE_OBJECT_TEMPLATESET" CHS="对象模板设置" ENG="Object Template Set"/>
+		<String Id="9267" Key="IDS_CMB_PRODUCTAUTHORIZE_VIRTUALOBJCT_TEMPLATESET" CHS="虚拟对象模板设置" ENG="Virtaul Object Template Set"/>
+		<String Id="9268" Key="IDS_CMB_PRODUCTAUTHORIZE_CALIBTARGET_TEMPLATESET" CHS="关联模板设置" ENG="CalibTarget Template Set"/>
+		<String Id="9269" Key="IDS_CMB_PRODUCTAUTHORIZE_INSPECT_TEMPLATESET" CHS="检测模板设置" ENG="Inspect Template Set"/>
+		<String Id="9271" Key="IDS_CMB_PRODUCTAUTHORIZE_SPECIAL_APPLICATION_SET" CHS="特殊应用设置" ENG="Special Application Set"/>
+		<String Id="9272" Key="IDS_CMB_LOGAUTHORIZE_SAVEVDB" CHS="VDB文件" ENG="LogAuthorizeSaveVdbFile"/>
+		<String Id="9274" Key="IDS_CMB_PRODUCTAUTHORIZE_WELD_SET" CHS="焊接设置" ENG="Special Application Set"/>
+		<String Id="9275" Key="IDS_CMB_PRODUCTAUTHORIZE_BEND_SET" CHS="折弯设置" ENG="Special Application Set"/>
+		<String Id="9276" Key="IDS_CMB_PRODUCTAUTHORIZE_EIGHT_SHARP_SET" CHS="八字对位设置" ENG="Special Application Set"/>
+		<String Id="10001" Key="IDS_CHK_SEARCH_WITH_DISTANCE_INSPECT" CHS="允许线距检测" ENG="Enable Inspect"/>
+		<String Id="10002" Key="IDS_CHK_SEND_INSPECT_DISTANCE" CHS="发送面积检测子结果" ENG="Send Area Inspect Sub Result"/>
+		<String Id="10003" Key="IDS_CHK_SEND_AREA_INSPECT_SUB_RESULT" CHS="发送检测距离" ENG="Send Inspect Result"/>
+		
+		
+		
+		
+		<String Id="13398" Key="IDS_CAMERA_OFFLINE_GRAP_FAILED" CHS="采集失败，相机掉线" ENG="Grab Failed,Camera Offline"/>
+		<String Id="13399" Key="IDS_CAMERA_OFFLINE_GRAP_TIMEOUT" CHS="采集失败，相机掉线" ENG="Grab TimeOut,Camera Offline"/>
+		<String Id="13400" Key="IDS_CAMERA_OFFLINE" CHS="相机掉线" ENG="Camera Offline"/>
+		<String Id="13401" Key="IDS_CAMERA_ONLINE" CHS="相机在线" ENG="Camera Online"/>
+		<String Id="13427" Key="IDS_COMM_STATUS_SUCCEED_STR" CHS="通信状态:成功" ENG="Comm Status:Success"/>
+		<String Id="13428" Key="IDS_COMM_STATUS_ERROR_STR" CHS="通信状态:错误" ENG="Comm Status:Error"/>
+		<String Id="13429" Key="IDS_COMM_STATUS_UNCONNECT_STR" CHS="通信状态:未连接" ENG="Comm Status:UnConnected"/>
+		<String Id="13430" Key="IDS_COMM_STATUS_STOP_STR" CHS="通信状态:停止" ENG="Comm Status:Stop"/>
+		<String Id="13431" Key="IDS_COMM_STATUS_TIMEOUT_STR" CHS="通信状态:超时" ENG="Comm Status:TimeOut"/>
+ <String Id="" Ky="Initialization" CHS="" ENG=""/>       
+                    <String Id="13580" Key="IDS_SIZE_LOG_TEXT1" CHS="视觉软件初始化开始" ENG="Vision Software Initialization Beginning"/>
+		<String Id="13581" Key="IDS_SIZE_LOG_TEXT2" CHS="加载基本信息中……" ENG="Loading Basic Information......"/>
+		<String Id="13582" Key="IDS_SIZE_LOG_TEXT3" CHS="加载基本信息完成" ENG="Loading Basic Information Completed"/>
+		<String Id="13583" Key="IDS_SIZE_LOG_TEXT4" CHS="创建平台对位视图中……" ENG="Creating Platform Alignment View......"/>
+		<String Id="13584" Key="IDS_SIZE_LOG_TEXT5" CHS="创建平台对位视图完成" ENG="Create Platform Alignment View Complete"/>
+		<String Id="13585" Key="IDS_SIZE_LOG_TEXT6" CHS="创建视觉对位工具完成" ENG="Loading Basic Information Completed"/>
+		<String Id="13586" Key="IDS_SIZE_LOG_TEXT7" CHS="视觉软件初始化完成" ENG="Vision Software Initialization Completed"/>
+		<String Id="13587" Key="IDS_SIZE_LOG_TEXT8" CHS="相机初始化完成" ENG="Camera Initialization is Completed"/>
+		<String Id="13588" Key="IDS_SIZE_LOG_TEXT9" CHS="相机初始化中……" ENG="Camera Initializing..."/>
+</StringTable>

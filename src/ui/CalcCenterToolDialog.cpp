@@ -47,6 +47,8 @@ CalcCenterToolDialog::CalcCenterToolDialog(Algorithm::CalcCenterTool* tool, QWid
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("中心计算设置");
     setMinimumSize(800, 600);
@@ -149,6 +151,18 @@ void CalcCenterToolDialog::createUI()
     mainSplitter->setStretchFactor(1, 1);
 
     mainLayout->addWidget(mainSplitter, 1);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新计算结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -309,6 +323,12 @@ void CalcCenterToolDialog::connectSignals()
     connect(removePointBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onRemovePoint);
     connect(clearPointsBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onClearPoints);
 
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &CalcCenterToolDialog::onAutoCalc);
+
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onOkClicked);
@@ -318,16 +338,19 @@ void CalcCenterToolDialog::connectSignals()
 
 void CalcCenterToolDialog::onCalcMethodChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto method = static_cast<Algorithm::CalcCenterTool::CalcMethod>(
         calcMethodCombo_->currentData().toInt());
     tool_->setCalcMethod(method);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcCenterToolDialog::onSourceTypeChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto type = static_cast<Algorithm::CalcCenterTool::SourceType>(
@@ -335,13 +358,16 @@ void CalcCenterToolDialog::onSourceTypeChanged(int index)
     tool_->setSourceType(type);
     updateInputVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcCenterToolDialog::onThresholdChanged(int value)
 {
+    Q_UNUSED(value);
     if (!tool_) return;
-    tool_->setThreshold(value);
+    tool_->setThreshold(thresholdSpin_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcCenterToolDialog::onInvertedChanged(bool checked)
@@ -349,6 +375,7 @@ void CalcCenterToolDialog::onInvertedChanged(bool checked)
     if (!tool_) return;
     tool_->setInverted(checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcCenterToolDialog::onAddPoint()
@@ -361,6 +388,7 @@ void CalcCenterToolDialog::onAddPoint()
 
     updatePointsTable();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcCenterToolDialog::onRemovePoint()
@@ -376,6 +404,7 @@ void CalcCenterToolDialog::onRemovePoint()
         tool_->setInputPoints(points);
         updatePointsTable();
         emit parameterChanged();
+        previewHelper_->requestPreview();
     }
 }
 
@@ -469,6 +498,18 @@ void CalcCenterToolDialog::updateResultDisplay()
         areaLabel_->setText("--");
         radiusLabel_->setText("--");
     }
+}
+
+void CalcCenterToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+
+    // 执行计算
+    Algorithm::ToolResult result;
+    tool_->process(currentImage_, result);
+    updateResultDisplay();
 }
 
 } // namespace UI

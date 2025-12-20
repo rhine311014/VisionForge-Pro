@@ -1,0 +1,961 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <SccProjectName />
+    <SccLocalPath />
+    <Keyword>MFCProj</Keyword>
+    <ProjectName>VisionASM10</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</OutDir>
+    <IntDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</OutDir>
+    <IntDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</OutDir>
+    <IntDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</OutDir>
+    <IntDir>..\Temp\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <MinimalRebuild>true</MinimalRebuild>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalIncludeDirectories>../ASMModuleInclude/vsAlign;../ASMBaseInclude/vsAlignBase;../CBBInclude;../Include;../HaspInclude;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BrowseInformation>true</BrowseInformation>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>copy $(OutDir)$(TargetName)$(TargetExt)  ..\Bin\$(PlatformName)\</Command>
+    </PostBuildEvent>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\..\Temp\VisionASM\Debug\VisionASM.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0804</Culture>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(OutDir)$(TargetName).bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>../ASMModuleLib/$(PlatformName);../ASMBaseLib/$(PlatformName);../CBBLib/$(PlatformName);../Lib/$(PlatformName);../HaspLib/$(PlatformName);</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>highgui100d.dll;imgproc100d.dll;codecalibrate100d.dll;vsKeyboard10d.dll;vsGrab10d.dll;vsComm10d.dll;vsAlign10d.dll;HaspCheckD.dll;HaspLoginCheckD.dll;MotionDll.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>DelayImp.lib;highgui100d.lib;imgproc100d.lib;codecalibrate100d.lib;vsKeyboard10d.lib;vsGrab10d.lib;vsComm10d.lib;vsAlign10d.lib;HaspCheckD.lib;HaspLoginCheckD.lib;vsLightControl10d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>../ASMModuleInclude/vsAlign;../ASMBaseInclude/vsAlignBase;../CBBInclude;../Include;../HaspInclude;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BrowseInformation>true</BrowseInformation>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>copy $(OutDir)$(TargetName)$(TargetExt)  ..\Bin\$(PlatformName)\</Command>
+    </PostBuildEvent>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\..\Temp\VisionASM\Debug\VisionASM.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0804</Culture>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(OutDir)$(TargetName).bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>../ASMModuleLib/$(PlatformName);../ASMBaseLib/$(PlatformName);../CBBLib/$(PlatformName);../Lib/$(PlatformName);../HaspLib/$(PlatformName);</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>highgui100d.dll;imgproc100d.dll;codecalibrate100d.dll;vsKeyboard10d.dll;vsGrab10d.dll;vsComm10d.dll;vsAlign10d.dll;HaspCheckD.dll;HaspLoginCheckD.dll;MotionDll.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>DelayImp.lib;highgui100d.lib;imgproc100d.lib;codecalibrate100d.lib;vsKeyboard10d.lib;vsGrab10d.lib;vsComm10d.lib;vsAlign10d.lib;HaspCheckD.lib;HaspLoginCheckD.lib;MotionDll.lib;vsLightControl10d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>../ASMModuleInclude/vsAlign;../ASMBaseInclude/vsAlignBase;../CBBInclude;../Include;../HaspInclude;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>copy $(OutDir)$(TargetName)$(TargetExt)  ..\Bin\$(PlatformName)\</Command>
+    </PostBuildEvent>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\..\Temp\VisionASM\Release\VisionASM.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0804</Culture>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(OutDir)$(TargetName).bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>../ASMModuleLib/$(PlatformName);../ASMBaseLib/$(PlatformName);../CBBLib/$(PlatformName);../Lib/$(PlatformName);../HaspLib/$(PlatformName);</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>highgui100.dll;imgproc100.dll;codecalibrate100.dll;vsKeyboard10.dll;vsGrab10.dll;vsComm10.dll;vsAlign10.dll;HaspCheck.dll;HaspLoginCheck.dll;MotionDll.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>DelayImp.lib;highgui100.lib;imgproc100.lib;codecalibrate100.lib;vsKeyboard10.lib;vsGrab10.lib;vsComm10.lib;vsAlign10.lib;HaspCheck.lib;HaspLoginCheck.lib;vsLightControl10.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>../ASMModuleInclude/vsAlign;../ASMBaseInclude/vsAlignBase;../CBBInclude;../Include;../HaspInclude;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>copy $(OutDir)$(TargetName)$(TargetExt)  ..\Bin\$(PlatformName)\</Command>
+    </PostBuildEvent>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\..\Temp\VisionASM\Release\VisionASM.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0804</Culture>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(OutDir)$(TargetName).bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>../ASMModuleLib/$(PlatformName);../ASMBaseLib/$(PlatformName);../CBBLib/$(PlatformName);../Lib/$(PlatformName);../HaspLib/$(PlatformName);</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>highgui100.dll;imgproc100.dll;codecalibrate100.dll;vsKeyboard10.dll;vsGrab10.dll;vsComm10.dll;vsAlign10.dll;HaspCheck.dll;HaspLoginCheck.dll;MotionDll.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>DelayImp.lib;highgui100.lib;imgproc100.lib;codecalibrate100.lib;vsKeyboard10.lib;vsGrab10.lib;vsComm10.lib;vsAlign10.lib;HaspCheck.lib;HaspLoginCheck.lib;MotionDll.lib;vsLightControl10.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="2PatternSearchTool.cpp" />
+    <ClCompile Include="ACFInspectTool.cpp" />
+    <ClCompile Include="AreaInspectPickTool.cpp" />
+    <ClCompile Include="AreaInspectTool.cpp" />
+    <ClCompile Include="AreaInspectToolEx.cpp" />
+    <ClCompile Include="base64.cpp" />
+    <ClCompile Include="BaseCornerSearchTool.cpp" />
+    <ClCompile Include="CDlgPCBSetting.cpp" />
+    <ClCompile Include="CDlgWeldInfo.cpp" />
+    <ClCompile Include="ChordSearchTool.cpp" />
+    <ClCompile Include="CircleCornerSearchCheckInspectTool.cpp" />
+    <ClCompile Include="CombinationCornerSearchTool.cpp" />
+    <ClCompile Include="CombinedPatternSearchTool.cpp" />
+    <ClCompile Include="CombinedQuickSearch.cpp" />
+    <ClCompile Include="ComboBoxColor.cpp" />
+    <ClCompile Include="CommProtocolProcess.cpp" />
+    <ClCompile Include="CommProtocolXYDFast.cpp" />
+    <ClCompile Include="CommProtocolXYDFastEx.cpp" />
+    <ClCompile Include="CornerSearchCheckInspectTool.cpp" />
+    <ClCompile Include="CornerSearchCheckTool.cpp" />
+    <ClCompile Include="Dlg2PatternSearchTool.cpp" />
+    <ClCompile Include="DlgAcfAlignSet.cpp" />
+    <ClCompile Include="DlgACFInspectTool.cpp" />
+    <ClCompile Include="DlgACFInspectToolUI.cpp" />
+    <ClCompile Include="DlgAlignOffsetByAreaSet.cpp" />
+    <ClCompile Include="DlgAlignOffsetDirectionSetting.cpp" />
+    <ClCompile Include="DlgAreaInspect.cpp" />
+    <ClCompile Include="DlgAreaInspectEx.cpp" />
+    <ClCompile Include="DlgAreaInspectPickTool.cpp" />
+    <ClCompile Include="DlgAuthorizeSet.cpp" />
+    <ClCompile Include="DlgBaseCornerSearchTool.cpp" />
+    <ClCompile Include="DLGBendSetting.cpp" />
+    <ClCompile Include="DlgBlobSearchParamSet.cpp" />
+    <ClCompile Include="DlgCalcuBenchPick.cpp" />
+    <ClCompile Include="DlgCalibAxisDirection.cpp" />
+    <ClCompile Include="DlgCalibCopy.cpp" />
+    <ClCompile Include="DlgCalibObjectPos2Code.cpp" />
+    <ClCompile Include="DlgCalibTargetShutterSetting.cpp" />
+    <ClCompile Include="DlgCombinedCornerSearchTool.cpp" />
+    <ClCompile Include="DlgCommTypeSetting.cpp" />
+    <ClCompile Include="DLGEightShapeAlignSetting.cpp" />
+    <ClCompile Include="DlgCalcuVirtualObject.cpp" />
+    <ClCompile Include="DlgCalcuVirtualObject4.cpp" />
+    <ClCompile Include="DlgCalibCheckByFixedTargetAligner.cpp" />
+    <ClCompile Include="DlgCalibCheckBySize.cpp" />
+    <ClCompile Include="DlgCalibObjectPos.cpp" />
+    <ClCompile Include="DlgCalibObjectPos2Board.cpp" />
+    <ClCompile Include="DlgCalibObjectPos8.cpp" />
+    <ClCompile Include="DlgCalibrateEvaluate.cpp" />
+    <ClCompile Include="DlgCalibResult.cpp" />
+    <ClCompile Include="DlgCalibTargetDmCodeParam.cpp" />
+    <ClCompile Include="DlgCalibTargetPos.cpp" />
+    <ClCompile Include="DlgCalibTargetPos2.cpp" />
+    <ClCompile Include="DlgCalibTargetPos4Board.cpp" />
+    <ClCompile Include="DlgCalibTargetPos8Board.cpp" />
+    <ClCompile Include="DlgCalibTargetPos8.cpp" />
+    <ClCompile Include="DlgChordSearchTool.cpp" />
+    <ClCompile Include="DlgCircleCornerSearchCheckInspectTool.cpp" />
+    <ClCompile Include="DlgCircleDoubleMeasureInspectTool.cpp" />
+    <ClCompile Include="DlgCircleMeasureInspectTool.cpp" />
+    <ClCompile Include="DlgCircleResultOffset.cpp" />
+    <ClCompile Include="DlgCircleToLineDistanceTool.cpp" />
+    <ClCompile Include="DlgCombinedPatternSearchTool.cpp" />
+    <ClCompile Include="DlgCombinedQuickSearchTool.cpp" />
+    <ClCompile Include="DlgCommParamSetting.cpp" />
+    <ClCompile Include="DlgCornerSearchCheckInspectTool.cpp" />
+    <ClCompile Include="DlgCornerSearchCheckTool.cpp" />
+    <ClCompile Include="DlgCornerSearchToolForCorner.cpp" />
+    <ClCompile Include="DlgCrossSetting.cpp" />
+    <ClCompile Include="DlgDistorCorrImage.cpp" />
+    <ClCompile Include="DlgDmCodeCalibrateTool.cpp" />
+    <ClCompile Include="DlgDmCodeShutterSetting.cpp" />
+    <ClCompile Include="DlgFind4LineParamSet.cpp" />
+    <ClCompile Include="DlgHistogramForSpecicalPick.cpp" />
+    <ClCompile Include="DlgIdReaderBarCodeToolSetting.cpp" />
+    <ClCompile Include="DlgIdReaderDmCodeTool.cpp" />
+    <ClCompile Include="DlgLightCtrlRename.cpp" />
+    <ClCompile Include="DlgLightCtrlSetting.cpp" />
+    <ClCompile Include="DlgLineToLineDistanceTool.cpp" />
+    <ClCompile Include="DlgManualMeasure.cpp" />
+    <ClCompile Include="DlgManualSearch.cpp" />
+    <ClCompile Include="DlgManualSearchCalib.cpp" />
+    <ClCompile Include="DlgManualSearchPos1.cpp" />
+    <ClCompile Include="DlgManualSearchPos2.cpp" />
+    <ClCompile Include="DlgMPatternCornerSearchTool.cpp" />
+    <ClCompile Include="DLGMPatternPICKCornerSearchTool.cpp" />
+    <ClCompile Include="DlgMPatternPickSearchTool.cpp" />
+    <ClCompile Include="DlgMPatternSearchTool.cpp" />
+    <ClCompile Include="DlgMQuickCornerSearchTool.cpp" />
+    <ClCompile Include="DlgMQuickPickCornerSearchTool.cpp" />
+    <ClCompile Include="DlgMQuickPickSearchTool.cpp" />
+    <ClCompile Include="DlgMQuickSearchTool.cpp" />
+    <ClCompile Include="DlgObroundMeasureInspectTool.cpp" />
+    <ClCompile Include="DlgOffsetCalculate.cpp" />
+    <ClCompile Include="DlgOperationInfo.cpp" />
+    <ClCompile Include="DlgPatternBlobSearchTool.cpp" />
+    <ClCompile Include="DlgPatternChordSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCircle4LineSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCircleSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCornerCircleSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCornerLineSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCornerMulCircleSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCornerMulObroundTool.cpp" />
+    <ClCompile Include="DlgPatternCornerSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCornerSearchToolForCorner.cpp" />
+    <ClCompile Include="DlgPatternDoubleSearchTool.cpp" />
+    <ClCompile Include="DlgPatternLineCircleTool.cpp" />
+    <ClCompile Include="DlgPatternLineSearchTool.cpp" />
+    <ClCompile Include="DlgPatternMulCircleSearchTool.cpp" />
+    <ClCompile Include="DlgPatternPosLineDistanceTool.cpp" />
+    <ClCompile Include="DlgPatternRectSearchTool.cpp" />
+    <ClCompile Include="DlgPatternSearchCheckLineTool.cpp" />
+    <ClCompile Include="DlgPatternSearchCheckTool.cpp" />
+    <ClCompile Include="DlgPatternSearchGenRectTool.cpp" />
+    <ClCompile Include="DlgPatternSearchObroundTool.cpp" />
+    <ClCompile Include="DlgPatternVirtualRectSearchTool.cpp" />
+    <ClCompile Include="DlgPhotoLightCtrlSet.cpp" />
+    <ClCompile Include="DlgPlatformLayoutMode.cpp" />
+    <ClCompile Include="DlgProductOffsetSetting.cpp" />
+    <ClCompile Include="DlgProductShutter.cpp" />
+    <ClCompile Include="DlgQuickCircle4LineSearchTool.cpp" />
+    <ClCompile Include="DlgQuickCornerCircleSearchTool.cpp" />
+    <ClCompile Include="DlgQuickCornerMulObroundTool.cpp" />
+    <ClCompile Include="DlgQuickLineCircleSearchTool.cpp" />
+    <ClCompile Include="DlgQuickMulCircleSearchTool.cpp" />
+    <ClCompile Include="DlgQuickPosLineDistanceTool.cpp" />
+    <ClCompile Include="DlgQuickSearchCheckLineTool.cpp" />
+    <ClCompile Include="DlgQuickSearchCheckTool.cpp" />
+    <ClCompile Include="DlgQuickSearchGenRectTool.cpp" />
+    <ClCompile Include="DlgQuickSearchObroundTool.cpp" />
+    <ClCompile Include="DlgRectSearchTool.cpp" />
+    <ClCompile Include="DlgSysLayoutParamSetting.cpp" />
+    <ClCompile Include="DlgSysOption.cpp" />
+    <ClCompile Include="DlgSysOptionLightSetting.cpp" />
+    <ClCompile Include="DlgViewPosLayoutMode.cpp" />
+    <ClCompile Include="DlgVirtualRectSearchTool.cpp" />
+    <ClCompile Include="DlgRobotTeach.cpp" />
+    <ClCompile Include="DlgRobotTeachPos.cpp" />
+    <ClCompile Include="DlgRobotTeachRange.cpp" />
+    <ClCompile Include="DlgRobotTeachSG.cpp" />
+    <ClCompile Include="DlgRobotUserLogin.cpp" />
+    <ClCompile Include="DlgSearchFailWarning.cpp" />
+    <ClCompile Include="DlgSearchGrapchSetting.cpp" />
+    <ClCompile Include="DlgSearchToolCopyPos.cpp" />
+    <ClCompile Include="DlgSearchToolModelLibrary.cpp" />
+    <ClCompile Include="DlgSpecialPickSearchTool.cpp" />
+    <ClCompile Include="DlgSysKind.cpp" />
+    <ClCompile Include="DlgSysKindAlignCalibTarget.cpp" />
+    <ClCompile Include="DlgSysKindAlignInspect.cpp" />
+    <ClCompile Include="DlgSysKindAlignObject.cpp" />
+    <ClCompile Include="DlgSysKindAlignSetting.cpp" />
+    <ClCompile Include="DlgSysKindAlignTarget.cpp" />
+    <ClCompile Include="DlgSysKindAlignView.cpp" />
+    <ClCompile Include="DlgSysKindAlignVirtualObject.cpp" />
+    <ClCompile Include="DlgSysKindCalibSetting.cpp" />
+    <ClCompile Include="DlgSysPlatformOptionParam.cpp" />
+    <ClCompile Include="DlgSysRegister.cpp" />
+    <ClCompile Include="DlgSysResStatistics.cpp" />
+    <ClCompile Include="DlgSysStatusInfo.cpp" />
+    <ClCompile Include="DlgSystemInfo.cpp" />
+    <ClCompile Include="DlgTargetFixOffsetSetting.cpp" />
+    <ClCompile Include="DlgTwoPatModelSearchTool.cpp" />
+    <ClCompile Include="DlgTwoQuickModelSearchTool.cpp" />
+    <ClCompile Include="DlgVisionRun.cpp" />
+    <ClCompile Include="DlgVisionRunAlignInfo.cpp" />
+    <ClCompile Include="DlgVisionRunBendInspectInfo.cpp" />
+    <ClCompile Include="DlgVisionRunCommInfo.cpp" />
+    <ClCompile Include="DlgVisionRunProductInfo.cpp" />
+    <ClCompile Include="DlgVisionView2.cpp" />
+    <ClCompile Include="DmCodeCalibrate.cpp" />
+    <ClCompile Include="DmCodeCalibrateTool.cpp" />
+    <ClCompile Include="IdReaderBarCodeTool.cpp" />
+    <ClCompile Include="IdReaderDmCodeTool.cpp" />
+    <ClCompile Include="DynDialogEx.cpp" />
+    <ClCompile Include="DynDialogItemEx.cpp" />
+    <ClCompile Include="HorizontalLayout.cpp" />
+    <ClCompile Include="Layout.cpp" />
+    <ClCompile Include="LightController.cpp" />
+    <ClCompile Include="LogFileSave.cpp" />
+    <ClCompile Include="MPatternCornerSearchTool.cpp" />
+    <ClCompile Include="MPatternPickCornerSearchTool.cpp" />
+    <ClCompile Include="MPatternPickSearchTool.cpp" />
+    <ClCompile Include="MPatternSearchTool.cpp" />
+    <ClCompile Include="MQuickCornerSearchTool.cpp" />
+    <ClCompile Include="MQuickPickCornerSearchTool.cpp" />
+    <ClCompile Include="MQuickPickSearchTool.cpp" />
+    <ClCompile Include="MQuickSearchTool.cpp" />
+    <ClCompile Include="OperationInfoUiThread.cpp" />
+    <ClCompile Include="PatCornerSearchTool.cpp" />
+    <ClCompile Include="PatternBlobSearchTool.cpp" />
+    <ClCompile Include="PatternChordSearchTool.cpp" />
+    <ClCompile Include="PatternCircle4LineSearchTool.cpp" />
+    <ClCompile Include="PatternCircleSearchTool.cpp" />
+    <ClCompile Include="PatternCornerCircleSearchTool.cpp" />
+    <ClCompile Include="PatternCornerLineSearchTool.cpp" />
+    <ClCompile Include="PatternCornerMulCircleSearchTool.cpp" />
+    <ClCompile Include="PatternCornerMulObroundTool.cpp" />
+    <ClCompile Include="PatternCornerSearchTool.cpp" />
+    <ClCompile Include="PatternDoubleSearchTool.cpp" />
+    <ClCompile Include="PatternLineCircleTool.cpp" />
+    <ClCompile Include="PatternLineSearchTool.cpp" />
+    <ClCompile Include="PatternMulCircleSearchTool.cpp" />
+    <ClCompile Include="PatternPosLineDistanceTool.cpp" />
+    <ClCompile Include="PatternRectSearchTool.cpp" />
+    <ClCompile Include="PatternSearchCheckLineTool.cpp" />
+    <ClCompile Include="PatternSearchCheckTool.cpp" />
+    <ClCompile Include="PatternSearchGenRectTool.cpp" />
+    <ClCompile Include="PatternSearchObroundTool.cpp" />
+    <ClCompile Include="PatternVirtualRectSearchTool.cpp" />
+    <ClCompile Include="QuickCircle4LineSearchTool.cpp" />
+    <ClCompile Include="QuickCornerCircleSearchTool.cpp" />
+    <ClCompile Include="QuickCornerMulObroundTool.cpp" />
+    <ClCompile Include="QuickLineCircleTool.cpp" />
+    <ClCompile Include="QuickMulCircleSearchTool.cpp" />
+    <ClCompile Include="QuickPosLineDistanceTool.cpp" />
+    <ClCompile Include="QuickSearchCheckLineTool.cpp" />
+    <ClCompile Include="QuickSearchCheckTool.cpp" />
+    <ClCompile Include="QuickSearchGenRectTool.cpp" />
+    <ClCompile Include="QuickSearchObroundTool.cpp" />
+    <ClCompile Include="RectSearchTool.cpp" />
+    <ClCompile Include="SpecialPickSearchTool.cpp" />
+    <ClCompile Include="SplashScreenEx.cpp" />
+    <ClCompile Include="svGuiCrossVar.cpp" />
+    <ClCompile Include="VerticalLayout.cpp" />
+    <ClCompile Include="VirtualRectSearchTool.cpp" />
+    <ClCompile Include="SystemCompanyInfo.cpp" />
+    <ClCompile Include="SystemStatusInfo.cpp" />
+    <ClCompile Include="TwoPatModelSearchTool.cpp" />
+    <ClCompile Include="TwoQuickModelSearchTool.cpp" />
+    <ClCompile Include="VisionAlignGui.cpp" />
+    <ClCompile Include="vsEn_Decrypt.cpp" />
+    <ClCompile Include="vsRegisterString.cpp" />
+    <ClCompile Include="BaseSearchTool.cpp" />
+    <ClCompile Include="CircleSearchTool.cpp" />
+    <ClCompile Include="CornerSearchTool.cpp" />
+    <ClCompile Include="CrossSearchTool.cpp" />
+    <ClCompile Include="FixedPosSearchTool.cpp" />
+    <ClCompile Include="LineSearch2Tool.cpp" />
+    <ClCompile Include="LineSearchTool.cpp" />
+    <ClCompile Include="PatternSearchTool.cpp" />
+    <ClCompile Include="ProCircleSearchTool.cpp" />
+    <ClCompile Include="QuickSearchTool.cpp" />
+    <ClCompile Include="vsBaseVisionAlign.cpp" />
+    <ClCompile Include="vsVisionAlignDef.cpp" />
+    <ClCompile Include="BCMenu.cpp" />
+    <ClCompile Include="BtnST.cpp" />
+    <ClCompile Include="Keyboard.cpp" />
+    <ClCompile Include="Label.cpp" />
+    <ClCompile Include="SHA256.CPP" />
+    <ClCompile Include="Splash.cpp" />
+    <ClCompile Include="StdAfx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="ThemeHelperST.cpp" />
+    <ClCompile Include="vsXYDVisionAlign.cpp" />
+    <ClCompile Include="vsXYDVisionAlignCheck.cpp" />
+    <ClCompile Include="vsXYDVisionAlignEx.cpp" />
+    <ClCompile Include="vsXYDVisionAlignRobot.cpp" />
+    <ClCompile Include="XPStyleButtonST.cpp" />
+    <ClCompile Include="DlgBenchMarkAmend.cpp" />
+    <ClCompile Include="DlgCircleSearchTool.cpp" />
+    <ClCompile Include="DlgCornerSearchTool.cpp" />
+    <ClCompile Include="DlgCrossSearchTool.cpp" />
+    <ClCompile Include="DlgFixedPosSearchTool.cpp" />
+    <ClCompile Include="DlgLineSearchTool.cpp" />
+    <ClCompile Include="DlgMaskEdit.cpp" />
+    <ClCompile Include="DlgPatCornerSearchTool.cpp" />
+    <ClCompile Include="DlgPatternCenterSet.cpp" />
+    <ClCompile Include="DlgPatternSearchTool.cpp" />
+    <ClCompile Include="DlgProCircleSearchTool.cpp" />
+    <ClCompile Include="DlgProductRename.cpp" />
+    <ClCompile Include="DlgQuickSearchTool.cpp" />
+    <ClCompile Include="DlgSearch.cpp" />
+    <ClCompile Include="DlgSetCameraSerial.cpp" />
+    <ClCompile Include="DlgSysBaseCommSetting.cpp" />
+    <ClCompile Include="DlgSysCommSetting.cpp" />
+    <ClCompile Include="DlgSysDataRecord.cpp" />
+    <ClCompile Include="DlgSysEnvironSetting.cpp" />
+    <ClCompile Include="DlgSysImgRoiParam.cpp" />
+    <ClCompile Include="DlgSysOptionSetting.cpp" />
+    <ClCompile Include="DlgSysPlatformParam.cpp" />
+    <ClCompile Include="DlgSysPlatformX1X2YParam.cpp" />
+    <ClCompile Include="DlgSysPlatformXY1Y2Param.cpp" />
+    <ClCompile Include="DlgSysPlatformXYDParam.cpp" />
+    <ClCompile Include="DlgSysPlatformYDPX1X2Param.cpp" />
+    <ClCompile Include="DlgSysPlatformYX1X2PDParam.cpp" />
+    <ClCompile Include="DlgSysSerialCommSetting.cpp" />
+    <ClCompile Include="DlgSysSocketCommSetting.cpp" />
+    <ClCompile Include="DlgSysUserLogin.cpp" />
+    <ClCompile Include="DlgSysUserPasswordSetting.cpp" />
+    <ClCompile Include="SystemConfigure.cpp" />
+    <ClCompile Include="SystemOptionConfig.cpp" />
+    <ClCompile Include="VisionASM.cpp" />
+    <ClCompile Include="VisionASMDlg.cpp" />
+    <ClCompile Include="vsDisplayModule.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VisionASM.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="2PatternSearchTool.h" />
+    <ClInclude Include="ACFInspectTool.h" />
+    <ClInclude Include="AreaInspectPickTool.h" />
+    <ClInclude Include="AreaInspectTool.h" />
+    <ClInclude Include="AreaInspectToolEx.h" />
+    <ClInclude Include="base64.h" />
+    <ClInclude Include="BaseCornerSearchTool.h" />
+    <ClInclude Include="CDlgPCBSetting.h" />
+    <ClInclude Include="CDlgWeldInfo.h" />
+    <ClInclude Include="ChordSearchTool.h" />
+    <ClInclude Include="CircleCornerSearchCheckInsp.ectTool.h" />
+    <ClInclude Include="CombinationCornerSearchTool.h" />
+    <ClInclude Include="CombinedPatternSearchTool.h" />
+    <ClInclude Include="CombinedQuickSearch.h" />
+    <ClInclude Include="ComboBoxColor.h" />
+    <ClInclude Include="CommProtocolProcess.h" />
+    <ClInclude Include="CommProtocolXYDFast.h" />
+    <ClInclude Include="CornerSearchCheckInspectTool.h" />
+    <ClInclude Include="CornerSearchCheckTool.h" />
+    <ClInclude Include="Dlg2PatternSearchTool.h" />
+    <ClInclude Include="DlgAcfAlignSet.h" />
+    <ClInclude Include="DlgACFInspectTool.h" />
+    <ClInclude Include="DlgACFInspectToolUI.h" />
+    <ClInclude Include="DlgAlignOffsetByAreaSet.h" />
+    <ClInclude Include="DlgAlignOffsetDirectionSetting.h" />
+    <ClInclude Include="DlgAreaInspect.h" />
+    <ClInclude Include="DlgAreaInspectEx.h" />
+    <ClInclude Include="DlgAreaInspectPickTool.h" />
+    <ClInclude Include="DlgAuthorizeSet.h" />
+    <ClInclude Include="DlgBaseCornerSearchTool.h" />
+    <ClInclude Include="DLGBendSetting.h" />
+    <ClInclude Include="DlgBlobSearchParamSet.h" />
+    <ClInclude Include="DlgCalcuBenchPick.h" />
+    <ClInclude Include="DlgCalibAxisDirection.h" />
+    <ClInclude Include="DlgCalibCopy.h" />
+    <ClInclude Include="DlgCalibObjectPos2Code.h" />
+    <ClInclude Include="DlgCalibTargetShutterSetting.h" />
+    <ClInclude Include="DlgCombinedCornerSearchTool.h" />
+    <ClInclude Include="DlgCommTypeSetting.h" />
+    <ClInclude Include="DLGEightShapeAlignSetting.h" />
+    <ClInclude Include="DlgCalcuVirtualObject.h" />
+    <ClInclude Include="DlgCalcuVirtualObject4.h" />
+    <ClInclude Include="DlgCalibCheckByFixedTargetAligner.h" />
+    <ClInclude Include="DlgCalibCheckBySize.h" />
+    <ClInclude Include="DlgCalibObjectPos.h" />
+    <ClInclude Include="DlgCalibObjectPos2Board.h" />
+    <ClInclude Include="DlgCalibObjectPos8.h" />
+    <ClInclude Include="DlgCalibrateEvaluate.h" />
+    <ClInclude Include="DlgCalibResult.h" />
+    <ClInclude Include="DlgCalibTargetDmCodeParam.h" />
+    <ClInclude Include="DlgCalibTargetPos.h" />
+    <ClInclude Include="DlgCalibTargetPos2.h" />
+    <ClInclude Include="DlgCalibTargetPos4Board.h" />
+    <ClInclude Include="DlgCalibTargetPos8Board.h" />
+    <ClInclude Include="DlgCalibTargetPos8.h" />
+    <ClInclude Include="DlgChordSearchTool.h" />
+    <ClInclude Include="DlgCircleCornerSearchCheckInspectTool.h" />
+    <ClInclude Include="DlgCircleDoubleMeasureInspectTool.h" />
+    <ClInclude Include="DlgCircleMeasureInspectTool.h" />
+    <ClInclude Include="DlgCircleResultOffset.h" />
+    <ClInclude Include="DlgCircleToLineDistanceTool.h" />
+    <ClInclude Include="DlgCombinedPatternSearchTool.h" />
+    <ClInclude Include="DlgCombinedQuickSearchTool.h" />
+    <ClInclude Include="DlgCommParamSetting.h" />
+    <ClInclude Include="DlgCornerSearchCheckInspectTool.h" />
+    <ClInclude Include="DlgCornerSearchCheckTool.h" />
+    <ClInclude Include="DlgCornerSearchToolForCorner.h" />
+    <ClInclude Include="DlgCrossSetting.h" />
+    <ClInclude Include="DlgDistorCorrImage.h" />
+    <ClInclude Include="DlgDmCodeCalibrateTool.h" />
+    <ClInclude Include="DlgDmCodeShutterSetting.h" />
+    <ClInclude Include="DlgFind4LineParamSet.h" />
+    <ClInclude Include="DlgHistogramForSpecicalPick.h" />
+    <ClInclude Include="DlgIdReaderBarCodeToolSetting.h" />
+    <ClInclude Include="DlgIdReaderDmCodeTool.h" />
+    <ClInclude Include="DlgLightCtrlRename.h" />
+    <ClInclude Include="DlgLightCtrlSetting.h" />
+    <ClInclude Include="DlgLineToLineDistanceTool.h" />
+    <ClInclude Include="DlgManualMeasure.h" />
+    <ClInclude Include="DlgManualSearch.h" />
+    <ClInclude Include="DlgManualSearchCalib.h" />
+    <ClInclude Include="DlgManualSearchPos1.h" />
+    <ClInclude Include="DlgManualSearchPos2.h" />
+    <ClInclude Include="DlgMPatternCornerSearchTool.h" />
+    <ClInclude Include="DLGMPatternPICKCornerSearchTool.h" />
+    <ClInclude Include="DlgMPatternPickSearchTool.h" />
+    <ClInclude Include="DlgMPatternSearchTool.h" />
+    <ClInclude Include="DlgMQuickCornerSearchTool.h" />
+    <ClInclude Include="DlgMQuickPickCornerSearchTool.h" />
+    <ClInclude Include="DlgMQuickPickSearchTool.h" />
+    <ClInclude Include="DlgMQuickSearchTool.h" />
+    <ClInclude Include="DlgObroundMeasureInspectTool.h" />
+    <ClInclude Include="DlgOffsetCalculate.h" />
+    <ClInclude Include="DlgOperationInfo.h" />
+    <ClInclude Include="DlgPatternBlobSearchTool.h" />
+    <ClInclude Include="DlgPatternChordSearchTool.h" />
+    <ClInclude Include="DlgPatternCircle4LineSearchTool.h" />
+    <ClInclude Include="DlgPatternCircleSearchTool.h" />
+    <ClInclude Include="DlgPatternCornerCircleSearchTool.h" />
+    <ClInclude Include="DlgPatternCornerLineSearchTool.h" />
+    <ClInclude Include="DlgPatternCornerMulCircleSearchTool.h" />
+    <ClInclude Include="DlgPatternCornerMulObroundTool.h" />
+    <ClInclude Include="DlgPatternCornerSearchTool.h" />
+    <ClInclude Include="DlgPatternCornerSearchToolForCorner.h" />
+    <ClInclude Include="DlgPatternDoubleSearchTool.h" />
+    <ClInclude Include="DlgPatternLineCircleTool.h" />
+    <ClInclude Include="DlgPatternLineSearchTool.h" />
+    <ClInclude Include="DlgPatternMulCircleSearchTool.h" />
+    <ClInclude Include="DlgPatternPosLineDistanceTool.h" />
+    <ClInclude Include="DlgPatternRectSearchTool.h" />
+    <ClInclude Include="DlgPatternSearchCheckLineTool.h" />
+    <ClInclude Include="DlgPatternSearchCheckTool.h" />
+    <ClInclude Include="DlgPatternSearchGenRectTool.h" />
+    <ClInclude Include="DlgPatternSearchObroundTool.h" />
+    <ClInclude Include="DlgPatternVirtualRectSearchTool.h" />
+    <ClInclude Include="DlgPhotoLightCtrlSet.h" />
+    <ClInclude Include="DlgPlatformLayoutMode.h" />
+    <ClInclude Include="DlgProductOffsetSetting.h" />
+    <ClInclude Include="DlgProductShutter.h" />
+    <ClInclude Include="DlgQuickCircle4LineSearchTool.h" />
+    <ClInclude Include="DlgQuickCornerCircleSearchTool.h" />
+    <ClInclude Include="DlgQuickCornerMulObroundTool.h" />
+    <ClInclude Include="DlgQuickLineCircleSearchTool.h" />
+    <ClInclude Include="DlgQuickMulCircleSearchTool.h" />
+    <ClInclude Include="DlgQuickSearchCheckLineTool.h" />
+    <ClInclude Include="DlgQuickSearchCheckTool.h" />
+    <ClInclude Include="DlgQuickSearchGenRectTool.h" />
+    <ClInclude Include="DlgQuickSearchObroundTool.h" />
+    <ClInclude Include="DlgRectSearchTool.h" />
+    <ClInclude Include="DlgSysLayoutParamSetting.h" />
+    <ClInclude Include="DlgSysOption.h" />
+    <ClInclude Include="DlgSysOptionLightSetting.h" />
+    <ClInclude Include="DlgViewPosLayoutMode.h" />
+    <ClInclude Include="DlgVirtualRectSearchTool.h" />
+    <ClInclude Include="DlgRobotTeach.h" />
+    <ClInclude Include="DlgRobotTeachPos.h" />
+    <ClInclude Include="DlgRobotTeachRange.h" />
+    <ClInclude Include="DlgRobotTeachSG.h" />
+    <ClInclude Include="DlgRobotUserLogin.h" />
+    <ClInclude Include="DlgSearchFailWarning.h" />
+    <ClInclude Include="DlgSearchGrapchSetting.h" />
+    <ClInclude Include="DlgSearchToolCopyPos.h" />
+    <ClInclude Include="DlgSearchToolModelLibrary.h" />
+    <ClInclude Include="DlgSpecialPickSearchTool.h" />
+    <ClInclude Include="DlgSysKind.h" />
+    <ClInclude Include="DlgSysKindAlignCalibTarget.h" />
+    <ClInclude Include="DlgSysKindAlignInspect.h" />
+    <ClInclude Include="DlgSysKindAlignObject.h" />
+    <ClInclude Include="DlgSysKindAlignSetting.h" />
+    <ClInclude Include="DlgSysKindAlignTarget.h" />
+    <ClInclude Include="DlgSysKindAlignView.h" />
+    <ClInclude Include="DlgSysKindAlignVirtualObject.h" />
+    <ClInclude Include="DlgSysKindCalibSetting.h" />
+    <ClInclude Include="DlgSysPlatformOptionParam.h" />
+    <ClInclude Include="DlgSysRegister.h" />
+    <ClInclude Include="DlgSysResStatistics.h" />
+    <ClInclude Include="DlgSysStatusInfo.h" />
+    <ClInclude Include="DlgSystemInfo.h" />
+    <ClInclude Include="DlgTargetFixOffsetSetting.h" />
+    <ClInclude Include="DlgTwoPatModelSearchTool.h" />
+    <ClInclude Include="DlgTwoQuickModelSearchTool.h" />
+    <ClInclude Include="DlgVisionRun.h" />
+    <ClInclude Include="DlgVisionRunAlignInfo.h" />
+    <ClInclude Include="DlgVisionRunBendInspectInfo.h" />
+    <ClInclude Include="DlgVisionRunCommInfo.h" />
+    <ClInclude Include="DlgVisionRunProductInfo.h" />
+    <ClInclude Include="DlgVisionView2.h" />
+    <ClInclude Include="DmCodeCalibrate.h" />
+    <ClInclude Include="DmCodeCalibrateTool.h" />
+    <ClInclude Include="IdReaderBarCodeTool.h" />
+    <ClInclude Include="IdReaderDmCodeTool.h" />
+    <ClInclude Include="DynDialogEx.h" />
+    <ClInclude Include="DynDialogItemEx.h" />
+    <ClInclude Include="HorizontalLayout.h" />
+    <ClInclude Include="Layout.h" />
+    <ClInclude Include="LightController.h" />
+    <ClInclude Include="LogFileSave.h" />
+    <ClInclude Include="MOTIONDLL.H" />
+    <ClInclude Include="MPatternCornerSearchTool.h" />
+    <ClInclude Include="MPatternPickCornerSearchTool.h" />
+    <ClInclude Include="MPatternPickSearchTool.h" />
+    <ClInclude Include="MPatternSearchTool.h" />
+    <ClInclude Include="MQuickCornerSearchTool.h" />
+    <ClInclude Include="MQuickPickCornerSearchTool.h" />
+    <ClInclude Include="MQuickPickSearchTool.h" />
+    <ClInclude Include="MQuickSearchTool.h" />
+    <ClInclude Include="OperationInfoUiThread.h" />
+    <ClInclude Include="PatternBlobSearchTool.h" />
+    <ClInclude Include="PatternChordSearchTool.h" />
+    <ClInclude Include="PatternCircle4LineSearchTool.h" />
+    <ClInclude Include="PatternCircleSearchTool.h" />
+    <ClInclude Include="PatternCornerCircleSearchTool.h" />
+    <ClInclude Include="PatternCornerLineSearchTool.h" />
+    <ClInclude Include="PatternCornerMulCircleSearchTool.h" />
+    <ClInclude Include="PatternCornerMulObroundTool.h" />
+    <ClInclude Include="PatternCornerSearchTool.h" />
+    <ClInclude Include="PatternDoubleSearchTool.h" />
+    <ClInclude Include="PatternLineCircleTool.h" />
+    <ClInclude Include="PatternLineSearchTool.h" />
+    <ClInclude Include="PatternMulCircleSearchTool.h" />
+    <ClInclude Include="PatternPosLineDistanceTool.h" />
+    <ClInclude Include="PatternRectSearchTool.h" />
+    <ClInclude Include="PatternSearchCheckLineTool.h" />
+    <ClInclude Include="PatternSearchCheckTool.h" />
+    <ClInclude Include="PatternSearchGenRectTool.h" />
+    <ClInclude Include="PatternSearchObroundTool.h" />
+    <ClInclude Include="PatternSearchTool.h" />
+    <ClInclude Include="PatternVirtualRectSearchTool.h" />
+    <ClInclude Include="QuickCircle4LineSearchTool.h" />
+    <ClInclude Include="QuickCornerCircleSearchTool.h" />
+    <ClInclude Include="QuickCornerMulObroundTool.h" />
+    <ClInclude Include="QuickLineCircleTool.h" />
+    <ClInclude Include="QuickMulCircleSearchTool.h" />
+    <ClInclude Include="QuickSearchCheckLineTool.h" />
+    <ClInclude Include="QuickSearchCheckTool.h" />
+    <ClInclude Include="QuickSearchGenRectTool.h" />
+    <ClInclude Include="QuickSearchObroundTool.h" />
+    <ClInclude Include="RectSearchTool.h" />
+    <ClInclude Include="RegisterAddressDef.h" />
+    <ClInclude Include="SpecialPickSearchTool.h" />
+    <ClInclude Include="SplashScreenEx.h" />
+    <ClInclude Include="svGuiCrossVar.h" />
+    <ClInclude Include="VerticalLayout.h" />
+    <ClInclude Include="VirtualRectSearchTool.h" />
+    <ClInclude Include="SystemCompanyInfo.h" />
+    <ClInclude Include="SystemStatusInfo.h" />
+    <ClInclude Include="TwoPatModelSearchTool.h" />
+    <ClInclude Include="TwoQuickModelSearchTool.h" />
+    <ClInclude Include="VisionAlignGui.h" />
+    <ClInclude Include="vsCamera.h" />
+    <ClInclude Include="vsEn_Decrypt.h" />
+    <ClInclude Include="vsRegisterString.h" />
+    <ClInclude Include="BaseSearchTool.h" />
+    <ClInclude Include="CircleSearchTool.h" />
+    <ClInclude Include="CornerSearchTool.h" />
+    <ClInclude Include="CrossSearchTool.h" />
+    <ClInclude Include="FixedPosSearchTool.h" />
+    <ClInclude Include="LineSearch2Tool.h" />
+    <ClInclude Include="LineSearchTool.h" />
+    <ClInclude Include="PatCornerSearchTool.h" />
+    <ClInclude Include="ProCircleSearchTool.h" />
+    <ClInclude Include="QuickSearchTool.h" />
+    <ClInclude Include="vsVisionAlignDef.h" />
+    <ClInclude Include="vsXYDVisionAlign.h" />
+    <ClInclude Include="BCMenu.h" />
+    <ClInclude Include="BtnST.h" />
+    <ClInclude Include="Keyboard.h" />
+    <ClInclude Include="Label.h" />
+    <ClInclude Include="Language.h" />
+    <ClInclude Include="SHA256.H" />
+    <ClInclude Include="ThemeHelperST.h" />
+    <ClInclude Include="XPStyleButtonST.h" />
+    <ClInclude Include="DlgBenchMarkAmend.h" />
+    <ClInclude Include="DlgCircleSearchTool.h" />
+    <ClInclude Include="DlgCornerSearchTool.h" />
+    <ClInclude Include="DlgCrossSearchTool.h" />
+    <ClInclude Include="DlgFixedPosSearchTool.h" />
+    <ClInclude Include="DlgLineSearchTool.h" />
+    <ClInclude Include="DlgMaskEdit.h" />
+    <ClInclude Include="DlgPatCornerSearchTool.h" />
+    <ClInclude Include="DlgPatternCenterSet.h" />
+    <ClInclude Include="DlgPatternSearchTool.h" />
+    <ClInclude Include="DlgProCircleSearchTool.h" />
+    <ClInclude Include="DlgProductRename.h" />
+    <ClInclude Include="DlgQuickSearchTool.h" />
+    <ClInclude Include="DlgSearch.h" />
+    <ClInclude Include="DlgSetCameraSerial.h" />
+    <ClInclude Include="DlgSysBaseCommSetting.h" />
+    <ClInclude Include="DlgSysCommSetting.h" />
+    <ClInclude Include="DlgSysDataRecord.h" />
+    <ClInclude Include="DlgSysEnvironSetting.h" />
+    <ClInclude Include="DlgSysImgRoiParam.h" />
+    <ClInclude Include="DlgSysOptionSetting.h" />
+    <ClInclude Include="DlgSysPlatformParam.h" />
+    <ClInclude Include="DlgSysPlatformX1X2YParam.h" />
+    <ClInclude Include="DlgSysPlatformXY1Y2Param.h" />
+    <ClInclude Include="DlgSysPlatformXYDParam.h" />
+    <ClInclude Include="DlgSysPlatformYDPX1X2Param.h" />
+    <ClInclude Include="DlgSysPlatformYX1X2PDParam.h" />
+    <ClInclude Include="DlgSysSerialCommSetting.h" />
+    <ClInclude Include="DlgSysSocketCommSetting.h" />
+    <ClInclude Include="DlgSysUserLogin.h" />
+    <ClInclude Include="DlgSysUserPasswordSetting.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="Splash.h" />
+    <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="SysPlatformInfo.h" />
+    <ClInclude Include="SystemConfigure.h" />
+    <ClInclude Include="SystemOptionConfig.h" />
+    <ClInclude Include="VisionASM.h" />
+    <ClInclude Include="VisionASMDlg.h" />
+    <ClInclude Include="vsBaseVisionAlign.h" />
+    <ClInclude Include="vsDisplayModule.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="res\Connect32.ico" />
+    <CustomBuild Include="res\DisConnect32.ico" />
+    <CustomBuild Include="res\down.ico" />
+    <CustomBuild Include="res\ErrLamp16.ico" />
+    <CustomBuild Include="res\ErrLamp32.ico" />
+    <CustomBuild Include="res\icon1.ico" />
+    <CustomBuild Include="res\icon2.ico" />
+    <CustomBuild Include="res\icon_fai.ico" />
+    <CustomBuild Include="res\icon_suc.ico" />
+    <CustomBuild Include="res\iconSucceed16.ico" />
+    <CustomBuild Include="res\INIT.bmp" />
+    <CustomBuild Include="res\left.ico" />
+    <CustomBuild Include="res\OKLamp16.ico" />
+    <CustomBuild Include="res\OKLamp32.ico" />
+    <CustomBuild Include="res\right.ico" />
+    <CustomBuild Include="res\up.ico" />
+    <CustomBuild Include="res\VisionASM.ico" />
+    <CustomBuild Include="res\VisionASM.rc2">
+      <FileType>RC</FileType>
+    </CustomBuild>
+    <CustomBuild Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\iconAdminLoad48.ico" />
+    <None Include="res\iconEnvironMentConfig48.ico" />
+    <None Include="res\iconExit48.ico" />
+    <None Include="res\iconItemConfig48.ico" />
+    <None Include="res\iconProductManage48.ico" />
+    <None Include="res\iconRun48.ico" />
+    <None Include="res\iconShutDown48.ico" />
+    <None Include="res\产品设置-48x48.ico" />
+    <None Include="res\停止-48x48.ico" />
+    <None Include="res\关机2-48x48.ico" />
+    <None Include="res\开始-48x48.ico" />
+    <None Include="res\登录-48x48.ico" />
+    <None Include="res\系统设置-48x48.ico" />
+    <None Include="res\退出2-48x48.ico" />
+    <None Include="res\选项-48x48.ico" />
+    <None Include="\res\iconAdminLoad48.ico" />
+    <None Include="\res\iconEnvironMentConfig48.ico" />
+    <None Include="\res\iconItemConfig48.ico" />
+    <None Include="\res\iconProductManage48.ico" />
+    <None Include="\res\iconRun48.ico" />
+    <None Include="\res\iconExit48.ico" />
+    <None Include="\res\iconShutDown48.ico" />
+    <None Include="\res\StartExe.bmp" />
+    <None Include="res\0.bmp" />
+    <None Include="res\1.bmp" />
+    <None Include="res\2.bmp" />
+    <None Include="res\3.bmp" />
+    <None Include="res\4.bmp" />
+    <None Include="res\bin241.bin" />
+    <None Include="res\bitmap3.bmp" />
+    <None Include="res\bmp00001.bmp" />
+    <None Include="res\bmp00002.bmp" />
+    <None Include="res\icon3.ico" />
+    <None Include="res\IDC_BITMAP_DMCODE.bmp" />
+    <None Include="res\IDC_BITMAP_DMCODE4.bmp" />
+    <None Include="res\idr_main.ico" />
+    <None Include="res\splash_v.bmp" />
+    <None Include="res\Tick.ico" />
+    <None Include="res\Tree View.ico" />
+    <None Include="res\公司LOGO32.bmp" />
+    <None Include="res\靶标示意图.bmp" />
+    <None Include="res\靶标示意图1.bmp" />
+    <None Include="res\靶标示意图2.bmp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="VisionASM.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

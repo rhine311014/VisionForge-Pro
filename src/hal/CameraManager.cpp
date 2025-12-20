@@ -34,6 +34,9 @@ CameraManager::CameraManager()
     , cameraIdCounter_(0)
     , groupIdCounter_(0)
 {
+    // 创建Action Command UDP套接字
+    actionCommandSocket_ = std::make_unique<QUdpSocket>(this);
+
     LOG_INFO("CameraManager初始化");
 }
 
@@ -902,8 +905,306 @@ void CameraManager::clear()
     cameras_.clear();
     cameraInfos_.clear();
     groups_.clear();
+    groupSyncConfigs_.clear();
 
     LOG_INFO("清空所有相机和分组");
+}
+
+// ============================================================
+// 硬件同步采集
+// ============================================================
+
+BatchCaptureResult CameraManager::captureWithHardwareSync(
+    const QStringList& cameraIds,
+    const HardwareSyncCaptureConfig& syncConfig)
+{
+    BatchCaptureResult result;
+    QElapsedTimer timer;
+    timer.start();
+
+    if (cameraIds.isEmpty()) {
+        LOG_WARNING("硬件同步采集: 相机列表为空");
+        return result;
+    }
+
+    LOG_INFO(QString("开始硬件同步采集, 相机数: %1, 触发模式: %2")
+             .arg(cameraIds.size())
+             .arg(static_cast<int>(syncConfig.triggerMode)));
+
+    // 1. 配置所有相机为硬件触发模式
+    for (const QString& cameraId : cameraIds) {
+        ICamera* camera = getCamera(cameraId);
+        if (camera && camera->isOpen()) {
+            // 配置扩展触发模式
+            camera->setTriggerModeEx(syncConfig.triggerMode);
+
+            // 如果是Action Command模式，配置Action Command
+            if (syncConfig.triggerMode == TriggerModeEx::ActionCommand) {
+                camera->configureActionCommand(syncConfig.actionCmd);
+            }
+
+            // 开始采集
+            camera->startGrabbing();
+        }
+    }
+
+    // 2. 预触发延迟
+    if (syncConfig.preTriggerDelayUs > 0) {
+        GPIOController::delayMicroseconds(syncConfig.preTriggerDelayUs);
+    }
+
+    // 3. 发送触发信号
+    bool triggerSuccess = false;
+    qint64 triggerTimestamp = QDateTime::currentMSecsSinceEpoch();
+
+    switch (syncConfig.triggerMode) {
+    case TriggerModeEx::ActionCommand:
+        triggerSuccess = sendActionCommand(syncConfig.actionCmd);
+        break;
+
+    case TriggerModeEx::ExternalGPIO:
+        if (gpioController_ && gpioController_->isOpen()) {
+            triggerSuccess = gpioController_->outputPulse(
+                syncConfig.gpioConfig.pinNumber,
+                syncConfig.gpioConfig.pulseWidthUs,
+                syncConfig.gpioConfig.activeHigh);
+        }
+        break;
+
+    case TriggerModeEx::Hardware:
+        // 硬件触发由外部信号控制，这里只等待
+        triggerSuccess = true;
+        break;
+
+    case TriggerModeEx::Software:
+        // 软件触发模式下，直接触发所有相机
+        for (const QString& cameraId : cameraIds) {
+            ICamera* camera = getCamera(cameraId);
+            if (camera && camera->isOpen()) {
+                camera->trigger();
+            }
+        }
+        triggerSuccess = true;
+        break;
+
+    default:
+        break;
+    }
+
+    if (!triggerSuccess) {
+        LOG_ERROR("硬件同步采集: 发送触发信号失败");
+        result.allSuccess = false;
+        return result;
+    }
+
+    // 4. 后触发延迟
+    if (syncConfig.postTriggerDelayUs > 0) {
+        GPIOController::delayMicroseconds(syncConfig.postTriggerDelayUs);
+    }
+
+    // 5. 并行采集图像
+    QList<QFuture<CaptureResult>> futures;
+
+    for (const QString& cameraId : cameraIds) {
+        QFuture<CaptureResult> future = QtConcurrent::run([this, cameraId, syncConfig, triggerTimestamp]() {
+            CaptureResult captureResult;
+            captureResult.cameraId = cameraId;
+            captureResult.timestamp = triggerTimestamp;
+
+            ICamera* camera = getCamera(cameraId);
+            if (!camera || !camera->isOpen()) {
+                captureResult.success = false;
+                captureResult.errorMessage = "相机未连接";
+                return captureResult;
+            }
+
+            QElapsedTimer captureTimer;
+            captureTimer.start();
+
+            Base::ImageData::Ptr image = camera->grabImage(syncConfig.timeoutMs);
+
+            captureResult.captureTime = captureTimer.elapsed();
+
+            if (image && !image->isEmpty()) {
+                captureResult.success = true;
+                captureResult.image = image;
+            } else {
+                captureResult.success = false;
+                captureResult.errorMessage = "采集超时或失败";
+            }
+
+            return captureResult;
+        });
+        futures.append(future);
+    }
+
+    // 6. 等待所有采集完成
+    for (int i = 0; i < futures.size(); ++i) {
+        futures[i].waitForFinished();
+        CaptureResult captureResult = futures[i].result();
+        result.results[captureResult.cameraId] = captureResult;
+
+        if (captureResult.success) {
+            result.successCount++;
+        } else {
+            result.failCount++;
+        }
+    }
+
+    // 7. 停止采集
+    for (const QString& cameraId : cameraIds) {
+        ICamera* camera = getCamera(cameraId);
+        if (camera && camera->isGrabbing()) {
+            camera->stopGrabbing();
+        }
+    }
+
+    result.totalTime = timer.elapsed();
+    result.allSuccess = (result.failCount == 0) && (result.successCount > 0);
+
+    // 8. 验证同步精度
+    if (syncConfig.validateSyncAccuracy && result.allSuccess) {
+        result.syncAccuracyUs = validateSyncAccuracy(result);
+
+        if (result.syncAccuracyUs > syncConfig.maxSyncErrorUs) {
+            LOG_WARNING(QString("硬件同步精度超出允许范围: %.2f us > %d us")
+                       .arg(result.syncAccuracyUs)
+                       .arg(syncConfig.maxSyncErrorUs));
+        }
+    }
+
+    LOG_INFO(QString("硬件同步采集完成, 成功: %1/%2, 耗时: %.1f ms, 同步精度: %.2f us")
+             .arg(result.successCount)
+             .arg(cameraIds.size())
+             .arg(result.totalTime)
+             .arg(result.syncAccuracyUs));
+
+    emit batchCaptureCompleted(result);
+    return result;
+}
+
+bool CameraManager::sendActionCommand(const ActionCommandConfig& config)
+{
+    if (!config.enabled) {
+        LOG_WARNING("Action Command未启用");
+        return false;
+    }
+
+    // 构建Action Command数据包 (GigE Vision规范)
+    // Action Command包结构:
+    // - Device Key (4 bytes)
+    // - Group Key (4 bytes)
+    // - Group Mask (4 bytes)
+    // - 保留字段
+
+    QByteArray packet;
+    packet.resize(16);
+
+    // 大端序
+    packet[0] = (config.deviceKey >> 24) & 0xFF;
+    packet[1] = (config.deviceKey >> 16) & 0xFF;
+    packet[2] = (config.deviceKey >> 8) & 0xFF;
+    packet[3] = config.deviceKey & 0xFF;
+
+    packet[4] = (config.groupKey >> 24) & 0xFF;
+    packet[5] = (config.groupKey >> 16) & 0xFF;
+    packet[6] = (config.groupKey >> 8) & 0xFF;
+    packet[7] = config.groupKey & 0xFF;
+
+    packet[8] = (config.groupMask >> 24) & 0xFF;
+    packet[9] = (config.groupMask >> 16) & 0xFF;
+    packet[10] = (config.groupMask >> 8) & 0xFF;
+    packet[11] = config.groupMask & 0xFF;
+
+    // 保留字段
+    packet[12] = 0;
+    packet[13] = 0;
+    packet[14] = 0;
+    packet[15] = 0;
+
+    // 发送组播
+    QHostAddress multicastAddr(config.multicastAddress);
+    qint64 bytesSent = actionCommandSocket_->writeDatagram(
+        packet, multicastAddr, config.multicastPort);
+
+    if (bytesSent != packet.size()) {
+        LOG_ERROR(QString("发送Action Command失败: %1")
+                 .arg(actionCommandSocket_->errorString()));
+        return false;
+    }
+
+    LOG_DEBUG(QString("发送Action Command: DeviceKey=0x%1, GroupKey=0x%2, GroupMask=0x%3")
+             .arg(config.deviceKey, 8, 16, QChar('0'))
+             .arg(config.groupKey, 8, 16, QChar('0'))
+             .arg(config.groupMask, 8, 16, QChar('0')));
+
+    return true;
+}
+
+bool CameraManager::configureGroupSync(const QString& groupId, const HardwareSyncCaptureConfig& syncConfig)
+{
+    QMutexLocker locker(&mutex_);
+
+    if (!groups_.contains(groupId)) {
+        LOG_WARNING(QString("相机组不存在: %1").arg(groupId));
+        return false;
+    }
+
+    groupSyncConfigs_[groupId] = syncConfig;
+
+    // 配置组内所有相机
+    const CameraGroup& group = groups_[groupId];
+    for (const QString& cameraId : group.cameraIds) {
+        if (cameras_.contains(cameraId)) {
+            ICamera* camera = cameras_[cameraId].get();
+
+            if (syncConfig.triggerMode == TriggerModeEx::ActionCommand) {
+                camera->configureActionCommand(syncConfig.actionCmd);
+            }
+
+            camera->setTriggerModeEx(syncConfig.triggerMode);
+        }
+    }
+
+    LOG_INFO(QString("配置相机组硬件同步: %1, 模式: %2")
+             .arg(groupId)
+             .arg(static_cast<int>(syncConfig.triggerMode)));
+
+    return true;
+}
+
+double CameraManager::validateSyncAccuracy(const BatchCaptureResult& result)
+{
+    if (result.results.size() < 2) {
+        return 0.0;
+    }
+
+    // 计算时间戳差异
+    QList<qint64> timestamps;
+    for (const auto& captureResult : result.results) {
+        if (captureResult.success) {
+            timestamps.append(captureResult.timestamp);
+        }
+    }
+
+    if (timestamps.size() < 2) {
+        return 0.0;
+    }
+
+    // 计算最大时间差
+    qint64 minTs = *std::min_element(timestamps.begin(), timestamps.end());
+    qint64 maxTs = *std::max_element(timestamps.begin(), timestamps.end());
+
+    // 转换为微秒
+    double syncErrorUs = (maxTs - minTs) * 1000.0;
+
+    return syncErrorUs;
+}
+
+void CameraManager::setGPIOController(std::shared_ptr<GPIOController> gpio)
+{
+    gpioController_ = gpio;
+    LOG_INFO("设置GPIO控制器");
 }
 
 // ============================================================

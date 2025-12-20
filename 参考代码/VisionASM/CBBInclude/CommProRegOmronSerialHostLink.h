@@ -1,0 +1,53 @@
+#pragma once
+#include "CommProRegBase.h"
+
+// 欧姆龙PLC的寄存器串口HostLink协议
+
+
+// 支持的寄存器数据(或地址)类型	
+// RegDataType regDataType;
+// {
+// 		// D
+// 		regDataType.m_nDataTypeIndex = 0;
+// 		regDataType.m_strDataTypeName = _T("D");
+// 		regDataType.m_strDataTypeVal = ADRTYPE1;
+// 		m_vRegDataTypes.push_back(regDataType);
+// }
+
+
+#pragma pack(push,8)
+class VS_COMM_API CCommProRegOmronSerialHostLink :
+	public CCommProRegBase
+{
+public:
+	CCommProRegOmronSerialHostLink(void);
+	~CCommProRegOmronSerialHostLink(void);
+
+public:
+	// 打包写寄存器为通信字符串
+	virtual BOOL PackWriteRegInfo( CString& strInfo, long nRegAddr, int nWriteNum, std::vector<double> vWriteData );
+	// 打包写寄存器为通信字符串
+	virtual BOOL PackWriteRegInfo( CString& strInfo, long nRegAddr, int nWriteNum, std::vector<int> vWriteData );
+	// 打包读寄存器为通信字符串
+	virtual BOOL PackReadRegInfo( CString& strInfo, long nRegAddr, int nReadNum );
+
+	// 解析写寄存器的响应字符串
+	virtual BOOL AnalyzeAswWriteReg( CString strAsw );
+	// 解析读寄存器的响应字符串
+	virtual BOOL AnalyzeAswReadReg( CString strAsw, int nReadNum, std::vector<double> &vReceiveData );
+	// 解析读寄存器的响应字符串
+	virtual BOOL AnalyzeAswReadReg( CString strAsw, int nReadNum, std::vector<int> &vReceiveData );
+
+	//////////////////////////////////////////////////////////////////////////
+	virtual BOOL PackWriteRegInfo( CString& strInfo, long nRegAddr, int nWriteNum, std::vector<int> vWriteData, BOOL bDWORD);
+	// 打包读寄存器为通信字符串
+	virtual BOOL PackReadRegInfo( CString& strInfo, long nRegAddr, int nReadNum, BOOL bDWORD);
+
+	// 解析写寄存器的响应字符串
+	virtual BOOL AnalyzeAswWriteReg( CString strAsw, BOOL bDWORD);
+	// 解析读寄存器的响应字符串
+	virtual BOOL AnalyzeAswReadReg( CString strAsw, int nReadNum, std::vector<int> &vReceiveData, BOOL bDWORD );
+	//////////////////////////////////////////////////////////////////////////
+};
+
+#pragma pack(pop)

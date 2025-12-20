@@ -43,6 +43,8 @@ LineToolDialog::LineToolDialog(Algorithm::LineTool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("线检测设置");
     setMinimumSize(800, 550);
@@ -151,21 +153,35 @@ void LineToolDialog::createUI()
 
     mainLayout->addWidget(mainSplitter_, 1);
 
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 200);
+
+    // 预览选项行
+    QHBoxLayout* previewLayout = new QHBoxLayout();
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+    previewLayout->addStretch();
+
+    previewBtn_ = new QPushButton("预览", this);
+    previewBtn_->setMinimumWidth(80);
+    previewLayout->addWidget(previewBtn_);
+
+    mainLayout->addLayout(previewLayout);
+
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
 
-    previewBtn_ = new QPushButton("预览", this);
     okBtn_ = new QPushButton("确定", this);
     cancelBtn_ = new QPushButton("取消", this);
     applyBtn_ = new QPushButton("应用", this);
 
-    previewBtn_->setMinimumWidth(80);
     okBtn_->setMinimumWidth(80);
     cancelBtn_->setMinimumWidth(80);
     applyBtn_->setMinimumWidth(80);
 
-    buttonLayout->addWidget(previewBtn_);
     buttonLayout->addWidget(okBtn_);
     buttonLayout->addWidget(cancelBtn_);
     buttonLayout->addWidget(applyBtn_);
@@ -389,6 +405,12 @@ void LineToolDialog::connectSignals()
     connect(cannyThreshold2SpinBox_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &LineToolDialog::onCannyThreshold2Changed);
 
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &LineToolDialog::onAutoPreview);
+
     // 对话框按钮
     connect(previewBtn_, &QPushButton::clicked, this, &LineToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &LineToolDialog::onOkClicked);
@@ -403,6 +425,7 @@ void LineToolDialog::onBackendChanged(int index)
         backendCombo_->itemData(index).toInt()));
     updateMethodVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onMethodChanged(int index)
@@ -412,6 +435,7 @@ void LineToolDialog::onMethodChanged(int index)
         methodCombo_->itemData(index).toInt()));
     updateMethodVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onMinLengthChanged(double value)
@@ -419,6 +443,7 @@ void LineToolDialog::onMinLengthChanged(double value)
     if (!tool_) return;
     tool_->setMinLength(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onMaxGapChanged(double value)
@@ -426,6 +451,7 @@ void LineToolDialog::onMaxGapChanged(double value)
     if (!tool_) return;
     tool_->setMaxGap(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onMaxCountChanged(int value)
@@ -433,6 +459,7 @@ void LineToolDialog::onMaxCountChanged(int value)
     if (!tool_) return;
     tool_->setMaxCount(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onRhoChanged(double value)
@@ -440,6 +467,7 @@ void LineToolDialog::onRhoChanged(double value)
     if (!tool_) return;
     tool_->setRho(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onThetaChanged(double value)
@@ -447,6 +475,7 @@ void LineToolDialog::onThetaChanged(double value)
     if (!tool_) return;
     tool_->setTheta(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onThresholdChanged(int value)
@@ -454,6 +483,7 @@ void LineToolDialog::onThresholdChanged(int value)
     if (!tool_) return;
     tool_->setThreshold(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onCannyThreshold1Changed(double value)
@@ -461,6 +491,7 @@ void LineToolDialog::onCannyThreshold1Changed(double value)
     if (!tool_) return;
     tool_->setCannyThreshold1(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onCannyThreshold2Changed(double value)
@@ -468,6 +499,7 @@ void LineToolDialog::onCannyThreshold2Changed(double value)
     if (!tool_) return;
     tool_->setCannyThreshold2(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LineToolDialog::onPreviewClicked()
@@ -535,6 +567,22 @@ void LineToolDialog::updateMethodVisibility()
                     method == static_cast<int>(Algorithm::LineTool::HoughLines));
 
     houghParamGroup_->setEnabled(isHough);
+}
+
+void LineToolDialog::onAutoPreview()
+{
+    if (!tool_ || !currentImage_) {
+        return;
+    }
+
+    applyParameters();
+
+    Algorithm::ToolResult result;
+    if (tool_->process(currentImage_, result)) {
+        if (result.outputImage && imageViewer_) {
+            imageViewer_->setImage(result.outputImage);
+        }
+    }
 }
 
 } // namespace UI

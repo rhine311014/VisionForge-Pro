@@ -24,6 +24,8 @@ BlurToolDialog::BlurToolDialog(Algorithm::BlurTool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("图像模糊参数设置");
     setMinimumSize(400, 350);
@@ -128,11 +130,23 @@ void BlurToolDialog::createBilateralParamsGroup(QVBoxLayout* layout)
 
 void BlurToolDialog::createButtons(QVBoxLayout* layout)
 {
-    // 预览按钮
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 150);
+
+    // 预览选项
     QHBoxLayout* previewLayout = new QHBoxLayout();
+
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+
+    previewLayout->addStretch();
+
     previewBtn_ = new QPushButton("预览效果", this);
     previewBtn_->setMinimumHeight(35);
     previewLayout->addWidget(previewBtn_);
+
     layout->addLayout(previewLayout);
 
     // 对话框按钮
@@ -163,6 +177,12 @@ void BlurToolDialog::connectSignals()
             this, &BlurToolDialog::onSigmaColorChanged);
     connect(sigmaSpaceSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &BlurToolDialog::onSigmaSpaceChanged);
+
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &BlurToolDialog::onAutoPreview);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &BlurToolDialog::onPreviewClicked);
@@ -235,6 +255,7 @@ void BlurToolDialog::onBlurTypeChanged(int index)
     Q_UNUSED(index);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void BlurToolDialog::onKernelSizeChanged(int value)
@@ -245,24 +266,28 @@ void BlurToolDialog::onKernelSizeChanged(int value)
         return;
     }
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void BlurToolDialog::onSigmaChanged(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void BlurToolDialog::onSigmaColorChanged(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void BlurToolDialog::onSigmaSpaceChanged(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void BlurToolDialog::onPreviewClicked()
@@ -287,6 +312,12 @@ void BlurToolDialog::onApplyClicked()
 {
     applyParameters();
     emit parametersApplied();
+}
+
+void BlurToolDialog::onAutoPreview()
+{
+    // 自动预览触发时发射预览请求信号
+    emit previewRequested();
 }
 
 } // namespace UI

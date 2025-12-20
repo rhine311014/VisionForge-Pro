@@ -52,6 +52,8 @@ MeasureDistanceToolDialog::MeasureDistanceToolDialog(Algorithm::MeasureDistanceT
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("距离测量设置");
     setMinimumSize(800, 600);
@@ -176,6 +178,18 @@ void MeasureDistanceToolDialog::createUI()
     mainSplitter->setStretchFactor(1, 1);
 
     mainLayout->addWidget(mainSplitter, 1);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);  // 测量计算快，使用100ms延迟
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);  // 默认开启
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新计算结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -403,6 +417,12 @@ void MeasureDistanceToolDialog::connectSignals()
     connect(line2Y2Spin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &MeasureDistanceToolDialog::onLine2Changed);
 
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &MeasureDistanceToolDialog::onAutoCalc);
+
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &MeasureDistanceToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &MeasureDistanceToolDialog::onOkClicked);
@@ -419,6 +439,7 @@ void MeasureDistanceToolDialog::onMeasureModeChanged(int index)
     tool_->setMeasureMode(mode);
     updateInputVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureDistanceToolDialog::onPixelToMmChanged(double value)
@@ -426,6 +447,7 @@ void MeasureDistanceToolDialog::onPixelToMmChanged(double value)
     if (!tool_) return;
     tool_->setPixelToMm(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureDistanceToolDialog::onInputSourceChanged(int index)
@@ -443,6 +465,7 @@ void MeasureDistanceToolDialog::onPoint1Changed()
     if (!tool_) return;
     tool_->setPoint1(QPointF(point1XSpin_->value(), point1YSpin_->value()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureDistanceToolDialog::onPoint2Changed()
@@ -450,6 +473,7 @@ void MeasureDistanceToolDialog::onPoint2Changed()
     if (!tool_) return;
     tool_->setPoint2(QPointF(point2XSpin_->value(), point2YSpin_->value()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureDistanceToolDialog::onLine1Changed()
@@ -459,6 +483,7 @@ void MeasureDistanceToolDialog::onLine1Changed()
                 line1X2Spin_->value(), line1Y2Spin_->value());
     tool_->setLine1(line);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureDistanceToolDialog::onLine2Changed()
@@ -468,6 +493,7 @@ void MeasureDistanceToolDialog::onLine2Changed()
                 line2X2Spin_->value(), line2Y2Spin_->value());
     tool_->setLine2(line);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureDistanceToolDialog::onPreviewClicked()
@@ -543,6 +569,18 @@ void MeasureDistanceToolDialog::updateResultDisplay()
         point1ResultLabel_->setText("--");
         point2ResultLabel_->setText("--");
     }
+}
+
+void MeasureDistanceToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+
+    // 执行测量
+    Algorithm::ToolResult result;
+    tool_->process(currentImage_, result);
+    updateResultDisplay();
 }
 
 } // namespace UI

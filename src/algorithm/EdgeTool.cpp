@@ -21,6 +21,8 @@ EdgeTool::EdgeTool(QObject* parent)
     , l2Gradient_(false)
     , scale_(1.0)
     , delta_(0.0)
+    , subPixelEnabled_(false)
+    , subPixelMethod_(SubPixelMethod::QuadraticFit)
 {
     setDisplayName(toolName());
 }
@@ -120,8 +122,34 @@ bool EdgeTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
     output.setValue("edgePixels", edgePixels);
     output.setValue("edgeRatio", static_cast<double>(edgePixels) / (edges.rows * edges.cols));
 
-    setDebugImage(output.outputImage);
-    setStatusText(QString("边缘像素: %1 (%.2f%%)").arg(edgePixels).arg(100.0 * edgePixels / (edges.rows * edges.cols)));
+    // 如果启用亚像素模式，进行亚像素精化
+    subPixelEdgePoints_.clear();
+    if (subPixelEnabled_ && edgePixels > 0) {
+        SubPixelEdgeTool subPixelTool;
+        SubPixelEdgeConfig subPixelConfig;
+        subPixelConfig.method = subPixelMethod_;
+        subPixelConfig.gradientThreshold = threshold1_;
+        subPixelConfig.useSubPixel = true;
+        subPixelConfig.cannyLow = static_cast<int>(threshold1_);
+        subPixelConfig.cannyHigh = static_cast<int>(threshold2_);
+
+        cv::Rect roi(0, 0, gray.cols, gray.rows);
+        lastSubPixelResult_ = subPixelTool.detectSubPixelEdge(gray, roi, subPixelConfig);
+
+        subPixelEdgePoints_ = lastSubPixelResult_.edgePoints;
+
+        output.setValue("subPixelEdgeCount", lastSubPixelResult_.validPointCount);
+        output.setValue("averageSubPixelShift", lastSubPixelResult_.averageSubPixelShift);
+
+        setDebugImage(output.outputImage);
+        setStatusText(QString("边缘像素: %1，亚像素点: %2，平均偏移: %.3f像素")
+                     .arg(edgePixels)
+                     .arg(lastSubPixelResult_.validPointCount)
+                     .arg(lastSubPixelResult_.averageSubPixelShift));
+    } else {
+        setDebugImage(output.outputImage);
+        setStatusText(QString("边缘像素: %1 (%.2f%%)").arg(edgePixels).arg(100.0 * edgePixels / (edges.rows * edges.cols)));
+    }
 
     LOG_DEBUG(QString("边缘检测完成，耗时: %1ms").arg(output.executionTime));
 
@@ -139,6 +167,8 @@ QJsonObject EdgeTool::serializeParams() const
     json["l2Gradient"] = l2Gradient_;
     json["scale"] = scale_;
     json["delta"] = delta_;
+    json["subPixelEnabled"] = subPixelEnabled_;
+    json["subPixelMethod"] = static_cast<int>(subPixelMethod_);
     return json;
 }
 
@@ -152,6 +182,9 @@ void EdgeTool::deserializeParams(const QJsonObject& json)
     l2Gradient_ = json.value("l2Gradient").toBool(false);
     scale_ = json.value("scale").toDouble(1.0);
     delta_ = json.value("delta").toDouble(0.0);
+    subPixelEnabled_ = json.value("subPixelEnabled").toBool(false);
+    subPixelMethod_ = static_cast<SubPixelMethod>(
+        json.value("subPixelMethod").toInt(static_cast<int>(SubPixelMethod::QuadraticFit)));
 }
 
 void EdgeTool::setEdgeType(EdgeType type)
@@ -218,6 +251,22 @@ void EdgeTool::setDelta(double delta)
 {
     if (qAbs(delta_ - delta) > 0.001) {
         delta_ = delta;
+        emit paramChanged();
+    }
+}
+
+void EdgeTool::setSubPixelEnabled(bool enabled)
+{
+    if (subPixelEnabled_ != enabled) {
+        subPixelEnabled_ = enabled;
+        emit paramChanged();
+    }
+}
+
+void EdgeTool::setSubPixelMethod(SubPixelMethod method)
+{
+    if (subPixelMethod_ != method) {
+        subPixelMethod_ = method;
         emit paramChanged();
     }
 }

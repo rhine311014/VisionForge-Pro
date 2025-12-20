@@ -26,6 +26,8 @@ FindEdgeTool::FindEdgeTool(QObject* parent)
     , selectMode_(FirstEdge)
     , minAmplitude_(20.0)
     , sigma_(1.0)
+    , subPixelEnabled_(true)  // 默认启用亚像素
+    , subPixelMethod_(SubPixelMethod::QuadraticFit)
 {
     setDisplayName(toolName());
 }
@@ -396,6 +398,8 @@ QJsonObject FindEdgeTool::serializeParams() const
     json["selectMode"] = static_cast<int>(selectMode_);
     json["minAmplitude"] = minAmplitude_;
     json["sigma"] = sigma_;
+    json["subPixelEnabled"] = subPixelEnabled_;
+    json["subPixelMethod"] = static_cast<int>(subPixelMethod_);
     return json;
 }
 
@@ -416,6 +420,9 @@ void FindEdgeTool::deserializeParams(const QJsonObject& json)
     selectMode_ = static_cast<SelectMode>(json.value("selectMode").toInt(static_cast<int>(FirstEdge)));
     minAmplitude_ = json.value("minAmplitude").toDouble(20.0);
     sigma_ = json.value("sigma").toDouble(1.0);
+    subPixelEnabled_ = json.value("subPixelEnabled").toBool(true);
+    subPixelMethod_ = static_cast<SubPixelMethod>(
+        json.value("subPixelMethod").toInt(static_cast<int>(SubPixelMethod::QuadraticFit)));
 }
 
 void FindEdgeTool::setSearchMode(SearchMode mode)
@@ -480,6 +487,22 @@ void FindEdgeTool::setSigma(double sigma)
 {
     if (qAbs(sigma_ - sigma) > 0.001) {
         sigma_ = sigma;
+        emit paramChanged();
+    }
+}
+
+void FindEdgeTool::setSubPixelEnabled(bool enabled)
+{
+    if (subPixelEnabled_ != enabled) {
+        subPixelEnabled_ = enabled;
+        emit paramChanged();
+    }
+}
+
+void FindEdgeTool::setSubPixelMethod(SubPixelMethod method)
+{
+    if (subPixelMethod_ != method) {
+        subPixelMethod_ = method;
         emit paramChanged();
     }
 }

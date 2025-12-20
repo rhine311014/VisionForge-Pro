@@ -61,6 +61,8 @@ TemplateMatchToolDialog::TemplateMatchToolDialog(Algorithm::TemplateMatchTool* t
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("模板匹配设置 (OpenCV)");
     setMinimumSize(900, 600);
@@ -196,21 +198,34 @@ void TemplateMatchToolDialog::createUI()
 
     mainLayout->addWidget(mainSplitter_, 1);
 
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 200);  // 模板匹配稍长延迟
+
     // 底部按钮
+    QHBoxLayout* previewLayout = new QHBoxLayout();
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+    previewLayout->addStretch();
+
+    previewBtn_ = new QPushButton("预览", this);
+    previewBtn_->setMinimumWidth(80);
+    previewLayout->addWidget(previewBtn_);
+
+    mainLayout->addLayout(previewLayout);
+
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
 
-    previewBtn_ = new QPushButton("预览", this);
     okBtn_ = new QPushButton("确定", this);
     cancelBtn_ = new QPushButton("取消", this);
     applyBtn_ = new QPushButton("应用", this);
 
-    previewBtn_->setMinimumWidth(80);
     okBtn_->setMinimumWidth(80);
     cancelBtn_->setMinimumWidth(80);
     applyBtn_->setMinimumWidth(80);
 
-    buttonLayout->addWidget(previewBtn_);
     buttonLayout->addWidget(okBtn_);
     buttonLayout->addWidget(cancelBtn_);
     buttonLayout->addWidget(applyBtn_);
@@ -534,6 +549,12 @@ void TemplateMatchToolDialog::connectSignals()
         });
     }
 
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &TemplateMatchToolDialog::onAutoPreview);
+
     // 预览和对话框按钮
     connect(previewBtn_, &QPushButton::clicked, this, &TemplateMatchToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &TemplateMatchToolDialog::onOkClicked);
@@ -572,6 +593,7 @@ void TemplateMatchToolDialog::onMatchMethodChanged(int index)
     }
 
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onThresholdChanged(double value)
@@ -582,6 +604,7 @@ void TemplateMatchToolDialog::onThresholdChanged(double value)
     thresholdSlider_->setValue(static_cast<int>(value * 100));
     thresholdSlider_->blockSignals(false);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onMaxMatchesChanged(int value)
@@ -589,6 +612,7 @@ void TemplateMatchToolDialog::onMaxMatchesChanged(int value)
     if (!tool_) return;
     tool_->setMaxMatches(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onPyramidLevelsChanged(int value)
@@ -596,6 +620,7 @@ void TemplateMatchToolDialog::onPyramidLevelsChanged(int value)
     if (!tool_) return;
     tool_->setPyramidLevels(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onUsePyramidChanged(bool checked)
@@ -604,6 +629,7 @@ void TemplateMatchToolDialog::onUsePyramidChanged(bool checked)
     tool_->setUsePyramid(checked);
     pyramidLevelsSpinBox_->setEnabled(checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onEnableAngleSearchChanged(bool checked)
@@ -612,6 +638,7 @@ void TemplateMatchToolDialog::onEnableAngleSearchChanged(bool checked)
     tool_->setEnableAngleSearch(checked);
     angleSearchWidget_->setEnabled(checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onAngleRangeChanged()
@@ -623,6 +650,7 @@ void TemplateMatchToolDialog::onAngleRangeChanged()
         angleStepSpinBox_->value()
     );
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onNmsDistanceChanged(double value)
@@ -630,6 +658,7 @@ void TemplateMatchToolDialog::onNmsDistanceChanged(double value)
     if (!tool_) return;
     tool_->setNmsDistance(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void TemplateMatchToolDialog::onSelectTemplateClicked()
@@ -823,6 +852,23 @@ void TemplateMatchToolDialog::updateTemplatePreview()
         templateViewer_->setImage(templateImage);
     } else {
         templateViewer_->clearImage();
+    }
+}
+
+void TemplateMatchToolDialog::onAutoPreview()
+{
+    // 自动预览需要有图像和模板
+    if (!tool_ || !currentImage_ || !tool_->hasTemplate()) {
+        return;
+    }
+
+    applyParameters();
+
+    Algorithm::ToolResult result;
+    if (tool_->process(currentImage_, result)) {
+        if (result.outputImage && imageViewer_) {
+            imageViewer_->setImage(result.outputImage);
+        }
     }
 }
 

@@ -10,11 +10,13 @@
 
 #include "hal/ICamera.h"
 #include "hal/CameraFactory.h"
+#include "hal/GPIOController.h"
 #include "base/ImageData.h"
 #include <QObject>
 #include <QMap>
 #include <QMutex>
 #include <QTimer>
+#include <QtNetwork/QUdpSocket>
 #include <memory>
 #include <functional>
 
@@ -81,8 +83,25 @@ struct BatchCaptureResult {
     int successCount = 0;                  ///< 成功数量
     int failCount = 0;                     ///< 失败数量
     double totalTime = 0.0;                ///< 总耗时(ms)
+    double syncAccuracyUs = 0.0;           ///< 同步精度(微秒)
 
-    BatchCaptureResult() : allSuccess(false), successCount(0), failCount(0), totalTime(0.0) {}
+    BatchCaptureResult() : allSuccess(false), successCount(0), failCount(0), totalTime(0.0), syncAccuracyUs(0.0) {}
+};
+
+/**
+ * @brief 硬件同步采集配置
+ */
+struct HardwareSyncCaptureConfig {
+    TriggerModeEx triggerMode = TriggerModeEx::Software;  ///< 触发模式
+    ActionCommandConfig actionCmd;      ///< Action Command配置
+    GPIOTriggerConfig gpioConfig;       ///< GPIO触发配置
+    int preTriggerDelayUs = 0;          ///< 预触发延迟(微秒)
+    int postTriggerDelayUs = 0;         ///< 后触发延迟(微秒)
+    int timeoutMs = 3000;               ///< 采集超时(毫秒)
+    bool validateSyncAccuracy = true;   ///< 是否验证同步精度
+    int maxSyncErrorUs = 100;           ///< 最大允许同步误差(微秒)
+
+    HardwareSyncCaptureConfig() = default;
 };
 
 /**
@@ -316,6 +335,51 @@ public:
     BatchCaptureResult captureAll(CaptureMode mode = CaptureMode::Simultaneous,
                                   int timeoutMs = 3000);
 
+    // ========== 硬件同步采集 ==========
+
+    /**
+     * @brief 硬件同步采集
+     * @param cameraIds 相机ID列表
+     * @param syncConfig 硬件同步配置
+     * @return 批量采集结果
+     */
+    BatchCaptureResult captureWithHardwareSync(
+        const QStringList& cameraIds,
+        const HardwareSyncCaptureConfig& syncConfig);
+
+    /**
+     * @brief 发送Action Command触发
+     * @param config Action Command配置
+     * @return 是否成功
+     */
+    bool sendActionCommand(const ActionCommandConfig& config);
+
+    /**
+     * @brief 配置相机组的硬件同步
+     * @param groupId 组ID
+     * @param syncConfig 同步配置
+     * @return 是否成功
+     */
+    bool configureGroupSync(const QString& groupId, const HardwareSyncCaptureConfig& syncConfig);
+
+    /**
+     * @brief 验证同步精度
+     * @param result 采集结果
+     * @return 同步误差(微秒)
+     */
+    double validateSyncAccuracy(const BatchCaptureResult& result);
+
+    /**
+     * @brief 设置GPIO控制器
+     * @param gpio GPIO控制器
+     */
+    void setGPIOController(std::shared_ptr<GPIOController> gpio);
+
+    /**
+     * @brief 获取GPIO控制器
+     */
+    std::shared_ptr<GPIOController> gpioController() const { return gpioController_; }
+
     // ========== 连续采集 ==========
 
     /**
@@ -401,6 +465,9 @@ private:
     QMap<QString, CameraInfo> cameraInfos_;                 ///< 相机信息
     QMap<QString, CameraGroup> groups_;                     ///< 相机组
     QMap<QString, QTimer*> continuousTimers_;               ///< 连续采集定时器
+    QMap<QString, HardwareSyncCaptureConfig> groupSyncConfigs_;  ///< 组硬件同步配置
+    std::shared_ptr<GPIOController> gpioController_;        ///< GPIO控制器
+    std::unique_ptr<QUdpSocket> actionCommandSocket_;       ///< Action Command UDP套接字
     mutable QMutex mutex_;
     int cameraIdCounter_ = 0;
     int groupIdCounter_ = 0;

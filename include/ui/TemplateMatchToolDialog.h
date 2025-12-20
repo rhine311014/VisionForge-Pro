@@ -20,6 +20,7 @@
 #include <QVBoxLayout>
 #include <QTabWidget>
 #include "base/ImageData.h"
+#include "ui/PreviewHelper.h"
 
 namespace VisionForge {
 
@@ -90,6 +91,7 @@ private slots:
 
     // 预览按钮槽
     void onPreviewClicked();
+    void onAutoPreview();
 
     // 对话框按钮槽
     void onOkClicked();
@@ -160,6 +162,10 @@ private:
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
     QPushButton* applyBtn_;
+
+    // 实时预览
+    PreviewHelper* previewHelper_;
+    QCheckBox* autoPreviewCheck_;
 };
 
 } // namespace UI

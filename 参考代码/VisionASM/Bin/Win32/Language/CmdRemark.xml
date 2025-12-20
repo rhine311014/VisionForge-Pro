@@ -1,0 +1,71 @@
+<Command>
+<SearchCmd>
+<VOBC ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="有后补对象拍照" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="ObjectSearchWithCandidation" />
+<VOBJ ChsParam1=" 位置序号" ChsParam2=" 拍照并检测"  ChsRemark="无候补对象拍照" EnParam1=" PosIndex" EnParam2=" Object Search And Inspect" EnRemark="ObjectSearchWithoutCandidation" />
+<VOBG ChsParam1=" 位置序号" ChsParam2=" 无"  ChsRemark="获取已经拍照成功的对象图像坐标" EnParam1=" PosIndex" EnParam2=" Nothing" EnRemark="GetImgCoordinateOfObjectSearchSuccessfully" />
+<VGAP ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="获取对象相对图像中心的图像坐标偏差" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="GetImgCoordinateDeviationOfObjectRelativeToTheImgCenter" />
+<VCNT ChsParam1=" 位置序号" ChsParam2=" 无"  ChsRemark="无候补对象拍照" EnParam1=" PosIndex" EnParam2=" Nothing" EnRemark="Object Search Without candidate" />
+<VTGT ChsParam1=" 位置序号" ChsParam2=" 多目标索引或拍照检测"  ChsRemark="无候补目标拍照" EnParam1=" PosIndex" EnParam2=" MultiTargetIndexOrInspect" EnRemark="TargetSearchWithoutcandidate" />
+<VTGC ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="有候补目标拍照" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="TargetSearchWithCandidation" />
+<VTGG ChsParam1=" 位置序号" ChsParam2=" 无"  ChsRemark="获取已经拍照成功的目标图像坐标" EnParam1=" PosIndex" EnParam2=" Nothing" EnRemark="GetImgCoordinateOfTargetSearchSuccessfully" />
+<VGTC ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="获取目标相对图像中心的图像坐标偏差" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="GetImgCoordinateDeviationOfTargetRelativeToTheImgCenter" />
+<VCNO ChsParam1=" 位置序号" ChsParam2=" 无"  ChsRemark="目标拍照" EnParam1=" PosIndex" EnParam2=" Nothing" EnRemark="Target Search" />
+</SearchCmd>
+<CalibCmd>
+<VCLB ChsParam1=" Mark类型" ChsParam2=" 位置序号"  ChsRemark="标定" EnParam1=" MarkType" EnParam2=" PosIndex" EnRemark="Calibrate" />
+<VCBS ChsParam1=" MarkType类型" ChsParam2=" 位置序号"  ChsRemark="分步标定" EnParam1=" MarkType" EnParam2=" PosIndex" EnRemark="SubstepCalibrate" />
+<VCPR ChsParam1=" 位置序号" ChsParam2=" 轴位置类型"  ChsRemark="相机轴标定" EnParam1=" PosIndex" EnParam2=" AxisPositionType" EnRemark="CameraAxisCalibrate" />
+<VCBP ChsParam1=" 关联拍照/获取基准轴位置/关联计算" ChsParam2=" 位置序号"  ChsRemark="自动关联指令" EnParam1="RelatedPhotos/GetReferenceAxisPosition/CorrelationCalculation" EnParam2=" PosIndex" EnRemark="AutCorrelationInstruction" />
+<VDRP ChsParam1=" 基准角度" ChsParam2=" 扩展索引"  ChsRemark="计算基准拾取位置" EnParam1=" BenchmarkAngle" EnParam2=" ExtendedIndex" EnRemark="CalculateTheBasePickPosition" />
+<VDRS ChsParam1=" 拍照/获取基准轴位置/基准计算" ChsParam2=" 位置序号"  ChsRemark="分步计算基准拾取位置" EnParam1=" Search/GetsTheReferenceAxisPosition/Calculates" EnParam2=" PosIndex" EnRemark="SubstepCalculateTheBasePickPosition" />
+<VGTH ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="点胶示教" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="GlueToTeach" />
+</CalibCmd>
+<AlignCalcCmd>
+<VACO ChsParam1=" 补偿量序号" ChsParam2=" 多目标索引或下料补偿"  ChsRemark="获取一次对位相对轴位置" EnParam1=" OffsetNumber" EnParam2=" MultiTargetIndexOrBlankingOffset" EnRemark="GetTheRelativeAxisPositionOfAAlign" />
+<VALG ChsParam1=" 补偿量序号" ChsParam2=" 多目标索引或下料补偿"  ChsRemark="获取一次对位绝对轴位置" EnParam1=" OffsetNumber" EnParam2=" MultiTargetIndexOrBlankingOffset" EnRemark="GetTheAbsoluteAxisPositionOfAAlign" />
+<VAAL ChsParam1=" 补偿量序号" ChsParam2=" 多目标索引或下料补偿"  ChsRemark="无候补多次对位" EnParam1=" OffsetNumber" EnParam2=" MultiTargetIndexOrBlankingOffset" EnRemark="NoAlternateMultiAlign" />
+<VAAC ChsParam1=" 补偿量序号" ChsParam2=" 候补序号"  ChsRemark="多次对位" EnParam1=" OffsetNumber" EnParam2=" StartPatternIndex" EnRemark="MultiAlign" />
+<VXYA ChsParam1=" 补偿量序号" ChsParam2=" 候补序号"  ChsRemark="多次对位" EnParam1=" OffsetNumber" EnParam2=" StartPatternIndex" EnRemark="MultiAlign" />
+<VAHL ChsParam1=" 补偿量序号" ChsParam2=" 无"  ChsRemark="高低平面多次对位" EnParam1=" OffsetNumber" EnParam2=" Nothing" EnRemark="MultiAlignOfHighAndLowPlane" />
+<VMCO ChsParam1=" 目标补偿最大数目" ChsParam2=" 无"  ChsRemark="获取全部目标的一次对位相对轴位置" EnParam1=" MaxTargetOffsetNumber" EnParam2=" Nothing" EnRemark="GetsRelativeAxisPositionOfAllTargetsAglin" />
+<VALP ChsParam1=" 补偿量序号" ChsParam2=" 扩展序号的轴位置"  ChsRemark="获取一次拾取绝对轴位置" EnParam1=" OffsetNumber" EnParam2=" AxisPositionOfExtendedNumber" EnRemark="GetTheAbsoluteAxisPositionOfPick" />
+<VWEL ChsParam1=" 补偿量序号" ChsParam2=" 候补序号"  ChsRemark="焊接多次对位" EnParam1=" OffsetNumber" EnParam2=" StartPatternIndex" EnRemark="WeldMultipleAlign" />
+<VSOL ChsParam1=" 补偿量序号" ChsParam2=" 候补序号"  ChsRemark="焊接多次对位" EnParam1=" OffsetNumber" EnParam2=" StartPatternIndex" EnRemark="WeldMultipleAlign" />
+<VGLU ChsParam1=" 补偿量序号" ChsParam2=" 扩展索引"  ChsRemark="点胶路径计算" EnParam1=" OffsetNumber" EnParam2=" ExtendedIndex" EnRemark="GluePathCalculation" />
+</AlignCalcCmd>
+<FuncCmd>
+<VRST ChsParam1=" 无" ChsParam2=" 无"  ChsRemark="复位" EnParam1=" Nothing" EnParam2=" Nothing" EnRemark="Reset" />
+<VCHK ChsParam1=" 辅助编号" ChsParam2=" 无"  ChsRemark="握手" EnParam1=" AuxiliaryNumber" EnParam2=" Nothing" EnRemark="HandShake" />
+<VCHB ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="ACF检测" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="ACFInspect" />
+<VCHC ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="ACF检测" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="ACFInspect" />
+<VINS ChsParam1=" Mark类型" ChsParam2=" 位置序号"  ChsRemark="检测有无" EnParam1=" MarkType" EnParam2=" PosIndex" EnRemark="InspectWhether" />
+<VQRC ChsParam1=" 无" ChsParam2=" 无"  ChsRemark="读取及存储二维码" EnParam1=" Nothing" EnParam2=" Nothing" EnRemark="ReadAndStoreQrCodes" />
+<VQRI ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="二维码识别指令" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="QrCodeIdentificationInstruction" />
+<VSPE ChsParam1=" Mark类型" ChsParam2=" 位置序号"  ChsRemark="曝光切换" EnParam1=" MarkType" EnParam2=" PosIndex"" EnParam2="EnRemark="ExposureToSwitch" />
+<VWLD ChsParam1=" Mark类型" ChsParam2=" 位置序号"  ChsRemark="获取平台坐标" EnParam1=" MarkType" EnParam2=" PosIndex"" EnParam2="EnRemark="GetPlatformCoordinates" />
+<VWDR ChsParam1=" Mark类型" ChsParam2=" 位置序号"  ChsRemark="获取对象/目标到旋转中心距离" EnParam1=" MarkType" EnParam2=" PosIndex" EnRemark="GetTheDistanceOfTheObject/TargetToTheRotationCenter" />
+<VGOW ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="获取对象平台坐标" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="GetTheObjectPlatformCoordinates" />
+<VGTW ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="获取目标平台坐标" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="GetTheTargetPlatformCoordinates" />
+<VAFO ChsParam1=" Mark类型/计算目标固定补偿" ChsParam2=" 位置序号"  ChsRemark="计算目标固定补偿" EnParam1=" MarkType/CalculateTargetFixedCompensation" EnParam2=" PosIndex" EnRemark="CalculateTargetFixedCompensation" />
+<VGTP ChsParam1=" 位置序号" ChsParam2=" 候补序号"  ChsRemark="获取目标图像坐标及轴位置" EnParam1=" PosIndex" EnParam2=" StartPatternIndex" EnRemark="GetTargetImgCoordinatesAndAxisPosition" />
+<VCPI ChsParam1=" 平台编号" ChsParam2=" 无"  ChsRemark="切换平台显示" EnParam1=" PlatformNumber" EnParam2=" Nothing" EnRemark="SwitchPlatformDisplay" />
+</FuncCmd>
+<AlignParamCmd>
+<VSPC ChsParam1=" 产品编号" ChsParam2=" 辅助编号"  ChsRemark="切换产品" EnParam1="  ProductNumber" EnParam2=" AuxiliaryNumber" EnRemark="SwitchProduct" />
+<VGSP ChsParam1=" 无" ChsParam2=" 无"  ChsRemark="获取当前产品编号" EnParam1=" Nothing" EnParam2=" Nothing" EnRemark="GetTheCurrentProductNumber" />
+<VSSV ChsParam1=" 产品编号" ChsParam2=" 辅助编号"  ChsRemark="保存指定产品到本地" EnParam1="  ProductNumber" EnParam2=" AuxiliaryNumber" EnRemark="SaveTheSpecifiedProductLocally" />
+<VGAL ChsParam1=" 辅助编号" ChsParam2=" 无"  ChsRemark="获取对位精度" EnParam1=" AuxiliaryNumber" EnParam2=" Nothing" EnRemark="GetTheAlignAccuracy" />
+<VALL ChsParam1=" 辅助编号" ChsParam2=" 无"  ChsRemark="设置对位精度" EnParam1=" AuxiliaryNumber" EnParam2=" Nothing" EnRemark="SetTheAlignAccuracy" />
+<VGAC ChsParam1=" 无" ChsParam2=" 无"  ChsRemark="获取最大对位次数" EnParam1=" Nothing" EnParam2=" Nothing" EnRemark="GetTheMaximumNumberOfAlign" />
+<VALC ChsParam1=" 最大对位次数" ChsParam2=" 无"  ChsRemark="设置最大对位次数" EnParam1=" MaxNumberOfAlign" EnParam2=" Nothing" EnRemark="SetMaxNumberOfAlign" />
+<VGOF ChsParam1=" 补偿量序号" ChsParam2=" 无"  ChsRemark="获取指定索引的对位补偿量" EnParam1=" OffsetNumber" EnParam2=" Nothing" EnRemark="GetTheOffsetForTheSpecifiedIndex" />
+<VOFS ChsParam1=" 补偿量序号" ChsParam2=" 无"  ChsRemark="设置指定索引的对位补偿量" EnParam1=" OffsetNumber" EnParam2=" Nothing" EnRemark="SetTheOffsetForTheSpecifiedIndex" />
+<VGPO ChsParam1=" 无" ChsParam2=" 无"  ChsRemark="获取多次对位最终精度" EnParam1=" Nothing" EnParam2=" Nothing" EnRemark="GetAccuracyOfMultipleAlign" />
+<VVAS ChsParam1=" 开关设置" ChsParam2=" 无"  ChsRemark="打开/关闭虚拟MARK" EnParam1=" TurnON/OFF" EnParam2=" Nothing" EnRemark="TurnVirtualMARKON/OFF" />
+<VPEP ChsParam1=" 产品编号" ChsParam2=" 辅助编号"  ChsRemark="清空指定产品的模板" EnParam1="  ProductNumber" EnParam2=" AuxiliaryNumber" EnRemark="ClearPatternforTheSpecifiedProduct" />
+<VPCP ChsParam1=" 产品编号" ChsParam2=" 辅助编号"  ChsRemark="产品拷贝" EnParam1="  ProductNumber" EnParam2=" AuxiliaryNumber" EnRemark="ProductCopy" />
+<VPRN ChsParam1=" 产品编号" ChsParam2=" 辅助编号"  ChsRemark="产品重命名" EnParam1="  ProductNumber" EnParam2=" AuxiliaryNumber" EnRemark="ProductRenaming" />
+<VCCI ChsParam1=" 位置序号" ChsParam2=" 复制到标定位置"  ChsRemark="拷贝标定信息" EnParam1=" PosIndex" EnParam2=" CopyToCalibrationLocation" EnRemark="CopyCalibrationInformation" />
+<VVPC ChsParam1=" 对象虚拟点模式" ChsParam2=" 目标虚拟点模式"  ChsRemark="切换2vs4不同虚拟点模式" EnParam1="  ObjectVirtualPointMode" EnParam2=" TargetVirtualPointMode" EnRemark="SwitchDifferentVirtualPoint2VS4Mode" />
+</AlignParamCmd>
+</Command>

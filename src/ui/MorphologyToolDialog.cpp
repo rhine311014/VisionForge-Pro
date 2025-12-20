@@ -22,6 +22,8 @@ MorphologyToolDialog::MorphologyToolDialog(Algorithm::MorphologyTool* tool, QWid
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("形态学处理参数设置");
     setMinimumSize(400, 350);
@@ -121,11 +123,23 @@ void MorphologyToolDialog::createKernelParamsGroup(QVBoxLayout* layout)
 
 void MorphologyToolDialog::createButtons(QVBoxLayout* layout)
 {
-    // 预览按钮
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 150);
+
+    // 预览选项
     QHBoxLayout* previewLayout = new QHBoxLayout();
+
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+
+    previewLayout->addStretch();
+
     previewBtn_ = new QPushButton("预览效果", this);
     previewBtn_->setMinimumHeight(35);
     previewLayout->addWidget(previewBtn_);
+
     layout->addLayout(previewLayout);
 
     // 对话框按钮
@@ -156,6 +170,12 @@ void MorphologyToolDialog::connectSignals()
             this, &MorphologyToolDialog::onKernelHeightChanged);
     connect(iterationsSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MorphologyToolDialog::onIterationsChanged);
+
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &MorphologyToolDialog::onAutoPreview);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &MorphologyToolDialog::onPreviewClicked);
@@ -214,30 +234,35 @@ void MorphologyToolDialog::onMorphTypeChanged(int index)
     Q_UNUSED(index);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void MorphologyToolDialog::onKernelShapeChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void MorphologyToolDialog::onKernelWidthChanged(int value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void MorphologyToolDialog::onKernelHeightChanged(int value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void MorphologyToolDialog::onIterationsChanged(int value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void MorphologyToolDialog::onPreviewClicked()
@@ -262,6 +287,11 @@ void MorphologyToolDialog::onApplyClicked()
 {
     applyParameters();
     emit parametersApplied();
+}
+
+void MorphologyToolDialog::onAutoPreview()
+{
+    emit previewRequested();
 }
 
 } // namespace UI

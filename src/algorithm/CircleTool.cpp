@@ -4,8 +4,10 @@
  */
 
 #include "algorithm/CircleTool.h"
+#include "algorithm/SubPixelEdgeTool.h"
 #include "base/Logger.h"
 #include <opencv2/imgproc.hpp>
+#include <opencv2/core.hpp>
 #include <QElapsedTimer>
 #include <QJsonArray>
 #include <algorithm>
@@ -32,6 +34,8 @@ CircleTool::CircleTool(QObject* parent)
     , accumThreshold_(30.0)
     , minCircularity_(0.8)
     , minArea_(100.0)
+    , subPixelEnabled_(false)
+    , subPixelMethod_(SubPixelMethod::QuadraticFit)
 {
     setDisplayName(toolName());
 }
@@ -424,6 +428,8 @@ QJsonObject CircleTool::serializeParams() const
     json["accumThreshold"] = accumThreshold_;
     json["minCircularity"] = minCircularity_;
     json["minArea"] = minArea_;
+    json["subPixelEnabled"] = subPixelEnabled_;
+    json["subPixelMethod"] = static_cast<int>(subPixelMethod_);
     return json;
 }
 
@@ -440,6 +446,9 @@ void CircleTool::deserializeParams(const QJsonObject& json)
     accumThreshold_ = json.value("accumThreshold").toDouble(30.0);
     minCircularity_ = json.value("minCircularity").toDouble(0.8);
     minArea_ = json.value("minArea").toDouble(100.0);
+    subPixelEnabled_ = json.value("subPixelEnabled").toBool(false);
+    subPixelMethod_ = static_cast<SubPixelMethod>(
+        json.value("subPixelMethod").toInt(static_cast<int>(SubPixelMethod::QuadraticFit)));
 }
 
 void CircleTool::setBackend(BackendType backend)
@@ -528,6 +537,79 @@ void CircleTool::setMinArea(double area)
         minArea_ = area;
         emit paramChanged();
     }
+}
+
+void CircleTool::setSubPixelEnabled(bool enabled)
+{
+    if (subPixelEnabled_ != enabled) {
+        subPixelEnabled_ = enabled;
+        emit paramChanged();
+    }
+}
+
+void CircleTool::setSubPixelMethod(SubPixelMethod method)
+{
+    if (subPixelMethod_ != method) {
+        subPixelMethod_ = method;
+        emit paramChanged();
+    }
+}
+
+double CircleTool::fitCircleSubPixel(const std::vector<cv::Point2f>& edgePoints, CircleResult& result)
+{
+    if (edgePoints.size() < 3) {
+        return -1.0;
+    }
+
+    // 使用最小二乘法拟合圆
+    // 圆方程: (x - cx)^2 + (y - cy)^2 = r^2
+    // 展开: x^2 + y^2 - 2*cx*x - 2*cy*y + (cx^2 + cy^2 - r^2) = 0
+    // 令 A = -2*cx, B = -2*cy, C = cx^2 + cy^2 - r^2
+    // 则: x^2 + y^2 + A*x + B*y + C = 0
+
+    int n = static_cast<int>(edgePoints.size());
+    cv::Mat A(n, 3, CV_64F);
+    cv::Mat b(n, 1, CV_64F);
+
+    for (int i = 0; i < n; ++i) {
+        double x = edgePoints[i].x;
+        double y = edgePoints[i].y;
+
+        A.at<double>(i, 0) = x;
+        A.at<double>(i, 1) = y;
+        A.at<double>(i, 2) = 1.0;
+
+        b.at<double>(i, 0) = -(x * x + y * y);
+    }
+
+    // 最小二乘求解 (使用SVD分解)
+    cv::Mat params;
+    cv::solve(A, b, params, cv::DECOMP_SVD);
+
+    double centerX = -params.at<double>(0, 0) / 2.0;
+    double centerY = -params.at<double>(1, 0) / 2.0;
+    double radius = std::sqrt(centerX * centerX + centerY * centerY - params.at<double>(2, 0));
+
+    // 计算残差
+    double residual = 0;
+    for (const auto& pt : edgePoints) {
+        double dx = pt.x - centerX;
+        double dy = pt.y - centerY;
+        double dist = std::sqrt(dx * dx + dy * dy);
+        residual += (dist - radius) * (dist - radius);
+    }
+
+    double rms = std::sqrt(residual / n);
+
+    result.center = QPointF(centerX, centerY);
+    result.radius = radius;
+    result.isSubPixel = true;
+    result.fitResidual = rms;
+    result.area = M_PI * radius * radius;
+    result.circularity = 1.0;
+    result.score = 1.0 / (1.0 + rms);  // 残差越小得分越高
+
+    return rms;
 }
 
 } // namespace Algorithm

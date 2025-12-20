@@ -9,6 +9,7 @@
 #pragma once
 
 #include "algorithm/VisionTool.h"
+#include "algorithm/SubPixelEdgeTool.h"
 #include <vector>
 #include <QPointF>
 
@@ -25,12 +26,16 @@ struct CircleResult {
     double score;               // 匹配得分/置信度
     double circularity;         // 圆度（1.0为完美圆）
     double area;                // 面积
+    bool isSubPixel;            // 是否为亚像素精度
+    double fitResidual;         // 拟合残差
 
     CircleResult()
-        : id(0), radius(0), score(0), circularity(0), area(0) {}
+        : id(0), radius(0), score(0), circularity(0), area(0),
+          isSubPixel(false), fitResidual(0) {}
 
     CircleResult(int i, const QPointF& c, double r, double s = 1.0)
-        : id(i), center(c), radius(r), score(s), circularity(1.0)
+        : id(i), center(c), radius(r), score(s), circularity(1.0),
+          isSubPixel(false), fitResidual(0)
     {
         area = M_PI * r * r;
     }
@@ -146,6 +151,28 @@ public:
     void setMinArea(double area);
     double minArea() const { return minArea_; }
 
+    // ========== 亚像素参数 ==========
+
+    /**
+     * @brief 设置是否启用亚像素精度
+     */
+    void setSubPixelEnabled(bool enabled);
+    bool subPixelEnabled() const { return subPixelEnabled_; }
+
+    /**
+     * @brief 设置亚像素检测方法
+     */
+    void setSubPixelMethod(SubPixelMethod method);
+    SubPixelMethod subPixelMethod() const { return subPixelMethod_; }
+
+    /**
+     * @brief 亚像素圆拟合
+     * @param edgePoints 边缘点集合
+     * @param result 输出结果
+     * @return 拟合残差
+     */
+    double fitCircleSubPixel(const std::vector<cv::Point2f>& edgePoints, CircleResult& result);
+
     // ========== 结果获取 ==========
 
     /**
@@ -204,6 +231,10 @@ private:
     // 轮廓拟合参数
     double minCircularity_;         // 最小圆度
     double minArea_;                // 最小面积
+
+    // 亚像素参数
+    bool subPixelEnabled_;          // 是否启用亚像素
+    SubPixelMethod subPixelMethod_; // 亚像素方法
 
     std::vector<CircleResult> circles_;  // 检测结果
 };

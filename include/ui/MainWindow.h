@@ -127,6 +127,12 @@ private slots:
     void onCameraCalibration();
     void onNinePointCalibration();
 
+    // 多相机多位置对位
+    void onMultiCameraManager();
+    void onMultiPointAlignment();
+    void onAlignmentOutput();
+    void onWorkStationConfig();
+
     // 方案管理
     void onRecipeActivated(Core::Recipe* recipe);
     void onEditRecipeRequested(Core::Recipe* recipe);
@@ -244,6 +250,13 @@ private:
     // 标定动作
     QAction* cameraCalibAction_;
     QAction* ninePointCalibAction_;
+
+    // 对位菜单和动作
+    QMenu* alignmentMenu_;
+    QAction* multiCameraManagerAction_;
+    QAction* multiPointAlignmentAction_;
+    QAction* alignmentOutputAction_;
+    QAction* workStationConfigAction_;
 
     // 系统设置动作
     QAction* systemSettingsAction_;

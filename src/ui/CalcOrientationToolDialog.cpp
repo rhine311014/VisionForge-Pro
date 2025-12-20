@@ -48,6 +48,8 @@ CalcOrientationToolDialog::CalcOrientationToolDialog(Algorithm::CalcOrientationT
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("方向计算设置");
     setMinimumSize(800, 600);
@@ -154,6 +156,18 @@ void CalcOrientationToolDialog::createUI()
     mainSplitter->setStretchFactor(1, 1);
 
     mainLayout->addWidget(mainSplitter, 1);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新计算结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -330,6 +344,12 @@ void CalcOrientationToolDialog::connectSignals()
     connect(removePointBtn_, &QPushButton::clicked, this, &CalcOrientationToolDialog::onRemovePoint);
     connect(clearPointsBtn_, &QPushButton::clicked, this, &CalcOrientationToolDialog::onClearPoints);
 
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &CalcOrientationToolDialog::onAutoCalc);
+
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &CalcOrientationToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &CalcOrientationToolDialog::onOkClicked);
@@ -345,6 +365,7 @@ void CalcOrientationToolDialog::onCalcMethodChanged(int index)
         calcMethodCombo_->currentData().toInt());
     tool_->setCalcMethod(method);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcOrientationToolDialog::onSourceTypeChanged(int index)
@@ -356,6 +377,7 @@ void CalcOrientationToolDialog::onSourceTypeChanged(int index)
     tool_->setSourceType(type);
     updateInputVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcOrientationToolDialog::onAngleRangeChanged(int index)
@@ -363,6 +385,7 @@ void CalcOrientationToolDialog::onAngleRangeChanged(int index)
     if (!tool_) return;
     tool_->setAngleRange(angleRangeCombo_->currentData().toInt());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcOrientationToolDialog::onThresholdChanged(int value)
@@ -370,6 +393,7 @@ void CalcOrientationToolDialog::onThresholdChanged(int value)
     if (!tool_) return;
     tool_->setThreshold(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcOrientationToolDialog::onInvertedChanged(bool checked)
@@ -377,6 +401,7 @@ void CalcOrientationToolDialog::onInvertedChanged(bool checked)
     if (!tool_) return;
     tool_->setInverted(checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcOrientationToolDialog::onAddPoint()
@@ -389,6 +414,7 @@ void CalcOrientationToolDialog::onAddPoint()
 
     updatePointsTable();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void CalcOrientationToolDialog::onRemovePoint()
@@ -404,6 +430,7 @@ void CalcOrientationToolDialog::onRemovePoint()
         tool_->setInputPoints(points);
         updatePointsTable();
         emit parameterChanged();
+        previewHelper_->requestPreview();
     }
 }
 
@@ -500,6 +527,16 @@ void CalcOrientationToolDialog::updateResultDisplay()
         majorAxisLabel_->setText("--");
         minorAxisLabel_->setText("--");
     }
+}
+
+void CalcOrientationToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+    Algorithm::ToolResult result;
+    tool_->process(currentImage_, result);
+    updateResultDisplay();
 }
 
 } // namespace UI

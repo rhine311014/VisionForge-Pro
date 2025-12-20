@@ -17,6 +17,7 @@
 #include <QVBoxLayout>
 
 #include "base/ImageData.h"
+#include "ui/PreviewHelper.h"
 
 namespace VisionForge {
 
@@ -85,6 +86,7 @@ private slots:
     void onOkClicked();
     void onCancelClicked();
     void onApplyClicked();
+    void onAutoCalc();
 
 private:
     void createUI();
@@ -147,6 +149,10 @@ private:
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
     QPushButton* applyBtn_;
+
+    // 实时计算
+    PreviewHelper* previewHelper_;
+    QCheckBox* autoCalcCheck_;
 };
 
 } // namespace UI

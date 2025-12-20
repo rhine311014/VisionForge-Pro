@@ -9,6 +9,7 @@
 #pragma once
 
 #include "algorithm/VisionTool.h"
+#include "algorithm/SubPixelEdgeTool.h"
 #include <QPointF>
 #include <QLineF>
 #include <vector>
@@ -25,12 +26,16 @@ struct EdgePoint {
     double amplitude;           // 边缘幅值（梯度强度）
     double direction;           // 边缘方向（度）
     bool isRising;              // 是否为上升沿（暗到亮）
+    bool isSubPixel;            // 是否为亚像素精度
+    double subPixelShift;       // 亚像素偏移量
 
     EdgePoint()
-        : id(0), amplitude(0), direction(0), isRising(true) {}
+        : id(0), amplitude(0), direction(0), isRising(true),
+          isSubPixel(false), subPixelShift(0) {}
 
     EdgePoint(int i, const QPointF& pos, double amp, double dir, bool rising)
-        : id(i), position(pos), amplitude(amp), direction(dir), isRising(rising) {}
+        : id(i), position(pos), amplitude(amp), direction(dir), isRising(rising),
+          isSubPixel(false), subPixelShift(0) {}
 };
 
 /**
@@ -138,6 +143,20 @@ public:
     void setSigma(double sigma);
     double sigma() const { return sigma_; }
 
+    // ========== 亚像素参数 ==========
+
+    /**
+     * @brief 设置是否启用亚像素精度
+     */
+    void setSubPixelEnabled(bool enabled);
+    bool subPixelEnabled() const { return subPixelEnabled_; }
+
+    /**
+     * @brief 设置亚像素检测方法
+     */
+    void setSubPixelMethod(SubPixelMethod method);
+    SubPixelMethod subPixelMethod() const { return subPixelMethod_; }
+
     // ========== 结果获取 ==========
 
     /**
@@ -198,6 +217,10 @@ private:
     SelectMode selectMode_;
     double minAmplitude_;
     double sigma_;
+
+    // 亚像素参数
+    bool subPixelEnabled_;
+    SubPixelMethod subPixelMethod_;
 
     // 结果
     std::vector<EdgePoint> edgePoints_;

@@ -18,6 +18,7 @@ set(UI_SOURCES
     CameraCalibDialog.cpp
     NinePointCalibDialog.cpp
     SystemSettingsDialog.cpp
+    PreviewHelper.cpp
     # 工具对话框 - 预处理
     GrayToolDialog.cpp
     BlurToolDialog.cpp
@@ -47,6 +48,14 @@ set(UI_SOURCES
     # 系统对话框
     LoginDialog.cpp
     StatisticsPanel.cpp
+    UserManagementDialog.cpp
+    UIModeManager.cpp
+    ShortcutManager.cpp
+    # 多相机多位置对位对话框
+    MultiCameraManagerDialog.cpp
+    MultiPointAlignmentDialog.cpp
+    AlignmentOutputDialog.cpp
+    WorkStationDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -79,6 +88,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/CameraCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/NinePointCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/SystemSettingsDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/PreviewHelper.h
     # 工具对话框头文件 - 预处理
     ${CMAKE_SOURCE_DIR}/include/ui/GrayToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/BlurToolDialog.h
@@ -108,6 +118,14 @@ set(UI_HEADERS
     # 系统对话框头文件
     ${CMAKE_SOURCE_DIR}/include/ui/LoginDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/StatisticsPanel.h
+    ${CMAKE_SOURCE_DIR}/include/ui/UserManagementDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/UIModeManager.h
+    ${CMAKE_SOURCE_DIR}/include/ui/ShortcutManager.h
+    # 多相机多位置对位对话框头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/MultiCameraManagerDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/MultiPointAlignmentDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/AlignmentOutputDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/WorkStationDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件
@@ -166,6 +184,12 @@ endif()
 # 如果启用Basler相机，添加编译定义
 if(USE_BASLER_PYLON)
     target_compile_definitions(VisionForgeUI PRIVATE USE_BASLER_PYLON)
+endif()
+
+# CUDA支持（需要包含CUDA头文件路径）
+if(USE_CUDA AND CUDA_FOUND)
+    target_include_directories(VisionForgeUI PRIVATE ${CUDA_INCLUDE_DIRS})
+    target_compile_definitions(VisionForgeUI PRIVATE USE_CUDA)
 endif()
 
 # 设置属性

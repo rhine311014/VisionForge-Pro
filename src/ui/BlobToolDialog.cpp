@@ -48,6 +48,8 @@ BlobToolDialog::BlobToolDialog(Algorithm::BlobTool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("Blob分析设置");
     setMinimumSize(900, 600);
@@ -161,21 +163,35 @@ void BlobToolDialog::createUI()
 
     mainLayout->addWidget(mainSplitter_, 1);
 
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 200);
+
+    // 预览选项行
+    QHBoxLayout* previewLayout = new QHBoxLayout();
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+    previewLayout->addStretch();
+
+    previewBtn_ = new QPushButton("预览", this);
+    previewBtn_->setMinimumWidth(80);
+    previewLayout->addWidget(previewBtn_);
+
+    mainLayout->addLayout(previewLayout);
+
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
 
-    previewBtn_ = new QPushButton("预览", this);
     okBtn_ = new QPushButton("确定", this);
     cancelBtn_ = new QPushButton("取消", this);
     applyBtn_ = new QPushButton("应用", this);
 
-    previewBtn_->setMinimumWidth(80);
     okBtn_->setMinimumWidth(80);
     cancelBtn_->setMinimumWidth(80);
     applyBtn_->setMinimumWidth(80);
 
-    buttonLayout->addWidget(previewBtn_);
     buttonLayout->addWidget(okBtn_);
     buttonLayout->addWidget(cancelBtn_);
     buttonLayout->addWidget(applyBtn_);
@@ -456,6 +472,12 @@ void BlobToolDialog::connectSignals()
     connect(maxCountSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &BlobToolDialog::onMaxCountChanged);
 
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &BlobToolDialog::onAutoPreview);
+
     // 对话框按钮
     connect(previewBtn_, &QPushButton::clicked, this, &BlobToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &BlobToolDialog::onOkClicked);
@@ -469,6 +491,7 @@ void BlobToolDialog::onBackendChanged(int index)
     tool_->setBackend(static_cast<Algorithm::BlobTool::BackendType>(
         backendCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onConnectivityChanged(int index)
@@ -477,6 +500,7 @@ void BlobToolDialog::onConnectivityChanged(int index)
     tool_->setConnectivity(static_cast<Algorithm::BlobTool::Connectivity>(
         connectivityCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onPolarityChanged(int index)
@@ -485,6 +509,7 @@ void BlobToolDialog::onPolarityChanged(int index)
     tool_->setPolarity(static_cast<Algorithm::BlobTool::Polarity>(
         polarityCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onSortByChanged(int index)
@@ -493,6 +518,7 @@ void BlobToolDialog::onSortByChanged(int index)
     tool_->setSortBy(static_cast<Algorithm::BlobTool::SortBy>(
         sortByCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onSortDescendingChanged(bool checked)
@@ -500,6 +526,7 @@ void BlobToolDialog::onSortDescendingChanged(bool checked)
     if (!tool_) return;
     tool_->setSortDescending(checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onMaxCountChanged(int value)
@@ -507,6 +534,7 @@ void BlobToolDialog::onMaxCountChanged(int value)
     if (!tool_) return;
     tool_->setMaxCount(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onThresholdChanged(int value)
@@ -517,6 +545,7 @@ void BlobToolDialog::onThresholdChanged(int value)
     thresholdSlider_->setValue(value);
     thresholdSlider_->blockSignals(false);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onAutoThresholdChanged(bool checked)
@@ -526,6 +555,7 @@ void BlobToolDialog::onAutoThresholdChanged(bool checked)
     thresholdSpinBox_->setEnabled(!checked);
     thresholdSlider_->setEnabled(!checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onAreaRangeChanged()
@@ -533,6 +563,7 @@ void BlobToolDialog::onAreaRangeChanged()
     if (!tool_) return;
     tool_->setAreaRange(minAreaSpinBox_->value(), maxAreaSpinBox_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onCircularityRangeChanged()
@@ -540,6 +571,7 @@ void BlobToolDialog::onCircularityRangeChanged()
     if (!tool_) return;
     tool_->setCircularityRange(minCircularitySpinBox_->value(), maxCircularitySpinBox_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void BlobToolDialog::onPreviewClicked()
@@ -618,6 +650,23 @@ void BlobToolDialog::updateResults()
         resultsTable_->setItem(row, 2, new QTableWidgetItem(QString::number(blob.circularity, 'f', 3)));
         resultsTable_->setItem(row, 3, new QTableWidgetItem(QString::number(blob.center.x(), 'f', 1)));
         resultsTable_->setItem(row, 4, new QTableWidgetItem(QString::number(blob.center.y(), 'f', 1)));
+    }
+}
+
+void BlobToolDialog::onAutoPreview()
+{
+    if (!tool_ || !currentImage_) {
+        return;
+    }
+
+    applyParameters();
+
+    Algorithm::ToolResult result;
+    if (tool_->process(currentImage_, result)) {
+        if (result.outputImage && imageViewer_) {
+            imageViewer_->setImage(result.outputImage);
+        }
+        updateResults();
     }
 }
 

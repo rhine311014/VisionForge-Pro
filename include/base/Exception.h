@@ -1,0 +1,383 @@
+/**
+ * @file Exception.h
+ * @brief VisionForge自定义异常层次结构
+ * @author VisionForge Team
+ * @date 2025-12-19
+ *
+ * 本文件定义了VisionForge项目的异常层次结构，提供统一的错误处理机制。
+ *
+ * 异常层次:
+ * - VisionForgeException (基类)
+ *   - AlgorithmException (算法相关)
+ *   - CameraException (相机相关)
+ *   - CommunicationException (通讯相关)
+ *   - ConfigurationException (配置相关)
+ *   - FileIOException (文件IO相关)
+ *   - ValidationException (参数验证相关)
+ */
+
+#pragma once
+
+#include <exception>
+#include <string>
+#include <QString>
+
+namespace VisionForge {
+namespace Base {
+
+/**
+ * @class VisionForgeException
+ * @brief VisionForge异常基类
+ *
+ * 所有VisionForge项目特定异常的基类。
+ * 提供错误消息、错误码和源位置信息。
+ */
+class VisionForgeException : public std::exception
+{
+public:
+    /**
+     * @brief 构造函数
+     * @param message 错误消息
+     * @param code 错误码 (默认-1)
+     * @param file 源文件名 (可选)
+     * @param line 源代码行号 (可选)
+     */
+    explicit VisionForgeException(const std::string& message,
+                                   int code = -1,
+                                   const char* file = nullptr,
+                                   int line = 0)
+        : message_(message)
+        , code_(code)
+        , file_(file ? file : "")
+        , line_(line)
+    {
+        buildFullMessage();
+    }
+
+    explicit VisionForgeException(const QString& message,
+                                   int code = -1,
+                                   const char* file = nullptr,
+                                   int line = 0)
+        : message_(message.toStdString())
+        , code_(code)
+        , file_(file ? file : "")
+        , line_(line)
+    {
+        buildFullMessage();
+    }
+
+    virtual ~VisionForgeException() noexcept = default;
+
+    /**
+     * @brief 获取异常消息
+     * @return 异常消息的C字符串
+     */
+    const char* what() const noexcept override
+    {
+        return fullMessage_.c_str();
+    }
+
+    /**
+     * @brief 获取错误消息
+     * @return 错误消息字符串
+     */
+    const std::string& message() const noexcept { return message_; }
+
+    /**
+     * @brief 获取错误消息 (QString版本)
+     * @return 错误消息QString
+     */
+    QString messageQ() const { return QString::fromStdString(message_); }
+
+    /**
+     * @brief 获取错误码
+     * @return 错误码
+     */
+    int code() const noexcept { return code_; }
+
+    /**
+     * @brief 获取异常类型名称
+     * @return 异常类型名称
+     */
+    virtual const char* type() const noexcept { return "VisionForgeException"; }
+
+    /**
+     * @brief 获取源文件名
+     * @return 源文件名
+     */
+    const std::string& file() const noexcept { return file_; }
+
+    /**
+     * @brief 获取源代码行号
+     * @return 行号
+     */
+    int line() const noexcept { return line_; }
+
+protected:
+    void buildFullMessage()
+    {
+        fullMessage_ = std::string("[") + type() + "] " + message_;
+        if (!file_.empty()) {
+            fullMessage_ += " (at " + file_ + ":" + std::to_string(line_) + ")";
+        }
+        if (code_ != -1) {
+            fullMessage_ += " [code: " + std::to_string(code_) + "]";
+        }
+    }
+
+    std::string message_;
+    std::string fullMessage_;
+    int code_;
+    std::string file_;
+    int line_;
+};
+
+/**
+ * @class AlgorithmException
+ * @brief 算法异常类
+ *
+ * 用于算法执行过程中的错误，如:
+ * - 图像处理失败
+ * - 匹配失败
+ * - 检测失败
+ * - 计算错误
+ */
+class AlgorithmException : public VisionForgeException
+{
+public:
+    /// 算法错误码
+    enum ErrorCode {
+        ProcessingFailed = 1001,    ///< 处理失败
+        MatchFailed = 1002,         ///< 匹配失败
+        DetectionFailed = 1003,     ///< 检测失败
+        CalibrationFailed = 1004,   ///< 标定失败
+        InvalidParameter = 1005,    ///< 无效参数
+        ModelNotLoaded = 1006,      ///< 模型未加载
+        ImageEmpty = 1007,          ///< 图像为空
+        ROIInvalid = 1008,          ///< ROI无效
+    };
+
+    explicit AlgorithmException(const std::string& message,
+                                 ErrorCode code = ProcessingFailed,
+                                 const char* file = nullptr,
+                                 int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    explicit AlgorithmException(const QString& message,
+                                 ErrorCode code = ProcessingFailed,
+                                 const char* file = nullptr,
+                                 int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    const char* type() const noexcept override { return "AlgorithmException"; }
+};
+
+/**
+ * @class CameraException
+ * @brief 相机异常类
+ *
+ * 用于相机操作中的错误，如:
+ * - 连接失败
+ * - 采集失败
+ * - 参数设置失败
+ */
+class CameraException : public VisionForgeException
+{
+public:
+    /// 相机错误码
+    enum ErrorCode {
+        ConnectionFailed = 2001,    ///< 连接失败
+        NotConnected = 2002,        ///< 未连接
+        GrabFailed = 2003,          ///< 采集失败
+        SetParameterFailed = 2004,  ///< 参数设置失败
+        DeviceNotFound = 2005,      ///< 设备未找到
+        InitFailed = 2006,          ///< 初始化失败
+        Timeout = 2007,             ///< 超时
+    };
+
+    explicit CameraException(const std::string& message,
+                              ErrorCode code = ConnectionFailed,
+                              const char* file = nullptr,
+                              int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    explicit CameraException(const QString& message,
+                              ErrorCode code = ConnectionFailed,
+                              const char* file = nullptr,
+                              int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    const char* type() const noexcept override { return "CameraException"; }
+};
+
+/**
+ * @class CommunicationException
+ * @brief 通讯异常类
+ *
+ * 用于PLC/设备通讯中的错误，如:
+ * - 连接失败
+ * - 发送/接收失败
+ * - 超时
+ */
+class CommunicationException : public VisionForgeException
+{
+public:
+    /// 通讯错误码
+    enum ErrorCode {
+        ConnectionFailed = 3001,    ///< 连接失败
+        NotConnected = 3002,        ///< 未连接
+        SendFailed = 3003,          ///< 发送失败
+        ReceiveFailed = 3004,       ///< 接收失败
+        Timeout = 3005,             ///< 超时
+        InvalidAddress = 3006,      ///< 无效地址
+        ProtocolError = 3007,       ///< 协议错误
+    };
+
+    explicit CommunicationException(const std::string& message,
+                                     ErrorCode code = ConnectionFailed,
+                                     const char* file = nullptr,
+                                     int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    explicit CommunicationException(const QString& message,
+                                     ErrorCode code = ConnectionFailed,
+                                     const char* file = nullptr,
+                                     int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    const char* type() const noexcept override { return "CommunicationException"; }
+};
+
+/**
+ * @class ConfigurationException
+ * @brief 配置异常类
+ *
+ * 用于配置/项目管理中的错误，如:
+ * - 配置文件无效
+ * - 项目加载失败
+ * - 配方错误
+ */
+class ConfigurationException : public VisionForgeException
+{
+public:
+    /// 配置错误码
+    enum ErrorCode {
+        InvalidConfig = 4001,       ///< 无效配置
+        LoadFailed = 4002,          ///< 加载失败
+        SaveFailed = 4003,          ///< 保存失败
+        MissingKey = 4004,          ///< 缺少必要键值
+        ParseError = 4005,          ///< 解析错误
+        VersionMismatch = 4006,     ///< 版本不匹配
+    };
+
+    explicit ConfigurationException(const std::string& message,
+                                     ErrorCode code = InvalidConfig,
+                                     const char* file = nullptr,
+                                     int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    explicit ConfigurationException(const QString& message,
+                                     ErrorCode code = InvalidConfig,
+                                     const char* file = nullptr,
+                                     int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    const char* type() const noexcept override { return "ConfigurationException"; }
+};
+
+/**
+ * @class FileIOException
+ * @brief 文件IO异常类
+ *
+ * 用于文件操作中的错误，如:
+ * - 文件不存在
+ * - 读写失败
+ * - 权限不足
+ */
+class FileIOException : public VisionForgeException
+{
+public:
+    /// 文件IO错误码
+    enum ErrorCode {
+        FileNotFound = 5001,        ///< 文件未找到
+        ReadFailed = 5002,          ///< 读取失败
+        WriteFailed = 5003,         ///< 写入失败
+        PermissionDenied = 5004,    ///< 权限不足
+        InvalidFormat = 5005,       ///< 格式无效
+        DiskFull = 5006,            ///< 磁盘已满
+    };
+
+    explicit FileIOException(const std::string& message,
+                              ErrorCode code = FileNotFound,
+                              const char* file = nullptr,
+                              int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    explicit FileIOException(const QString& message,
+                              ErrorCode code = FileNotFound,
+                              const char* file = nullptr,
+                              int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    const char* type() const noexcept override { return "FileIOException"; }
+};
+
+/**
+ * @class ValidationException
+ * @brief 参数验证异常类
+ *
+ * 用于参数验证失败的情况，如:
+ * - 参数超出范围
+ * - 无效参数类型
+ * - 空指针
+ */
+class ValidationException : public VisionForgeException
+{
+public:
+    /// 验证错误码
+    enum ErrorCode {
+        NullPointer = 6001,         ///< 空指针
+        OutOfRange = 6002,          ///< 超出范围
+        InvalidType = 6003,         ///< 无效类型
+        InvalidValue = 6004,        ///< 无效值
+        RequiredMissing = 6005,     ///< 缺少必要参数
+    };
+
+    explicit ValidationException(const std::string& message,
+                                  ErrorCode code = InvalidValue,
+                                  const char* file = nullptr,
+                                  int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    explicit ValidationException(const QString& message,
+                                  ErrorCode code = InvalidValue,
+                                  const char* file = nullptr,
+                                  int line = 0)
+        : VisionForgeException(message, static_cast<int>(code), file, line) {}
+
+    const char* type() const noexcept override { return "ValidationException"; }
+};
+
+} // namespace Base
+} // namespace VisionForge
+
+/// @brief 方便的异常抛出宏，自动包含源文件位置
+#define VF_THROW(ExceptionType, message) \
+    throw ExceptionType(message, ExceptionType::ErrorCode(-1), __FILE__, __LINE__)
+
+#define VF_THROW_CODE(ExceptionType, message, code) \
+    throw ExceptionType(message, code, __FILE__, __LINE__)
+
+/// @brief 条件检查宏，失败时抛出异常
+#define VF_CHECK(condition, ExceptionType, message) \
+    do { \
+        if (!(condition)) { \
+            VF_THROW(ExceptionType, message); \
+        } \
+    } while(0)
+
+#define VF_CHECK_NULL(ptr, message) \
+    VF_CHECK((ptr) != nullptr, VisionForge::Base::ValidationException, message)
+
+#define VF_CHECK_RANGE(value, min, max, message) \
+    VF_CHECK((value) >= (min) && (value) <= (max), VisionForge::Base::ValidationException, message)

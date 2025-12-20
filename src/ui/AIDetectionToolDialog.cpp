@@ -53,6 +53,8 @@ AIDetectionToolDialog::AIDetectionToolDialog(Algorithm::AIDetectionTool* tool, Q
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("AI检测设置");
     setMinimumSize(950, 650);
@@ -159,6 +161,18 @@ void AIDetectionToolDialog::createUI()
     mainSplitter_->setStretchFactor(1, 2);
 
     mainLayout->addWidget(mainSplitter_, 1);
+
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 300);  // AI检测耗时较长，使用300ms延迟
+
+    // 预览选项行
+    QHBoxLayout* previewOptLayout = new QHBoxLayout();
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(false);  // 默认关闭，因为AI检测较慢
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览（需模型已加载）");
+    previewOptLayout->addWidget(autoPreviewCheck_);
+    previewOptLayout->addStretch();
+    mainLayout->addLayout(previewOptLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -473,6 +487,12 @@ void AIDetectionToolDialog::connectSignals()
     connect(loadClassNamesBtn_, &QPushButton::clicked, this, &AIDetectionToolDialog::onLoadClassNamesClicked);
     connect(clearClassNamesBtn_, &QPushButton::clicked, this, &AIDetectionToolDialog::onClearClassNamesClicked);
 
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &AIDetectionToolDialog::onAutoPreview);
+
     // 对话框按钮
     connect(previewBtn_, &QPushButton::clicked, this, &AIDetectionToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &AIDetectionToolDialog::onOkClicked);
@@ -545,6 +565,7 @@ void AIDetectionToolDialog::onTaskTypeChanged(int index)
     tool_->setTaskType(static_cast<Algorithm::AIDetectionTool::TaskType>(
         taskTypeCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void AIDetectionToolDialog::onInferenceEngineChanged(int index)
@@ -553,6 +574,7 @@ void AIDetectionToolDialog::onInferenceEngineChanged(int index)
     tool_->setInferenceEngine(static_cast<Algorithm::AIDetectionTool::InferenceEngine>(
         inferenceEngineCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void AIDetectionToolDialog::onConfidenceThresholdChanged(double value)
@@ -563,6 +585,7 @@ void AIDetectionToolDialog::onConfidenceThresholdChanged(double value)
     confidenceSlider_->setValue(static_cast<int>(value * 100));
     confidenceSlider_->blockSignals(false);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void AIDetectionToolDialog::onNmsThresholdChanged(double value)
@@ -570,6 +593,7 @@ void AIDetectionToolDialog::onNmsThresholdChanged(double value)
     if (!tool_) return;
     tool_->setNmsThreshold(static_cast<float>(value));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void AIDetectionToolDialog::onInputSizeChanged()
@@ -577,6 +601,7 @@ void AIDetectionToolDialog::onInputSizeChanged()
     if (!tool_) return;
     tool_->setInputSize(inputWidthSpinBox_->value(), inputHeightSpinBox_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void AIDetectionToolDialog::onUseGPUChanged(bool checked)
@@ -584,6 +609,7 @@ void AIDetectionToolDialog::onUseGPUChanged(bool checked)
     if (!tool_) return;
     tool_->setUseGPU(checked);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void AIDetectionToolDialog::onLoadClassNamesClicked()
@@ -708,6 +734,23 @@ void AIDetectionToolDialog::updateResults()
         resultsTable_->setItem(row, 2, new QTableWidgetItem(QString::number(det.confidence, 'f', 3)));
         resultsTable_->setItem(row, 3, new QTableWidgetItem(QString::number(det.center.x(), 'f', 1)));
         resultsTable_->setItem(row, 4, new QTableWidgetItem(QString::number(det.center.y(), 'f', 1)));
+    }
+}
+
+void AIDetectionToolDialog::onAutoPreview()
+{
+    if (!tool_ || !currentImage_ || !tool_->isModelLoaded()) {
+        return;
+    }
+
+    applyParameters();
+
+    Algorithm::ToolResult result;
+    if (tool_->process(currentImage_, result)) {
+        if (result.outputImage && imageViewer_) {
+            imageViewer_->setImage(result.outputImage);
+        }
+        updateResults();
     }
 }
 

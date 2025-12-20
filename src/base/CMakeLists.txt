@@ -16,6 +16,8 @@ set(BASE_SOURCES
     DataExporter.cpp
     PluginManager.cpp
     SystemMonitor.cpp
+    ParallelProcessor.cpp
+    ErrorRecovery.cpp
 )
 
 # 收集头文件
@@ -32,6 +34,9 @@ set(BASE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/base/DataExporter.h
     ${CMAKE_SOURCE_DIR}/include/base/PluginManager.h
     ${CMAKE_SOURCE_DIR}/include/base/SystemMonitor.h
+    ${CMAKE_SOURCE_DIR}/include/base/Exception.h
+    ${CMAKE_SOURCE_DIR}/include/base/ParallelProcessor.h
+    ${CMAKE_SOURCE_DIR}/include/base/ErrorRecovery.h
 )
 
 # 创建基础设施层静态库
@@ -51,6 +56,13 @@ target_link_libraries(VisionForgeBase PUBLIC
     Qt6::Gui
     ${OpenCV_LIBS}
 )
+
+# OpenMP支持
+if(USE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(VisionForgeBase PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(VisionForgeBase PRIVATE _OPENMP)
+    message(STATUS "  VisionForgeBase: OpenMP支持已启用")
+endif()
 
 # CUDA支持（可选）
 if(USE_CUDA AND CUDA_FOUND)

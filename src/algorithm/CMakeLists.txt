@@ -41,6 +41,8 @@ set(ALGORITHM_SOURCES
     CoordinateTransform.cpp
     MultiPointAlignmentTool.cpp
     AlignmentOutputTool.cpp
+    # 亚像素边缘检测
+    SubPixelEdgeTool.cpp
 )
 
 # 如果启用Halcon，添加Halcon相关工具
@@ -90,6 +92,8 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/CoordinateTransform.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/MultiPointAlignmentTool.h
     ${CMAKE_SOURCE_DIR}/include/algorithm/AlignmentOutputTool.h
+    # 亚像素边缘检测
+    ${CMAKE_SOURCE_DIR}/include/algorithm/SubPixelEdgeTool.h
 )
 
 # 如果启用Halcon，添加Halcon相关头文件

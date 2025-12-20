@@ -9,6 +9,7 @@ set(CORE_SOURCES
     VisionProject.cpp
     Recipe.cpp
     RecipeManager.cpp
+    WorkStation.cpp
 )
 
 # 收集头文件
@@ -18,6 +19,7 @@ set(CORE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/core/VisionProject.h
     ${CMAKE_SOURCE_DIR}/include/core/Recipe.h
     ${CMAKE_SOURCE_DIR}/include/core/RecipeManager.h
+    ${CMAKE_SOURCE_DIR}/include/core/WorkStation.h
 )
 
 # 创建核心业务层静态库

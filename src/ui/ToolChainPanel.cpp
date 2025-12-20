@@ -8,9 +8,86 @@
 #include "base/Logger.h"
 #include <QIcon>
 #include <QListWidgetItem>
+#include <QDrag>
+#include <QMimeData>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 
 namespace VisionForge {
 namespace UI {
+
+// ============================================================
+// DraggableToolList 实现
+// ============================================================
+
+DraggableToolList::DraggableToolList(QWidget* parent)
+    : QListWidget(parent)
+    , dragStartRow_(-1)
+{
+    setDragEnabled(true);
+    setAcceptDrops(true);
+    setDropIndicatorShown(true);
+    setDefaultDropAction(Qt::MoveAction);
+    setDragDropMode(QAbstractItemView::InternalMove);
+    setSelectionMode(QAbstractItemView::SingleSelection);
+}
+
+void DraggableToolList::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (event->source() == this) {
+        event->acceptProposedAction();
+    } else {
+        event->ignore();
+    }
+}
+
+void DraggableToolList::dragMoveEvent(QDragMoveEvent* event)
+{
+    if (event->source() == this) {
+        event->acceptProposedAction();
+    } else {
+        event->ignore();
+    }
+}
+
+void DraggableToolList::dropEvent(QDropEvent* event)
+{
+    if (event->source() != this) {
+        event->ignore();
+        return;
+    }
+
+    // 获取目标位置
+    QPoint dropPos = event->position().toPoint();
+    QListWidgetItem* targetItem = itemAt(dropPos);
+    int targetRow = targetItem ? row(targetItem) : count();
+
+    // 如果拖放到同一位置，忽略
+    if (dragStartRow_ == targetRow || dragStartRow_ == targetRow - 1) {
+        event->ignore();
+        return;
+    }
+
+    // 计算实际目标行
+    int actualTargetRow = targetRow;
+    if (dragStartRow_ < targetRow) {
+        actualTargetRow--;  // 因为移除原来的项后，目标行会上移
+    }
+
+    event->acceptProposedAction();
+    emit toolOrderChanged(dragStartRow_, actualTargetRow);
+    dragStartRow_ = -1;
+}
+
+void DraggableToolList::startDrag(Qt::DropActions supportedActions)
+{
+    dragStartRow_ = currentRow();
+    QListWidget::startDrag(supportedActions);
+}
+
+// ============================================================
+// ToolChainPanel 实现
+// ============================================================
 
 ToolChainPanel::ToolChainPanel(QWidget* parent)
     : QWidget(parent)
@@ -44,11 +121,14 @@ ToolChainPanel::ToolChainPanel(QWidget* parent)
 
     mainLayout_->addWidget(toolBar_);
 
-    // 工具列表
-    toolList_ = new QListWidget(this);
-    toolList_->setSelectionMode(QAbstractItemView::SingleSelection);
+    // 工具列表（支持拖拽排序）
+    toolList_ = new DraggableToolList(this);
     connect(toolList_, &QListWidget::currentItemChanged,
             this, &ToolChainPanel::onCurrentItemChanged);
+
+    // 拖拽排序信号
+    connect(toolList_, &DraggableToolList::toolOrderChanged,
+            this, &ToolChainPanel::onToolDragDrop);
 
     // 双击打开参数编辑对话框
     connect(toolList_, &QListWidget::itemDoubleClicked,
@@ -169,6 +249,7 @@ void ToolChainPanel::onMoveUp()
         tools_.swapItemsAt(currentRow, currentRow - 1);
         updateToolList();
         toolList_->setCurrentRow(currentRow - 1);
+        emit toolOrderChanged();
     }
 }
 
@@ -180,7 +261,29 @@ void ToolChainPanel::onMoveDown()
         tools_.swapItemsAt(currentRow, currentRow + 1);
         updateToolList();
         toolList_->setCurrentRow(currentRow + 1);
+        emit toolOrderChanged();
     }
+}
+
+void ToolChainPanel::onToolDragDrop(int fromIndex, int toIndex)
+{
+    if (fromIndex < 0 || fromIndex >= tools_.size()) return;
+    if (toIndex < 0 || toIndex > tools_.size()) return;
+    if (fromIndex == toIndex) return;
+
+    // 移动工具
+    Algorithm::VisionTool* tool = tools_[fromIndex];
+    tools_.removeAt(fromIndex);
+    tools_.insert(toIndex, tool);
+
+    updateToolList();
+    toolList_->setCurrentRow(toIndex);
+    emit toolOrderChanged();
+
+    LOG_DEBUG(QString("工具拖拽排序: %1 从 %2 移动到 %3")
+             .arg(tool->displayName())
+             .arg(fromIndex + 1)
+             .arg(toIndex + 1));
 }
 
 void ToolChainPanel::onToolParamChanged()

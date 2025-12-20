@@ -53,6 +53,8 @@ MeasureAngleToolDialog::MeasureAngleToolDialog(Algorithm::MeasureAngleTool* tool
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("角度测量设置");
     setMinimumSize(800, 600);
@@ -170,6 +172,18 @@ void MeasureAngleToolDialog::createUI()
     mainSplitter->setStretchFactor(1, 1);
 
     mainLayout->addWidget(mainSplitter, 1);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新计算结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -410,6 +424,12 @@ void MeasureAngleToolDialog::connectSignals()
     connect(point2YSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &MeasureAngleToolDialog::onPoint2Changed);
 
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &MeasureAngleToolDialog::onAutoCalc);
+
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &MeasureAngleToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &MeasureAngleToolDialog::onOkClicked);
@@ -419,6 +439,7 @@ void MeasureAngleToolDialog::connectSignals()
 
 void MeasureAngleToolDialog::onMeasureModeChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto mode = static_cast<Algorithm::MeasureAngleTool::MeasureMode>(
@@ -426,16 +447,19 @@ void MeasureAngleToolDialog::onMeasureModeChanged(int index)
     tool_->setMeasureMode(mode);
     updateInputVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onAngleRangeChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto range = static_cast<Algorithm::MeasureAngleTool::AngleRange>(
         angleRangeCombo_->currentData().toInt());
     tool_->setAngleRange(range);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onInputSourceChanged(int index)
@@ -452,6 +476,7 @@ void MeasureAngleToolDialog::onLine1Changed()
                 line1X2Spin_->value(), line1Y2Spin_->value());
     tool_->setLine1(line);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onLine2Changed()
@@ -461,6 +486,7 @@ void MeasureAngleToolDialog::onLine2Changed()
                 line2X2Spin_->value(), line2Y2Spin_->value());
     tool_->setLine2(line);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onVertexChanged()
@@ -468,6 +494,7 @@ void MeasureAngleToolDialog::onVertexChanged()
     if (!tool_) return;
     tool_->setVertex(QPointF(vertexXSpin_->value(), vertexYSpin_->value()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onPoint1Changed()
@@ -475,6 +502,7 @@ void MeasureAngleToolDialog::onPoint1Changed()
     if (!tool_) return;
     tool_->setPoint1(QPointF(point1XSpin_->value(), point1YSpin_->value()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onPoint2Changed()
@@ -482,6 +510,7 @@ void MeasureAngleToolDialog::onPoint2Changed()
     if (!tool_) return;
     tool_->setPoint2(QPointF(point2XSpin_->value(), point2YSpin_->value()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAngleToolDialog::onPreviewClicked()
@@ -564,6 +593,18 @@ void MeasureAngleToolDialog::updateResultDisplay()
         angleRadLabel_->setText("--");
         vertexResultLabel_->setText("--");
     }
+}
+
+void MeasureAngleToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+
+    // 执行测量
+    Algorithm::ToolResult result;
+    tool_->process(currentImage_, result);
+    updateResultDisplay();
 }
 
 } // namespace UI

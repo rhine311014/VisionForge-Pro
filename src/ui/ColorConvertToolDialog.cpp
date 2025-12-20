@@ -22,6 +22,8 @@ ColorConvertToolDialog::ColorConvertToolDialog(Algorithm::ColorConvertTool* tool
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("颜色转换参数设置");
     setMinimumSize(400, 350);
@@ -112,11 +114,23 @@ void ColorConvertToolDialog::createChannelExtractGroup(QVBoxLayout* layout)
 
 void ColorConvertToolDialog::createButtons(QVBoxLayout* layout)
 {
-    // 预览按钮
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 150);
+
+    // 预览选项
     QHBoxLayout* previewLayout = new QHBoxLayout();
+
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+
+    previewLayout->addStretch();
+
     previewBtn_ = new QPushButton("预览效果", this);
     previewBtn_->setMinimumHeight(35);
     previewLayout->addWidget(previewBtn_);
+
     layout->addLayout(previewLayout);
 
     // 对话框按钮
@@ -145,6 +159,12 @@ void ColorConvertToolDialog::connectSignals()
             this, &ColorConvertToolDialog::onExtractChannelChanged);
     connect(channelIndexCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ColorConvertToolDialog::onChannelIndexChanged);
+
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &ColorConvertToolDialog::onAutoPreview);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &ColorConvertToolDialog::onPreviewClicked);
@@ -232,6 +252,7 @@ void ColorConvertToolDialog::onSourceSpaceChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ColorConvertToolDialog::onTargetSpaceChanged(int index)
@@ -239,6 +260,7 @@ void ColorConvertToolDialog::onTargetSpaceChanged(int index)
     Q_UNUSED(index);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ColorConvertToolDialog::onExtractChannelChanged(bool checked)
@@ -246,12 +268,14 @@ void ColorConvertToolDialog::onExtractChannelChanged(bool checked)
     Q_UNUSED(checked);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ColorConvertToolDialog::onChannelIndexChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void ColorConvertToolDialog::onPreviewClicked()
@@ -276,6 +300,11 @@ void ColorConvertToolDialog::onApplyClicked()
 {
     applyParameters();
     emit parametersApplied();
+}
+
+void ColorConvertToolDialog::onAutoPreview()
+{
+    emit previewRequested();
 }
 
 } // namespace UI

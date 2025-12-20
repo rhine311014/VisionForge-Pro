@@ -46,6 +46,8 @@ FindEdgeToolDialog::FindEdgeToolDialog(Algorithm::FindEdgeTool* tool, QWidget* p
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("边缘查找设置");
     setMinimumSize(800, 550);
@@ -142,21 +144,35 @@ void FindEdgeToolDialog::createUI()
 
     mainLayout->addWidget(mainSplitter_, 1);
 
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 200);
+
+    // 预览选项行
+    QHBoxLayout* previewLayout = new QHBoxLayout();
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+    previewLayout->addStretch();
+
+    previewBtn_ = new QPushButton("预览", this);
+    previewBtn_->setMinimumWidth(80);
+    previewLayout->addWidget(previewBtn_);
+
+    mainLayout->addLayout(previewLayout);
+
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
 
-    previewBtn_ = new QPushButton("预览", this);
     okBtn_ = new QPushButton("确定", this);
     cancelBtn_ = new QPushButton("取消", this);
     applyBtn_ = new QPushButton("应用", this);
 
-    previewBtn_->setMinimumWidth(80);
     okBtn_->setMinimumWidth(80);
     cancelBtn_->setMinimumWidth(80);
     applyBtn_->setMinimumWidth(80);
 
-    buttonLayout->addWidget(previewBtn_);
     buttonLayout->addWidget(okBtn_);
     buttonLayout->addWidget(cancelBtn_);
     buttonLayout->addWidget(applyBtn_);
@@ -374,6 +390,12 @@ void FindEdgeToolDialog::connectSignals()
     connect(drawSearchRectBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onDrawSearchRectClicked);
     connect(clearSearchRegionBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onClearSearchRegionClicked);
 
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &FindEdgeToolDialog::onAutoPreview);
+
     // 对话框按钮
     connect(previewBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onOkClicked);
@@ -388,6 +410,7 @@ void FindEdgeToolDialog::onSearchModeChanged(int index)
         searchModeCombo_->itemData(index).toInt()));
     updateSearchModeVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void FindEdgeToolDialog::onEdgeTypeChanged(int index)
@@ -396,6 +419,7 @@ void FindEdgeToolDialog::onEdgeTypeChanged(int index)
     tool_->setEdgeType(static_cast<Algorithm::FindEdgeTool::EdgeType>(
         edgeTypeCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void FindEdgeToolDialog::onSelectModeChanged(int index)
@@ -404,6 +428,7 @@ void FindEdgeToolDialog::onSelectModeChanged(int index)
     tool_->setSelectMode(static_cast<Algorithm::FindEdgeTool::SelectMode>(
         selectModeCombo_->itemData(index).toInt()));
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void FindEdgeToolDialog::onMinAmplitudeChanged(double value)
@@ -411,6 +436,7 @@ void FindEdgeToolDialog::onMinAmplitudeChanged(double value)
     if (!tool_) return;
     tool_->setMinAmplitude(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void FindEdgeToolDialog::onSigmaChanged(double value)
@@ -418,6 +444,7 @@ void FindEdgeToolDialog::onSigmaChanged(double value)
     if (!tool_) return;
     tool_->setSigma(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void FindEdgeToolDialog::onSearchWidthChanged(int value)
@@ -425,6 +452,7 @@ void FindEdgeToolDialog::onSearchWidthChanged(int value)
     if (!tool_) return;
     tool_->setSearchWidth(value);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void FindEdgeToolDialog::onDrawSearchLineClicked()
@@ -527,6 +555,22 @@ void FindEdgeToolDialog::updateSearchModeVisibility()
 
     lineSearchGroup_->setVisible(isLineMode);
     rectSearchGroup_->setVisible(!isLineMode);
+}
+
+void FindEdgeToolDialog::onAutoPreview()
+{
+    if (!tool_ || !currentImage_) {
+        return;
+    }
+
+    applyParameters();
+
+    Algorithm::ToolResult result;
+    if (tool_->process(currentImage_, result)) {
+        if (result.outputImage && imageViewer_) {
+            imageViewer_->setImage(result.outputImage);
+        }
+    }
 }
 
 } // namespace UI

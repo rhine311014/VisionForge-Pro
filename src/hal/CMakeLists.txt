@@ -7,6 +7,8 @@ set(HAL_SOURCES
     SimulatedCamera.cpp
     CameraFactory.cpp
     CameraManager.cpp
+    GPIOController.cpp
+    SimulatedMotionController.cpp
 )
 
 # 基础头文件
@@ -15,6 +17,8 @@ set(HAL_HEADERS
     ${CMAKE_SOURCE_DIR}/include/hal/SimulatedCamera.h
     ${CMAKE_SOURCE_DIR}/include/hal/CameraFactory.h
     ${CMAKE_SOURCE_DIR}/include/hal/CameraManager.h
+    ${CMAKE_SOURCE_DIR}/include/hal/GPIOController.h
+    ${CMAKE_SOURCE_DIR}/include/hal/IMotionController.h
 )
 
 # ============================================================
@@ -51,6 +55,7 @@ target_link_libraries(VisionForgeHAL PUBLIC
     VisionForgeBase
     Qt6::Core
     Qt6::Concurrent
+    Qt6::Network
     ${OpenCV_LIBS}
 )
 

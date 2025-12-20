@@ -20,6 +20,8 @@ GrayToolDialog::GrayToolDialog(Algorithm::GrayTool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("灰度转换参数设置");
     setMinimumSize(350, 200);
@@ -78,11 +80,23 @@ void GrayToolDialog::createParamsGroup(QVBoxLayout* layout)
 
 void GrayToolDialog::createButtons(QVBoxLayout* layout)
 {
-    // 预览按钮
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 150);
+
+    // 预览选项
     QHBoxLayout* previewLayout = new QHBoxLayout();
+
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+
+    previewLayout->addStretch();
+
     previewBtn_ = new QPushButton("预览效果", this);
     previewBtn_->setMinimumHeight(35);
     previewLayout->addWidget(previewBtn_);
+
     layout->addLayout(previewLayout);
 
     // 对话框按钮
@@ -107,6 +121,12 @@ void GrayToolDialog::connectSignals()
             this, &GrayToolDialog::onConvertModeChanged);
     connect(channelCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &GrayToolDialog::onChannelChanged);
+
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &GrayToolDialog::onAutoPreview);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &GrayToolDialog::onPreviewClicked);
@@ -158,12 +178,14 @@ void GrayToolDialog::onConvertModeChanged(int index)
     Q_UNUSED(index);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void GrayToolDialog::onChannelChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void GrayToolDialog::onPreviewClicked()
@@ -188,6 +210,12 @@ void GrayToolDialog::onApplyClicked()
 {
     applyParameters();
     emit parametersApplied();
+}
+
+void GrayToolDialog::onAutoPreview()
+{
+    // 自动预览触发时发射预览请求信号
+    emit previewRequested();
 }
 
 } // namespace UI

@@ -54,6 +54,8 @@ MeasureAreaToolDialog::MeasureAreaToolDialog(Algorithm::MeasureAreaTool* tool, Q
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("面积测量设置");
     setMinimumSize(900, 700);
@@ -165,6 +167,18 @@ void MeasureAreaToolDialog::createUI()
     mainSplitter->setStretchFactor(1, 1);
 
     mainLayout->addWidget(mainSplitter, 1);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新计算结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -397,6 +411,12 @@ void MeasureAreaToolDialog::connectSignals()
     connect(ellipseAngleSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &MeasureAreaToolDialog::onEllipseParamsChanged);
 
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &MeasureAreaToolDialog::onAutoCalc);
+
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &MeasureAreaToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &MeasureAreaToolDialog::onOkClicked);
@@ -406,6 +426,7 @@ void MeasureAreaToolDialog::connectSignals()
 
 void MeasureAreaToolDialog::onMeasureModeChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto mode = static_cast<Algorithm::MeasureAreaTool::MeasureMode>(
@@ -413,27 +434,34 @@ void MeasureAreaToolDialog::onMeasureModeChanged(int index)
     tool_->setMeasureMode(mode);
     updateInputVisibility();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAreaToolDialog::onPixelToMmChanged(double value)
 {
+    Q_UNUSED(value);
     if (!tool_) return;
-    tool_->setPixelToMm(value);
+    tool_->setPixelToMm(pixelToMmSpin_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAreaToolDialog::onThresholdChanged(int value)
 {
+    Q_UNUSED(value);
     if (!tool_) return;
-    tool_->setThreshold(value);
+    tool_->setThreshold(thresholdSpin_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAreaToolDialog::onMinAreaChanged(double value)
 {
+    Q_UNUSED(value);
     if (!tool_) return;
-    tool_->setMinArea(value);
+    tool_->setMinArea(minAreaSpin_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAreaToolDialog::onInputSourceChanged(int index)
@@ -450,6 +478,7 @@ void MeasureAreaToolDialog::onCircleParamsChanged()
     tool_->setCircle(QPointF(circleCenterXSpin_->value(), circleCenterYSpin_->value()),
                      circleRadiusSpin_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAreaToolDialog::onEllipseParamsChanged()
@@ -459,6 +488,7 @@ void MeasureAreaToolDialog::onEllipseParamsChanged()
                       ellipseASpin_->value(), ellipseBSpin_->value(),
                       ellipseAngleSpin_->value());
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void MeasureAreaToolDialog::onPreviewClicked()
@@ -549,6 +579,18 @@ void MeasureAreaToolDialog::updateResultDisplay()
     } else {
         resultsTable_->setRowCount(0);
     }
+}
+
+void MeasureAreaToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+
+    // 执行测量
+    Algorithm::ToolResult result;
+    tool_->process(currentImage_, result);
+    updateResultDisplay();
 }
 
 } // namespace UI

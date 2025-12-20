@@ -19,6 +19,35 @@ namespace VisionForge {
 namespace UI {
 
 /**
+ * @class DraggableToolList
+ * @brief 支持拖拽排序的工具列表
+ */
+class DraggableToolList : public QListWidget
+{
+    Q_OBJECT
+
+public:
+    explicit DraggableToolList(QWidget* parent = nullptr);
+
+signals:
+    /**
+     * @brief 工具顺序改变信号
+     * @param fromIndex 原始索引
+     * @param toIndex 目标索引
+     */
+    void toolOrderChanged(int fromIndex, int toIndex);
+
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dragMoveEvent(QDragMoveEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
+    void startDrag(Qt::DropActions supportedActions) override;
+
+private:
+    int dragStartRow_;
+};
+
+/**
  * @class ToolChainPanel
  * @brief 工具链面板
  *
@@ -101,6 +130,11 @@ signals:
      */
     void removeToolRequested(Algorithm::VisionTool* tool);
 
+    /**
+     * @brief 工具顺序改变信号
+     */
+    void toolOrderChanged();
+
 private slots:
     void onCurrentItemChanged(QListWidgetItem* current, QListWidgetItem* previous);
     void onAddTool();
@@ -108,6 +142,7 @@ private slots:
     void onMoveUp();
     void onMoveDown();
     void onToolParamChanged();
+    void onToolDragDrop(int fromIndex, int toIndex);
 
 private:
     void updateToolList();
@@ -116,7 +151,7 @@ private:
 private:
     QVBoxLayout* mainLayout_;
     QToolBar* toolBar_;
-    QListWidget* toolList_;
+    DraggableToolList* toolList_;
 
     QAction* addAction_;
     QAction* removeAction_;
@@ -124,7 +159,7 @@ private:
     QAction* moveDownAction_;
 
     QList<Algorithm::VisionTool*> tools_;
-    QMap<Algorithm::VisionTool*, double> toolExecutionTimes_;  // 工具执行时间统计
+    QMap<Algorithm::VisionTool*, double> toolExecutionTimes_;  ///< 工具执行时间统计
 };
 
 } // namespace UI

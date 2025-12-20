@@ -27,6 +27,8 @@ EdgeToolDialog::EdgeToolDialog(Algorithm::EdgeTool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoPreviewCheck_(nullptr)
 {
     setWindowTitle("边缘检测参数设置");
     setMinimumSize(450, 450);
@@ -152,11 +154,23 @@ void EdgeToolDialog::createSobelParamsGroup(QVBoxLayout* layout)
 
 void EdgeToolDialog::createButtons(QVBoxLayout* layout)
 {
-    // 预览按钮
+    // 创建预览辅助器
+    previewHelper_ = new PreviewHelper(this, 150);
+
+    // 预览选项
     QHBoxLayout* previewLayout = new QHBoxLayout();
+
+    autoPreviewCheck_ = new QCheckBox("实时预览", this);
+    autoPreviewCheck_->setChecked(previewHelper_->isAutoPreviewEnabled());
+    autoPreviewCheck_->setToolTip("启用后参数修改会自动更新预览");
+    previewLayout->addWidget(autoPreviewCheck_);
+
+    previewLayout->addStretch();
+
     previewBtn_ = new QPushButton("预览效果", this);
     previewBtn_->setMinimumHeight(35);
     previewLayout->addWidget(previewBtn_);
+
     layout->addLayout(previewLayout);
 
     // 对话框按钮
@@ -193,6 +207,12 @@ void EdgeToolDialog::connectSignals()
             this, &EdgeToolDialog::onScaleChanged);
     connect(deltaSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &EdgeToolDialog::onDeltaChanged);
+
+    // 实时预览
+    connect(autoPreviewCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &EdgeToolDialog::onAutoPreview);
 
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &EdgeToolDialog::onPreviewClicked);
@@ -284,48 +304,56 @@ void EdgeToolDialog::onEdgeTypeChanged(int index)
     Q_UNUSED(index);
     updateUI();
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onThreshold1Changed(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onThreshold2Changed(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onKernelSizeChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onDirectionChanged(int index)
 {
     Q_UNUSED(index);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onL2GradientChanged(bool checked)
 {
     Q_UNUSED(checked);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onScaleChanged(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onDeltaChanged(double value)
 {
     Q_UNUSED(value);
     applyParameters();
+    previewHelper_->requestPreview();
 }
 
 void EdgeToolDialog::onPreviewClicked()
@@ -350,6 +378,12 @@ void EdgeToolDialog::onApplyClicked()
 {
     applyParameters();
     emit parametersApplied();
+}
+
+void EdgeToolDialog::onAutoPreview()
+{
+    // 自动预览触发时发射预览请求信号
+    emit previewRequested();
 }
 
 } // namespace UI

@@ -22,6 +22,7 @@
 
 #include "algorithm/EdgeTool.h"
 #include "base/ImageData.h"
+#include "ui/PreviewHelper.h"
 
 namespace VisionForge {
 namespace UI {
@@ -82,6 +83,7 @@ private slots:
     void onOkClicked();
     void onCancelClicked();
     void onApplyClicked();
+    void onAutoPreview();
 
 private:
     void createUI();
@@ -122,6 +124,10 @@ private:
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
     QPushButton* applyBtn_;
+
+    // 实时预览
+    PreviewHelper* previewHelper_;
+    QCheckBox* autoPreviewCheck_;
 };
 
 } // namespace UI

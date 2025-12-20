@@ -8,6 +8,8 @@
 #pragma once
 
 #include "algorithm/VisionTool.h"
+#include "algorithm/SubPixelEdgeTool.h"
+#include <vector>
 
 namespace VisionForge {
 namespace Algorithm {
@@ -104,6 +106,30 @@ public:
     void setDelta(double delta);
     double delta() const { return delta_; }
 
+    // ========== 亚像素模式参数 ==========
+
+    /**
+     * @brief 设置是否启用亚像素精度
+     */
+    void setSubPixelEnabled(bool enabled);
+    bool subPixelEnabled() const { return subPixelEnabled_; }
+
+    /**
+     * @brief 设置亚像素检测方法
+     */
+    void setSubPixelMethod(SubPixelMethod method);
+    SubPixelMethod subPixelMethod() const { return subPixelMethod_; }
+
+    /**
+     * @brief 获取亚像素边缘点
+     */
+    const std::vector<SubPixelEdgePoint>& subPixelEdgePoints() const { return subPixelEdgePoints_; }
+
+    /**
+     * @brief 获取最近的亚像素检测结果
+     */
+    const SubPixelEdgeResult& lastSubPixelResult() const { return lastSubPixelResult_; }
+
 private:
     EdgeType edgeType_;         // 边缘检测类型
     double threshold1_;         // Canny低阈值
@@ -113,6 +139,12 @@ private:
     bool l2Gradient_;           // 是否使用L2范数
     double scale_;              // 缩放因子
     double delta_;              // 偏移量
+
+    // 亚像素相关成员
+    bool subPixelEnabled_;                          // 是否启用亚像素
+    SubPixelMethod subPixelMethod_;                 // 亚像素方法
+    std::vector<SubPixelEdgePoint> subPixelEdgePoints_;  // 亚像素边缘点
+    SubPixelEdgeResult lastSubPixelResult_;         // 最近亚像素结果
 };
 
 } // namespace Algorithm

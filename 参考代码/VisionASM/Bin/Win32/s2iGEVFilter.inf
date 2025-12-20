@@ -1,0 +1,110 @@
+;----------------------------------------------------------------------------
+;                               Sensor to Image GmbH
+;----------------------------------------------------------------------------
+; s2iGEVFilter Setup File
+; Copyright (c) 2012 Sensor to Image GmbH
+; Version 2.0.4
+;
+; Install information file for s2i GigE-Vision Filter Driver.
+; 
+; This is the INF for the service (protocol) part.
+;-----------------------------------------------------------------------------
+
+
+;--------- Version Section ---------------------------------------------------
+[Version]
+Signature  = "$Windows NT$"
+Class      = NetService
+ClassGUID  = {4D36E974-E325-11CE-BFC1-08002BE10318}
+Provider   = %S2I%
+DriverVer  = 05/15/2012,2.0.4
+CatalogFile = s2iGEVFilter.cat
+;CatalogFile.ntx86 = s2iGEVFilter.cat
+CatalogFile.ntamd64 = s2iGEVFilter.cat
+;CatalogFile.ntia64 = s2iGEVFilter.cat
+
+;--------- Manufacturer and Models Sections ----------------------------------
+[Manufacturer]
+%S2I% = S2IMFG,ntx86,ntamd64,ntia64
+
+[S2IMFG]
+%s2iGEVFilter_Desc% = s2iGEVFilter.ndi, s2iGEVFilterDev
+
+[S2IMFG.ntx86]
+%s2iGEVFilter_Desc% = s2iGEVFilter.ndi, s2iGEVFilterDev
+
+[S2IMFG.ntamd64]
+%s2iGEVFilter_Desc% = s2iGEVFilter.ndi, s2iGEVFilterDev
+
+[S2IMFG.ntia64]
+%s2iGEVFilter_Desc% = s2iGEVFilter.ndi, s2iGEVFilterDev
+
+;---------- NDI Sections -----------------------------------------------------
+[s2iGEVFilter.ndi]
+AddReg          = s2iGEVFilter.ndi.AddReg
+Characteristics = 0x4410 ; NCF_FILTER | NCF_NO_SERVICE | NCF_NDIS_PROTOCOL !--Filter Specific--!!
+CopyFiles       = s2iGEVFilter.Files.Sys
+CopyInf         = s2iGEVFiltermp.inf
+
+
+;--------- SourceDiskNames and SourceDiskFiles Section -----------------------
+[SourceDisksNames]
+1=%DiskDescription%,"",,
+
+[SourceDisksFiles]
+s2iGEVFilter.sys=1
+
+;--------- DestinationDirs Section -------------------------------------------
+[DestinationDirs]
+DefaultDestDir = 12
+s2iGEVFilter.Files.Sys   = 12   ; %windir%\System32\drivers
+
+[s2iGEVFilter.Files.Sys]
+s2iGEVFilter.sys,,,2
+
+;---------- Install parameters  ----------------------------------------------
+[s2iGEVFilter.ndi.AddReg]
+HKR, Ndi,            Service,             , s2iGEVFilter
+HKR, Ndi,            HelpText,            , %s2iGEVFilter_HELP%
+HKR, Ndi,            FilterDeviceInfFile, , s2iGEVFiltermp.inf
+HKR, Ndi,            FilterClass,         , failover
+HKR, Ndi,            FilterDeviceInfId,   , s2iGEVFiltermpDev
+HKR, Ndi\Interfaces, UpperRange,          , noupper
+HKR, Ndi\Interfaces, LowerRange,          , nolower
+HKR, Ndi\Interfaces, FilterMediaTypes,    , "ethernet, tokenring, fddi, wan"
+
+[s2iGEVFilter.ndi.Services]
+AddService = s2iGEVFilter, 0x00000002, s2iGEVFilter.AddService
+
+
+;---------- Service ----------------------------------------------------------
+[s2iGEVFilter.AddService]
+DisplayName    = %s2iGEVFilter_Desc%
+ServiceType    = 1 ;SERVICE_KERNEL_DRIVER
+StartType      = 3 ;SERVICE_DEMAND_START
+ErrorControl   = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\s2iGEVFilter.sys
+LoadOrderGroup = PNP_TDI
+
+[s2iGEVFilter.ndi.Remove]
+DelFiles = s2iGEVFilter.Files.Sys
+
+[s2iGEVFilter.ndi.Remove.Services]
+DelService = s2iGEVFilter
+
+;---------- Other ------------------------------------------------------------
+[InfSourcePathInfo]
+; Used by the notify object to figure out where the original media is
+; located (so it can use SetupCopyOEMInf to install Net INF located
+; there).
+OriginalInfSourcePath = %1%
+
+; ----------------------------------------------------------------------
+[Strings]
+S2I = "Sensor to Image GmbH"
+DiskDescription = "GigE-Vision Filter Driver Disk"
+
+s2iGEVFilter_Desc = "s2i GigE-Vision Filter Driver"
+s2iGEVFilter_HELP = "s2i GigE-Vision Filter Driver"
+
+

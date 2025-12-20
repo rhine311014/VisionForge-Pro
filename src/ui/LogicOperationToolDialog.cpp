@@ -37,6 +37,8 @@ LogicOperationToolDialog::LogicOperationToolDialog(Algorithm::LogicOperationTool
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , previewHelper_(nullptr)
+    , autoCalcCheck_(nullptr)
 {
     setWindowTitle("逻辑运算设置");
     setMinimumSize(700, 550);
@@ -86,6 +88,18 @@ void LogicOperationToolDialog::createUI()
     createOutputGroup(mainLayout);
     createResultGroup(mainLayout);
     createButtonGroup(mainLayout);
+
+    // 创建实时计算辅助器
+    previewHelper_ = new PreviewHelper(this, 100);
+
+    // 实时计算选项
+    QHBoxLayout* autoCalcLayout = new QHBoxLayout();
+    autoCalcCheck_ = new QCheckBox("实时计算", this);
+    autoCalcCheck_->setChecked(true);
+    autoCalcCheck_->setToolTip("启用后参数修改会自动更新运算结果");
+    autoCalcLayout->addWidget(autoCalcCheck_);
+    autoCalcLayout->addStretch();
+    mainLayout->addLayout(autoCalcLayout);
 
     // 底部按钮
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -230,6 +244,12 @@ void LogicOperationToolDialog::connectSignals()
     connect(clearInputsBtn_, &QPushButton::clicked, this, &LogicOperationToolDialog::onClearInputs);
     connect(inputsTable_, &QTableWidget::cellChanged, this, &LogicOperationToolDialog::onInputCellChanged);
 
+    // 实时计算
+    connect(autoCalcCheck_, &QCheckBox::toggled,
+            previewHelper_, &PreviewHelper::setAutoPreviewEnabled);
+    connect(previewHelper_, &PreviewHelper::previewTriggered,
+            this, &LogicOperationToolDialog::onAutoCalc);
+
     // 按钮
     connect(previewBtn_, &QPushButton::clicked, this, &LogicOperationToolDialog::onPreviewClicked);
     connect(okBtn_, &QPushButton::clicked, this, &LogicOperationToolDialog::onOkClicked);
@@ -239,11 +259,13 @@ void LogicOperationToolDialog::connectSignals()
 
 void LogicOperationToolDialog::onLogicTypeChanged(int index)
 {
+    Q_UNUSED(index);
     if (!tool_) return;
 
     auto type = static_cast<Algorithm::LogicType>(logicTypeCombo_->currentData().toInt());
     tool_->setLogicType(type);
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LogicOperationToolDialog::onAddInput()
@@ -258,6 +280,7 @@ void LogicOperationToolDialog::onAddInput()
     tool_->addInput(input);
     updateInputsTable();
     emit parameterChanged();
+    previewHelper_->requestPreview();
 }
 
 void LogicOperationToolDialog::onRemoveInput()
@@ -269,6 +292,7 @@ void LogicOperationToolDialog::onRemoveInput()
         tool_->removeInput(row);
         updateInputsTable();
         emit parameterChanged();
+        previewHelper_->requestPreview();
     }
 }
 
@@ -285,7 +309,10 @@ void LogicOperationToolDialog::onClearInputs()
 
 void LogicOperationToolDialog::onInputCellChanged(int row, int column)
 {
+    Q_UNUSED(row);
+    Q_UNUSED(column);
     syncInputsFromTable();
+    previewHelper_->requestPreview();
 }
 
 void LogicOperationToolDialog::onPreviewClicked()
@@ -417,6 +444,18 @@ void LogicOperationToolDialog::syncInputsFromTable()
     }
 
     inputsTable_->blockSignals(false);
+}
+
+void LogicOperationToolDialog::onAutoCalc()
+{
+    if (!tool_) return;
+
+    applyParameters();
+
+    // 执行运算
+    Algorithm::ToolResult result;
+    tool_->process(nullptr, result);
+    updateResultDisplay();
 }
 
 } // namespace UI
