@@ -9,6 +9,16 @@ message(STATUS "===========================================")
 # 查找Qt Test模块
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
+# 可选：集成Google Test
+option(USE_GTEST "使用Google Test框架" ON)
+
+if(USE_GTEST)
+    include(${CMAKE_SOURCE_DIR}/cmake/GoogleTest.cmake)
+    include(GoogleTest)  # CMake模块，提供gtest_discover_tests命令
+    enable_testing()
+    message(STATUS "Google Test已启用")
+endif()
+
 # 包含目录
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -34,7 +44,7 @@ target_include_directories(VisionForgeTestUtils PUBLIC
 )
 
 # ============================================================
-# 测试可执行文件宏
+# 测试可执行文件宏（Qt Test）
 # ============================================================
 macro(add_visionforge_test TEST_NAME TEST_SOURCE)
     add_executable(${TEST_NAME} ${TEST_SOURCE})
@@ -62,6 +72,40 @@ macro(add_visionforge_test TEST_NAME TEST_SOURCE)
         AUTOMOC ON
     )
 endmacro()
+
+# ============================================================
+# Google Test测试宏
+# ============================================================
+if(USE_GTEST)
+    macro(add_gtest_test TEST_NAME TEST_SOURCE)
+        add_executable(${TEST_NAME} ${TEST_SOURCE})
+        target_link_libraries(${TEST_NAME} PRIVATE
+            gtest
+            gtest_main
+            gmock
+            Qt6::Core
+            Qt6::Widgets
+            VisionForgeTestUtils
+            VisionForgeBase
+            VisionForgeAlgorithm
+            VisionForgeCore
+            ${OpenCV_LIBS}
+        )
+        # 如果启用Halcon，链接Halcon库
+        if(USE_HALCON)
+            target_link_libraries(${TEST_NAME} PRIVATE
+                halconcpp
+                halcon
+            )
+        endif()
+        # 添加到CTest
+        gtest_discover_tests(${TEST_NAME})
+        set_target_properties(${TEST_NAME} PROPERTIES
+            CXX_STANDARD 17
+            CXX_STANDARD_REQUIRED ON
+        )
+    endmacro()
+endif()
 
 # ============================================================
 # 基础层测试
@@ -92,9 +136,79 @@ if(USE_CUDA)
 endif()
 
 # ============================================================
+# Google Test测试（可选）
+# ============================================================
+if(USE_GTEST)
+    message(STATUS "配置Google Test测试...")
+
+    # 添加Google Test测试
+    add_gtest_test(test_ImageData_gtest test_ImageData_gtest.cpp)
+    add_gtest_test(test_BasicImageProcessing_gtest test_BasicImageProcessing_gtest.cpp)
+    add_gtest_test(test_EdgeAndMorphology_gtest test_EdgeAndMorphology_gtest.cpp)
+    add_gtest_test(test_ShapeDetection_gtest test_ShapeDetection_gtest.cpp)
+    add_gtest_test(test_Measurement_gtest test_Measurement_gtest.cpp)
+    add_gtest_test(test_AdvancedTools_gtest test_AdvancedTools_gtest.cpp)
+    add_gtest_test(test_MatchingTools_gtest test_MatchingTools_gtest.cpp)
+    add_gtest_test(test_CalculationTools_gtest test_CalculationTools_gtest.cpp)
+    add_gtest_test(test_LogicTools_gtest test_LogicTools_gtest.cpp)
+
+    # 远程诊断安全模块测试
+    add_executable(test_SecurityManager_gtest test_SecurityManager_gtest.cpp)
+    target_link_libraries(test_SecurityManager_gtest
+        VisionForgeRemote
+        VisionForgeBase
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+        Qt6::Sql
+    )
+    gtest_discover_tests(test_SecurityManager_gtest)
+
+    # TokenAuthManager测试
+    add_executable(test_TokenAuthManager_gtest test_TokenAuthManager_gtest.cpp)
+    target_link_libraries(test_TokenAuthManager_gtest
+        VisionForgeRemote
+        VisionForgeBase
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+    )
+    gtest_discover_tests(test_TokenAuthManager_gtest)
+
+    # RBACManager测试
+    add_executable(test_RBACManager_gtest test_RBACManager_gtest.cpp)
+    target_link_libraries(test_RBACManager_gtest
+        VisionForgeRemote
+        VisionForgeBase
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+        Qt6::Sql
+    )
+    gtest_discover_tests(test_RBACManager_gtest)
+
+    message(STATUS "  - test_ImageData_gtest (GTest)")
+    message(STATUS "  - test_BasicImageProcessing_gtest (GTest)")
+    message(STATUS "  - test_EdgeAndMorphology_gtest (GTest)")
+    message(STATUS "  - test_ShapeDetection_gtest (GTest)")
+    message(STATUS "  - test_Measurement_gtest (GTest)")
+    message(STATUS "  - test_AdvancedTools_gtest (GTest)")
+    message(STATUS "  - test_MatchingTools_gtest (GTest)")
+    message(STATUS "  - test_CalculationTools_gtest (GTest)")
+    message(STATUS "  - test_LogicTools_gtest (GTest)")
+    message(STATUS "  - test_SecurityManager_gtest (GTest - 安全模块)")
+    message(STATUS "  - test_TokenAuthManager_gtest (GTest - Token认证)")
+    message(STATUS "  - test_RBACManager_gtest (GTest - RBAC权限管理)")
+endif()
+
+# ============================================================
 # 测试输出
 # ============================================================
 message(STATUS "单元测试配置完成")
+message(STATUS "Qt Test测试:")
 message(STATUS "  - test_ImageData")
 message(STATUS "  - test_ImageMemoryPool")
 message(STATUS "  - test_ConfigManager")
@@ -104,4 +218,8 @@ message(STATUS "  - test_GPUAccelerator (P1)")
 message(STATUS "  - test_ParallelProcessor (P1)")
 message(STATUS "  - test_ErrorRecovery (P1)")
 message(STATUS "  - test_ToolChain (P1)")
+if(USE_GTEST)
+    message(STATUS "Google Test测试:")
+    message(STATUS "  - test_ImageData_gtest")
+endif()
 message(STATUS "===========================================")
