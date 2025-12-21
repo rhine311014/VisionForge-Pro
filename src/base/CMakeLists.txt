@@ -7,6 +7,7 @@ set(BASE_SOURCES
     ImageData.cpp
     AlignedMemory.cpp
     ImageMemoryPool.cpp
+    ScopedImagePtr.cpp
     Logger.cpp
     ConfigManager.cpp
     PerformanceMonitor.cpp
@@ -18,6 +19,8 @@ set(BASE_SOURCES
     SystemMonitor.cpp
     ParallelProcessor.cpp
     ErrorRecovery.cpp
+    SystemResourceMonitor.cpp
+    PoolPerformanceMonitor.cpp
 )
 
 # 收集头文件
@@ -25,6 +28,7 @@ set(BASE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/base/ImageData.h
     ${CMAKE_SOURCE_DIR}/include/base/AlignedMemory.h
     ${CMAKE_SOURCE_DIR}/include/base/ImageMemoryPool.h
+    ${CMAKE_SOURCE_DIR}/include/base/ScopedImagePtr.h
     ${CMAKE_SOURCE_DIR}/include/base/Logger.h
     ${CMAKE_SOURCE_DIR}/include/base/ConfigManager.h
     ${CMAKE_SOURCE_DIR}/include/base/PerformanceMonitor.h
@@ -37,6 +41,8 @@ set(BASE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/base/Exception.h
     ${CMAKE_SOURCE_DIR}/include/base/ParallelProcessor.h
     ${CMAKE_SOURCE_DIR}/include/base/ErrorRecovery.h
+    ${CMAKE_SOURCE_DIR}/include/base/SystemResourceMonitor.h
+    ${CMAKE_SOURCE_DIR}/include/base/PoolPerformanceMonitor.h
 )
 
 # 创建基础设施层静态库
