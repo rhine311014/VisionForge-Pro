@@ -7,6 +7,7 @@
 
 #include "algorithm/SubPixelEdgeTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core.hpp>
 #include <QElapsedTimer>
@@ -97,7 +98,11 @@ bool SubPixelEdgeTool::process(const Base::ImageData::Ptr& input, ToolResult& ou
         }
     }
 
-    output.outputImage = std::make_shared<Base::ImageData>(resultImage);
+    output.outputImage = Base::ImageMemoryPool::instance().allocate(
+        resultImage.cols, resultImage.rows, resultImage.type());
+    if (output.outputImage) {
+        resultImage.copyTo(output.outputImage->mat());
+    }
     setDebugImage(output.outputImage);
     setStatusText(QString("检测到 %1 个亚像素边缘点，平均偏移: %.3f像素")
                  .arg(lastResult_.validPointCount)

@@ -5,6 +5,7 @@
 
 #include "algorithm/CalcCenterTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 #include <cmath>
@@ -59,7 +60,11 @@ bool CalcCenterTool::process(const Base::ImageData::Ptr& input, ToolResult& outp
 
         // 绘制结果
         cv::Mat resultImage = drawResults(src);
-        output.outputImage = std::make_shared<Base::ImageData>(resultImage);
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            resultImage.cols, resultImage.rows, resultImage.type());
+        if (output.outputImage) {
+            resultImage.copyTo(output.outputImage->mat());
+        }
 
         setDebugImage(output.outputImage);
         setStatusText(QString("中心: (%.1f, %.1f)").arg(center_.x()).arg(center_.y()));

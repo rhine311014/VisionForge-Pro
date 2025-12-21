@@ -5,6 +5,7 @@
 
 #include "algorithm/ThresholdTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 
@@ -168,9 +169,13 @@ bool ThresholdTool::process(const Base::ImageData::Ptr& input, ToolResult& outpu
             break;
         }
 
-        // 创建输出图像
-        output.outputImage = std::make_shared<Base::ImageData>(thresholdMat);
-        output.outputImage->setTimestamp(input->timestamp());
+        // 使用内存池分配输出图像
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            thresholdMat.cols, thresholdMat.rows, thresholdMat.type());
+        if (output.outputImage) {
+            thresholdMat.copyTo(output.outputImage->mat());
+            output.outputImage->setTimestamp(input->timestamp());
+        }
         output.success = true;
 
         // 保存计算的阈值到结果

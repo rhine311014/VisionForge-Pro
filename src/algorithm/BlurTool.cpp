@@ -5,6 +5,7 @@
 
 #include "algorithm/BlurTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 
@@ -100,9 +101,13 @@ bool BlurTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
             break;
         }
 
-        // 创建输出图像
-        output.outputImage = std::make_shared<Base::ImageData>(blurredMat);
-        output.outputImage->setTimestamp(input->timestamp());
+        // 使用内存池分配输出图像
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            blurredMat.cols, blurredMat.rows, blurredMat.type());
+        if (output.outputImage) {
+            blurredMat.copyTo(output.outputImage->mat());
+            output.outputImage->setTimestamp(input->timestamp());
+        }
         output.success = true;
 
         // 设置调试图像

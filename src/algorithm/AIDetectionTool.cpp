@@ -5,6 +5,7 @@
 
 #include "algorithm/AIDetectionTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/dnn.hpp>
 #include <QElapsedTimer>
@@ -208,7 +209,11 @@ bool AIDetectionTool::process(const Base::ImageData::Ptr& input, ToolResult& out
 
         // 绘制结果
         cv::Mat resultImage = drawResults(src);
-        output.outputImage = std::make_shared<Base::ImageData>(resultImage);
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            resultImage.cols, resultImage.rows, resultImage.type());
+        if (output.outputImage) {
+            resultImage.copyTo(output.outputImage->mat());
+        }
 
         setDebugImage(output.outputImage);
         setStatusText(QString("检测到 %1 个目标").arg(detectionCount()));

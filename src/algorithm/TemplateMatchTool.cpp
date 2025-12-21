@@ -5,6 +5,7 @@
 
 #include "algorithm/TemplateMatchTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <QElapsedTimer>
@@ -124,7 +125,11 @@ bool TemplateMatchTool::process(const Base::ImageData::Ptr& input, ToolResult& o
 
     // 绘制结果
     cv::Mat resultImage = drawResults(input->mat());
-    output.outputImage = std::make_shared<Base::ImageData>(resultImage);
+    output.outputImage = Base::ImageMemoryPool::instance().allocate(
+        resultImage.cols, resultImage.rows, resultImage.type());
+    if (output.outputImage) {
+        resultImage.copyTo(output.outputImage->mat());
+    }
     setDebugImage(output.outputImage);
 
     QString statusText = QString("找到 %1 个匹配").arg(results_.size());

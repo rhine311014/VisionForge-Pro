@@ -22,6 +22,7 @@
 #endif
 
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/opencv.hpp>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -489,12 +490,20 @@ bool ShapeMatchTool::process(const Base::ImageData::Ptr& input, ToolResult& outp
                 // 在原图上绘制中心参考点和坐标信息（XLD模式也需要显示）
                 cv::Mat resultImg = input->mat().clone();
                 drawMatchResults(resultImg, validRow, validCol, validAngle, validScore);
-                output.outputImage = std::make_shared<Base::ImageData>(resultImg);
+                output.outputImage = Base::ImageMemoryPool::instance().allocate(
+                    resultImg.cols, resultImg.rows, resultImg.type());
+                if (output.outputImage) {
+                    resultImg.copyTo(output.outputImage->mat());
+                }
             } else {
                 // 绘制结果到输出图像（破坏性）
                 cv::Mat resultImg = input->mat().clone();
                 drawMatchResults(resultImg, validRow, validCol, validAngle, validScore);
-                output.outputImage = std::make_shared<Base::ImageData>(resultImg);
+                output.outputImage = Base::ImageMemoryPool::instance().allocate(
+                    resultImg.cols, resultImg.rows, resultImg.type());
+                if (output.outputImage) {
+                    resultImg.copyTo(output.outputImage->mat());
+                }
             }
 
             output.success = true;

@@ -5,6 +5,7 @@
 
 #include "algorithm/LineTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 #include <QJsonArray>
@@ -118,7 +119,11 @@ bool LineTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
 
         // 绘制结果
         cv::Mat resultImage = drawResults(src);
-        output.outputImage = std::make_shared<Base::ImageData>(resultImage);
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            resultImage.cols, resultImage.rows, resultImage.type());
+        if (output.outputImage) {
+            resultImage.copyTo(output.outputImage->mat());
+        }
 
         setDebugImage(output.outputImage);
         setStatusText(QString("检测到 %1 条线").arg(lines_.size()));

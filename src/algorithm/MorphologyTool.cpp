@@ -5,6 +5,7 @@
 
 #include "algorithm/MorphologyTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 
@@ -100,7 +101,11 @@ bool MorphologyTool::process(const Base::ImageData::Ptr& input, ToolResult& outp
         return false;
     }
 
-    output.outputImage = std::make_shared<Base::ImageData>(result);
+    output.outputImage = Base::ImageMemoryPool::instance().allocate(
+        result.cols, result.rows, result.type());
+    if (output.outputImage) {
+        result.copyTo(output.outputImage->mat());
+    }
     output.success = true;
     output.executionTime = timer.elapsed();
 

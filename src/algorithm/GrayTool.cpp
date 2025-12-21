@@ -87,9 +87,13 @@ bool GrayTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
             }
         }
 
-        // 创建输出图像
-        output.outputImage = std::make_shared<Base::ImageData>(grayMat);
-        output.outputImage->setTimestamp(input->timestamp());
+        // 使用内存池分配输出图像
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            grayMat.cols, grayMat.rows, grayMat.type());
+        if (output.outputImage) {
+            grayMat.copyTo(output.outputImage->mat());
+            output.outputImage->setTimestamp(input->timestamp());
+        }
         output.success = true;
 
         // 设置调试图像

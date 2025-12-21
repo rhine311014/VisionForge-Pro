@@ -5,6 +5,7 @@
 
 #include "algorithm/ROITool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 #include <QJsonArray>
@@ -533,7 +534,11 @@ bool ROITool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         src.copyTo(result, lastMask_);
     }
 
-    output.outputImage = std::make_shared<Base::ImageData>(result);
+    output.outputImage = Base::ImageMemoryPool::instance().allocate(
+        result.cols, result.rows, result.type());
+    if (output.outputImage) {
+        result.copyTo(output.outputImage->mat());
+    }
     output.success = true;
     output.executionTime = timer.elapsed();
 
@@ -550,7 +555,14 @@ bool ROITool::process(const Base::ImageData::Ptr& input, ToolResult& output)
     // 设置显示对象（mask可以用于其他工具的可视化）
     output.setDisplayObject("mask", QVariant::fromValue(lastMask_.clone()));
 
-    setDebugImage(std::make_shared<Base::ImageData>(lastMask_));
+    {
+        auto maskImage = Base::ImageMemoryPool::instance().allocate(
+            lastMask_.cols, lastMask_.rows, lastMask_.type());
+        if (maskImage) {
+            lastMask_.copyTo(maskImage->mat());
+            setDebugImage(maskImage);
+        }
+    }
     setStatusText(QString("ROI数量: %1, 有效面积: %2 (%.1f%%)")
                  .arg(rois_.count())
                  .arg(maskArea)

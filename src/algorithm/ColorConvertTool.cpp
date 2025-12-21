@@ -5,6 +5,7 @@
 
 #include "algorithm/ColorConvertTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 
@@ -96,7 +97,11 @@ bool ColorConvertTool::process(const Base::ImageData::Ptr& input, ToolResult& ou
 
         output.success = true;
         output.executionTime = timer.elapsed();
-        output.outputImage = std::make_shared<Base::ImageData>(result);
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            result.cols, result.rows, result.type());
+        if (output.outputImage) {
+            result.copyTo(output.outputImage->mat());
+        }
 
         // 设置结果数据
         output.setValue("sourceSpace", colorSpaceName(sourceSpace_));

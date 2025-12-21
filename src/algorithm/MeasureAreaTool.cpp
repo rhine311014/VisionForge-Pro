@@ -5,6 +5,7 @@
 
 #include "algorithm/MeasureAreaTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 #include <QJsonArray>
@@ -81,7 +82,11 @@ bool MeasureAreaTool::process(const Base::ImageData::Ptr& input, ToolResult& out
     // 绘制结果
     if (input && !input->isEmpty()) {
         cv::Mat resultImage = drawResults(input->mat());
-        output.outputImage = std::make_shared<Base::ImageData>(resultImage);
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            resultImage.cols, resultImage.rows, resultImage.type());
+        if (output.outputImage) {
+            resultImage.copyTo(output.outputImage->mat());
+        }
         setDebugImage(output.outputImage);
     }
 

@@ -5,6 +5,7 @@
 
 #include "algorithm/EdgeTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
 #include <QElapsedTimer>
 
@@ -113,7 +114,11 @@ bool EdgeTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         return false;
     }
 
-    output.outputImage = std::make_shared<Base::ImageData>(edges);
+    output.outputImage = Base::ImageMemoryPool::instance().allocate(
+        edges.cols, edges.rows, edges.type());
+    if (output.outputImage) {
+        edges.copyTo(output.outputImage->mat());
+    }
     output.success = true;
     output.executionTime = timer.elapsed();
 
