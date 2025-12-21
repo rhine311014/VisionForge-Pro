@@ -139,7 +139,13 @@ Base::ImageData::Ptr SimulatedCamera::grabImage(int timeoutMs)
                     }
                     // 应用增益和曝光
                     mat = applyGainAndExposure(mat);
-                    image = std::make_shared<Base::ImageData>(mat);
+                    // 使用内存池分配，避免内存泄漏
+                    auto poolImage = Base::ImageMemoryPool::instance().allocate(
+                        mat.cols, mat.rows, mat.type());
+                    if (poolImage) {
+                        mat.copyTo(poolImage->mat());
+                        image = poolImage;
+                    }
                 }
             }
         }
@@ -378,7 +384,12 @@ Base::ImageData::Ptr SimulatedCamera::loadNextImage()
     // 应用增益和曝光
     mat = applyGainAndExposure(mat);
 
-    auto image = std::make_shared<Base::ImageData>(mat);
+    // 使用内存池分配，避免内存泄漏
+    auto image = Base::ImageMemoryPool::instance().allocate(
+        mat.cols, mat.rows, mat.type());
+    if (image) {
+        mat.copyTo(image->mat());
+    }
     return image;
 }
 
@@ -474,7 +485,12 @@ Base::ImageData::Ptr SimulatedCamera::loadNextVideoFrame()
     // 应用增益和曝光
     frame = applyGainAndExposure(frame);
 
-    auto image = std::make_shared<Base::ImageData>(frame);
+    // 使用内存池分配，避免内存泄漏
+    auto image = Base::ImageMemoryPool::instance().allocate(
+        frame.cols, frame.rows, frame.type());
+    if (image) {
+        frame.copyTo(image->mat());
+    }
     return image;
 }
 

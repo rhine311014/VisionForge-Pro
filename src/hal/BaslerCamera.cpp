@@ -11,6 +11,7 @@
 
 #include "hal/BaslerCamera.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 
 // Pylon SDK头文件
 #include <pylon/PylonIncludes.h>
@@ -337,7 +338,15 @@ Base::ImageData::Ptr BaslerCamera::grabImage(int timeoutMs)
                         pylonImage.GetBuffer()).clone();
                 }
 
-                auto imageData = std::make_shared<Base::ImageData>(image);
+                // 使用内存池分配ImageData，避免内存泄漏
+                auto imageData = Base::ImageMemoryPool::instance().allocate(
+                    image.cols, image.rows, image.type());
+                if (!imageData) {
+                    LOG_ERROR("内存池分配失败");
+                    return nullptr;
+                }
+                image.copyTo(imageData->mat());
+
                 emit imageGrabbed(imageData);
                 return imageData;
             }

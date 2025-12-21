@@ -9,6 +9,7 @@
 
 #include "hal/HikvisionCamera.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <MvCameraControl.h>
 #include <opencv2/imgproc.hpp>
 
@@ -480,8 +481,14 @@ Base::ImageData::Ptr HikvisionCamera::grabImage(int timeoutMs)
     // 释放图像缓冲区
     MV_CC_FreeImageBuffer(handle_, &frameOut);
 
-    // 创建ImageData
-    auto imageData = std::make_shared<Base::ImageData>(image);
+    // 使用内存池分配ImageData，避免内存泄漏
+    auto imageData = Base::ImageMemoryPool::instance().allocate(
+        image.cols, image.rows, image.type());
+    if (!imageData) {
+        LOG_ERROR("内存池分配失败");
+        return nullptr;
+    }
+    image.copyTo(imageData->mat());
 
     emit imageGrabbed(imageData);
     return imageData;
