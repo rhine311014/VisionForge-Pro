@@ -215,6 +215,25 @@ if(USE_GTEST)
     )
     gtest_discover_tests(test_Calibration_gtest)
 
+    # PLC通信模块测试（工业级PLC协议）
+    add_executable(test_PLC_gtest test_PLC_gtest.cpp)
+    target_link_libraries(test_PLC_gtest
+        VisionForgePLC
+        VisionForgeBase
+        GTest::gtest
+        GTest::gtest_main
+        GTest::gmock
+        Qt6::Core
+        Qt6::Test
+        Qt6::Network
+    )
+    set_target_properties(test_PLC_gtest PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        AUTOMOC ON
+    )
+    gtest_discover_tests(test_PLC_gtest)
+
     message(STATUS "  - test_ImageData_gtest (GTest)")
     message(STATUS "  - test_BasicImageProcessing_gtest (GTest)")
     message(STATUS "  - test_EdgeAndMorphology_gtest (GTest)")
@@ -229,6 +248,7 @@ if(USE_GTEST)
     message(STATUS "  - test_RBACManager_gtest (GTest - RBAC权限管理)")
     message(STATUS "  - test_Platform_gtest (GTest - P0平台核心)")
     message(STATUS "  - test_Calibration_gtest (GTest - P1标定对齐)")
+    message(STATUS "  - test_PLC_gtest (GTest - 工业级PLC通信)")
 endif()
 
 # ============================================================
