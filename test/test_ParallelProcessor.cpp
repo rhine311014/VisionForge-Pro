@@ -4,8 +4,10 @@
  */
 
 #include <QtTest/QtTest>
+#include <QMutex>
 #include "base/ParallelProcessor.h"
 #include "base/ImageData.h"
+#include "base/ImageMemoryPool.h"
 #include "TestUtils.h"
 #include <atomic>
 
@@ -71,7 +73,12 @@ void TestParallelProcessor::initTestCase()
     // 创建测试图像集
     for (int i = 0; i < 10; ++i) {
         cv::Mat img = TestUtils::createGrayImage(320, 240, i * 25);
-        testImages_.push_back(std::make_shared<Base::ImageData>(img));
+        auto imageData = Base::ImageMemoryPool::instance().allocate(
+            img.cols, img.rows, img.type());
+        if (imageData) {
+            img.copyTo(imageData->mat());
+            testImages_.push_back(imageData);
+        }
     }
 }
 
@@ -133,7 +140,12 @@ void TestParallelProcessor::testProcessBatch()
     std::vector<Base::ImageData::Ptr> images;
     for (int i = 0; i < 5; ++i) {
         cv::Mat img = TestUtils::createGrayImage(100, 100, 100);
-        images.push_back(std::make_shared<Base::ImageData>(img));
+        auto imageData = Base::ImageMemoryPool::instance().allocate(
+            img.cols, img.rows, img.type());
+        if (imageData) {
+            img.copyTo(imageData->mat());
+            images.push_back(imageData);
+        }
     }
 
     std::atomic<int> processedCount{0};
@@ -156,7 +168,12 @@ void TestParallelProcessor::testProcessBatchIndexed()
     std::vector<Base::ImageData::Ptr> images;
     for (int i = 0; i < 5; ++i) {
         cv::Mat img = TestUtils::createGrayImage(100, 100, 100);
-        images.push_back(std::make_shared<Base::ImageData>(img));
+        auto imageData = Base::ImageMemoryPool::instance().allocate(
+            img.cols, img.rows, img.type());
+        if (imageData) {
+            img.copyTo(imageData->mat());
+            images.push_back(imageData);
+        }
     }
 
     std::vector<bool> processed(5, false);
@@ -188,7 +205,12 @@ void TestParallelProcessor::testProcessBatchSingleItem()
 
     std::vector<Base::ImageData::Ptr> single;
     cv::Mat img = TestUtils::createGrayImage(100, 100, 100);
-    single.push_back(std::make_shared<Base::ImageData>(img));
+    auto imageData = Base::ImageMemoryPool::instance().allocate(
+        img.cols, img.rows, img.type());
+    if (imageData) {
+        img.copyTo(imageData->mat());
+        single.push_back(imageData);
+    }
 
     bool processed = false;
 
@@ -262,10 +284,12 @@ void TestParallelProcessor::testCalculateTiles()
 
     cv::Mat smallImage = TestUtils::createGrayImage(100, 100, 100);
     std::vector<cv::Rect> tiles;
+    QMutex mutex;  // 用于保护vector的并发访问
 
     proc.processTiles(smallImage, cv::Size(30, 30), 0,
-        [&tiles](cv::Mat& tile, const cv::Rect& rect) {
+        [&tiles, &mutex](cv::Mat& tile, const cv::Rect& rect) {
             Q_UNUSED(tile);
+            QMutexLocker locker(&mutex);
             tiles.push_back(rect);
         });
 
@@ -424,7 +448,12 @@ void TestParallelProcessor::testStatistics()
     std::vector<Base::ImageData::Ptr> images;
     for (int i = 0; i < 5; ++i) {
         cv::Mat img = TestUtils::createGrayImage(100, 100, 100);
-        images.push_back(std::make_shared<Base::ImageData>(img));
+        auto imageData = Base::ImageMemoryPool::instance().allocate(
+            img.cols, img.rows, img.type());
+        if (imageData) {
+            img.copyTo(imageData->mat());
+            images.push_back(imageData);
+        }
     }
 
     proc.processBatch(images, [](Base::ImageData::Ptr&) {});
@@ -440,7 +469,12 @@ void TestParallelProcessor::testResetStatistics()
     // 执行一些操作
     std::vector<Base::ImageData::Ptr> images;
     cv::Mat img = TestUtils::createGrayImage(100, 100, 100);
-    images.push_back(std::make_shared<Base::ImageData>(img));
+    auto imageData = Base::ImageMemoryPool::instance().allocate(
+        img.cols, img.rows, img.type());
+    if (imageData) {
+        img.copyTo(imageData->mat());
+        images.push_back(imageData);
+    }
     proc.processBatch(images, [](Base::ImageData::Ptr&) {});
 
     // 重置统计
@@ -462,7 +496,12 @@ void TestParallelProcessor::testDisabledFallback()
     std::vector<Base::ImageData::Ptr> images;
     for (int i = 0; i < 5; ++i) {
         cv::Mat img = TestUtils::createGrayImage(100, 100, 100);
-        images.push_back(std::make_shared<Base::ImageData>(img));
+        auto imageData = Base::ImageMemoryPool::instance().allocate(
+            img.cols, img.rows, img.type());
+        if (imageData) {
+            img.copyTo(imageData->mat());
+            images.push_back(imageData);
+        }
     }
 
     std::atomic<int> count{0};

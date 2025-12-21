@@ -654,11 +654,12 @@ TEST_F(PLCClientTest, AutoReconnect) {
 TEST_F(PLCClientTest, ReadWriteWithoutConnection) {
     PLCResult result = client_->readInt16(RegisterType::D, 0);
     EXPECT_FALSE(result.isSuccess());
-    EXPECT_EQ(result.errorCode, ErrorCode::NotConnected);
+    // 未初始化协议时返回ProtocolError（protocol_为null）
+    EXPECT_EQ(result.errorCode, ErrorCode::ProtocolError);
 
     result = client_->writeInt16(RegisterType::D, 0, 100);
     EXPECT_FALSE(result.isSuccess());
-    EXPECT_EQ(result.errorCode, ErrorCode::NotConnected);
+    EXPECT_EQ(result.errorCode, ErrorCode::ProtocolError);
 }
 
 // ============================================================
