@@ -190,6 +190,31 @@ if(USE_GTEST)
     )
     gtest_discover_tests(test_RBACManager_gtest)
 
+    # Platform模块测试（P0核心）
+    add_executable(test_Platform_gtest test_Platform_gtest.cpp)
+    target_link_libraries(test_Platform_gtest
+        VisionForgePlatform
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+        Qt6::Gui
+    )
+    gtest_discover_tests(test_Platform_gtest)
+
+    # Calibration模块测试（P1标定对齐）
+    add_executable(test_Calibration_gtest test_Calibration_gtest.cpp)
+    target_link_libraries(test_Calibration_gtest
+        VisionForgeCalibration
+        VisionForgePlatform
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+        Qt6::Gui
+    )
+    gtest_discover_tests(test_Calibration_gtest)
+
     message(STATUS "  - test_ImageData_gtest (GTest)")
     message(STATUS "  - test_BasicImageProcessing_gtest (GTest)")
     message(STATUS "  - test_EdgeAndMorphology_gtest (GTest)")
@@ -202,6 +227,8 @@ if(USE_GTEST)
     message(STATUS "  - test_SecurityManager_gtest (GTest - 安全模块)")
     message(STATUS "  - test_TokenAuthManager_gtest (GTest - Token认证)")
     message(STATUS "  - test_RBACManager_gtest (GTest - RBAC权限管理)")
+    message(STATUS "  - test_Platform_gtest (GTest - P0平台核心)")
+    message(STATUS "  - test_Calibration_gtest (GTest - P1标定对齐)")
 endif()
 
 # ============================================================
