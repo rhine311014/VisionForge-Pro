@@ -10,6 +10,7 @@ set(UI_SOURCES
     ResultTablePanel.cpp
     HistoryPanel.cpp
     MainWindow.cpp
+    BatchProcessWorker.cpp
     Theme.cpp
     PLCConfigDialog.cpp
     CameraConfigDialog.cpp
@@ -79,6 +80,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/ResultTablePanel.h
     ${CMAKE_SOURCE_DIR}/include/ui/HistoryPanel.h
     ${CMAKE_SOURCE_DIR}/include/ui/MainWindow.h
+    ${CMAKE_SOURCE_DIR}/include/ui/BatchProcessWorker.h
     ${CMAKE_SOURCE_DIR}/include/ui/ROI.h
     ${CMAKE_SOURCE_DIR}/include/ui/Theme.h
     ${CMAKE_SOURCE_DIR}/include/ui/PLCConfigDialog.h

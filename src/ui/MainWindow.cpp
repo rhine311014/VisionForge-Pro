@@ -4,6 +4,7 @@
  */
 
 #include "ui/MainWindow.h"
+#include "ui/BatchProcessWorker.h"
 #include "ui/Theme.h"
 #include "algorithm/ToolFactory.h"
 #include "base/Logger.h"
@@ -115,143 +116,7 @@
 namespace VisionForge {
 namespace UI {
 
-/**
- * @brief 批量图像检测工作线程
- *
- * 在后台线程处理批量图像，避免阻塞UI主线程
- */
-class InspectionWorker : public QThread {
-    Q_OBJECT
-
-public:
-    InspectionWorker(const QStringList& imageFiles,
-                     const QList<Algorithm::VisionTool*>& tools,
-                     QObject* parent = nullptr)
-        : QThread(parent)
-        , imageFiles_(imageFiles)
-        , tools_(tools)
-        , stopRequested_(false)
-    {
-    }
-
-    void requestStop() {
-        stopRequested_ = true;
-    }
-
-signals:
-    void progress(int current, int total);
-    void imageProcessed(int index, bool success, const QString& imagePath, double elapsedMs);
-    void finished(int successCount, int totalCount, double totalTime);
-
-protected:
-    void run() override {
-        int totalImages = imageFiles_.size();
-        double totalTime = 0.0;
-        QMutex timeMutex;
-
-        // 使用ParallelProcessor实现多图并行处理
-        auto& processor = Base::ParallelProcessor::instance();
-
-        // 定义单张图片处理函数
-        auto imageProcessor = [this, &totalTime, &timeMutex](const QString& filePath, size_t index)
-            -> Base::ParallelProcessor::BatchProcessResult {
-
-            if (stopRequested_) {
-                return {false, "用户中断", 0.0};
-            }
-
-            // 加载图片
-            QFile file(filePath);
-            if (!file.open(QIODevice::ReadOnly)) {
-                QString error = QString("无法打开图像文件");
-                LOG_WARNING(QString("%1: %2").arg(error).arg(filePath));
-                emit imageProcessed(index, false, filePath, 0.0);
-                return {false, error, 0.0};
-            }
-
-            QByteArray fileData = file.readAll();
-            file.close();
-
-            // 解码图像
-            std::vector<uchar> buffer(fileData.begin(), fileData.end());
-            cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
-
-            if (mat.empty()) {
-                QString error = QString("无法解码图像文件");
-                LOG_WARNING(QString("%1: %2").arg(error).arg(filePath));
-                emit imageProcessed(index, false, filePath, 0.0);
-                return {false, error, 0.0};
-            }
-
-            auto currentImage = std::make_shared<Base::ImageData>(mat);
-
-            // 记录开始时间
-            auto startTime = std::chrono::high_resolution_clock::now();
-
-            // 执行工具链处理
-            bool allSuccess = true;
-            QString errorMsg;
-
-            for (Algorithm::VisionTool* tool : tools_) {
-                if (stopRequested_) {
-                    return {false, "用户中断", 0.0};
-                }
-
-                Algorithm::ToolResult result;
-                bool success = tool->process(currentImage, result);
-
-                if (!success || !result.success) {
-                    allSuccess = false;
-                    errorMsg = QString("工具 %1 处理失败: %2")
-                               .arg(tool->toolName())
-                               .arg(result.errorMessage);
-                    LOG_WARNING(errorMsg);
-                    break;
-                }
-
-                // 更新输出图像
-                if (result.outputImage) {
-                    currentImage = result.outputImage;
-                }
-            }
-
-            // 计算处理时间
-            auto endTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> duration = endTime - startTime;
-            double elapsedMs = duration.count();
-
-            if (allSuccess) {
-                QMutexLocker locker(&timeMutex);
-                totalTime += elapsedMs;
-            }
-
-            // 发送单张图片处理完成信号（线程安全）
-            emit imageProcessed(static_cast<int>(index), allSuccess, filePath, elapsedMs);
-
-            return {allSuccess, errorMsg, elapsedMs};
-        };
-
-        // 进度回调
-        auto progressCallback = [this](size_t current, size_t total) {
-            emit progress(static_cast<int>(current), static_cast<int>(total));
-        };
-
-        // 并行处理所有图片
-        size_t successCount = processor.processBatchFiles(
-            imageFiles_,
-            imageProcessor,
-            progressCallback
-        );
-
-        // 发送完成信号
-        emit finished(static_cast<int>(successCount), totalImages, totalTime);
-    }
-
-private:
-    QStringList imageFiles_;
-    QList<Algorithm::VisionTool*> tools_;
-    bool stopRequested_;
-};
+// InspectionWorker已被BatchProcessWorker替代，参见include/ui/BatchProcessWorker.h
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -471,50 +336,59 @@ void MainWindow::onRunAllImages()
     setEnabled(false);
     statusLabel_->setText(QString("批量处理中: 0/%1").arg(totalImages));
 
-    // 创建工作线程
-    auto worker = new InspectionWorker(imageSequence_, tools, this);
+    // 创建工作线程（使用BatchProcessWorker替代InspectionWorker）
+    auto worker = new BatchProcessWorker(imageSequence_, tools, this);
 
-    // 连接进度信号
-    connect(worker, &InspectionWorker::progress, this, [this, totalImages](int current, int total) {
-        statusLabel_->setText(QString("批量处理中: %1/%2").arg(current).arg(total));
+    // 连接进度信号（新增百分比参数）
+    connect(worker, &BatchProcessWorker::progress, this,
+            [this](int current, int total, double percentage) {
+        statusLabel_->setText(QString("批量处理中: %1/%2 (%3%)")
+            .arg(current).arg(total).arg(percentage, 0, 'f', 1));
     });
 
-    // 连接单张图片处理完成信号
-    connect(worker, &InspectionWorker::imageProcessed, this,
-            [this](int index, bool success, const QString& imagePath, double elapsedMs) {
-        if (success) {
+    // 连接单张图片处理完成信号（使用FileProcessResult结构）
+    connect(worker, &BatchProcessWorker::fileProcessed, this,
+            [this](const FileProcessResult& result) {
+        if (result.success) {
             LOG_DEBUG(QString("图片 %1 处理成功，耗时: %2 ms")
-                     .arg(QFileInfo(imagePath).fileName())
-                     .arg(elapsedMs, 0, 'f', 2));
+                     .arg(QFileInfo(result.filePath).fileName())
+                     .arg(result.processTime, 0, 'f', 2));
         } else {
-            LOG_WARNING(QString("图片 %1 处理失败").arg(QFileInfo(imagePath).fileName()));
+            LOG_WARNING(QString("图片 %1 处理失败: %2")
+                       .arg(QFileInfo(result.filePath).fileName())
+                       .arg(result.errorMessage));
         }
     });
 
-    // 连接完成信号
-    connect(worker, &InspectionWorker::finished, this,
-            [this, totalImages, worker](int successCount, int totalCount, double totalTime) {
+    // 连接完成信号（使用BatchProcessResult结构）
+    connect(worker, &BatchProcessWorker::finished, this,
+            [this, worker](const BatchProcessResult& result) {
         // 重新启用UI
         setEnabled(true);
 
         // 显示完成信息
         QString resultMsg = QString("批量处理完成!\n"
-                                    "处理图片: %1/%2 张\n"
+                                    "成功: %1 张\n"
+                                    "失败: %2 张\n"
                                     "总耗时: %3 ms\n"
                                     "平均耗时: %4 ms/张")
-            .arg(successCount)
-            .arg(totalCount)
-            .arg(totalTime, 0, 'f', 2)
-            .arg(successCount > 0 ? totalTime / successCount : 0, 0, 'f', 2);
+            .arg(result.successCount)
+            .arg(result.failedCount)
+            .arg(result.totalTime, 0, 'f', 2)
+            .arg(result.avgTime, 0, 'f', 2);
+
+        if (!result.success && !result.errorMessage.isEmpty()) {
+            resultMsg += QString("\n\n错误: %1").arg(result.errorMessage);
+        }
 
         QMessageBox::information(this, "批量处理完成", resultMsg);
-        statusLabel_->setText(QString("批量处理完成: %1张图片, 总耗时%.2f ms")
-            .arg(successCount).arg(totalTime));
+        statusLabel_->setText(QString("批量处理完成: 成功%1张, 失败%2张, 耗时%.2f ms")
+            .arg(result.successCount).arg(result.failedCount).arg(result.totalTime));
 
         updateImageSequenceActions();
 
-        LOG_INFO(QString("批量处理完成: %1/%2张图片, 总耗时%3ms")
-            .arg(successCount).arg(totalCount).arg(totalTime, 0, 'f', 2));
+        LOG_INFO(QString("批量处理完成: 成功%1张, 失败%2张, 总耗时%3ms")
+            .arg(result.successCount).arg(result.failedCount).arg(result.totalTime, 0, 'f', 2));
 
         // 自动删除工作线程
         worker->deleteLater();
@@ -2522,5 +2396,5 @@ bool MainWindow::tryAutoConnectCamera()
 } // namespace UI
 } // namespace VisionForge
 
-// 包含MOC生成的文件，以处理InspectionWorker的Q_OBJECT宏
+// 包含MOC生成的文件
 #include "MainWindow.moc"

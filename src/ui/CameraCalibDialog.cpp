@@ -5,6 +5,7 @@
 
 #include "ui/CameraCalibDialog.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QGridLayout>
@@ -436,8 +437,13 @@ void CameraCalibDialog::drawCornersOnPreview(const cv::Mat& image,
 
     cv::drawChessboardCorners(display, calibTool_->boardSize(), corners, found);
 
-    auto imageData = std::make_shared<Base::ImageData>(display);
-    imageViewer_->setImage(imageData);
+    // 使用内存池分配图像
+    auto imageData = Base::ImageMemoryPool::instance().allocate(
+        display.cols, display.rows, display.type());
+    if (imageData) {
+        display.copyTo(imageData->mat());
+        imageViewer_->setImage(imageData);
+    }
 }
 
 // ========== 图像管理槽函数 ==========

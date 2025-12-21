@@ -13,6 +13,7 @@
 #include "algorithm/ShapeModelManager.h"
 #include "ui/ShapeModelLibraryDialog.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -794,9 +795,14 @@ void ShapeMatchToolDialog::onGetTemplateImageClicked()
         cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
 
         if (!mat.empty()) {
-            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
-            setImage(image);
-            LOG_INFO(QString("已加载模板图像: %1").arg(filePath));
+            // 使用内存池分配图像
+            Base::ImageData::Ptr image = Base::ImageMemoryPool::instance().allocate(
+                mat.cols, mat.rows, mat.type());
+            if (image) {
+                mat.copyTo(image->mat());
+                setImage(image);
+                LOG_INFO(QString("已加载模板图像: %1").arg(filePath));
+            }
         } else {
             QMessageBox::warning(this, "错误", "无法解码图像文件");
         }
@@ -1214,9 +1220,13 @@ void ShapeMatchToolDialog::updateFeaturePreview()
         cv::putText(canvas, "Model Contours", cv::Point(10, height - 10),
                     cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(128, 128, 128), 1);
 
-        // 设置到预览窗口
-        auto previewImage = std::make_shared<Base::ImageData>(canvas);
-        featureViewer_->setImage(previewImage);
+        // 使用内存池分配预览图像
+        auto previewImage = Base::ImageMemoryPool::instance().allocate(
+            canvas.cols, canvas.rows, canvas.type());
+        if (previewImage) {
+            canvas.copyTo(previewImage->mat());
+            featureViewer_->setImage(previewImage);
+        }
 
         // 延迟调用fitToWindow，确保图像完全显示
         QTimer::singleShot(100, this, [this]() {
@@ -1391,9 +1401,13 @@ void ShapeMatchToolDialog::onPreviewMarkContour()
         cv::putText(canvas, shapeName.toStdString(), cv::Point(10, height - 10),
                     cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(128, 128, 128), 1);
 
-        // 显示到预览窗口
-        auto previewImage = std::make_shared<Base::ImageData>(canvas);
-        featureViewer_->setImage(previewImage);
+        // 使用内存池分配预览图像
+        auto previewImage = Base::ImageMemoryPool::instance().allocate(
+            canvas.cols, canvas.rows, canvas.type());
+        if (previewImage) {
+            canvas.copyTo(previewImage->mat());
+            featureViewer_->setImage(previewImage);
+        }
 
         LOG_INFO(QString("预览Mark轮廓: %1").arg(shapeName));
     }

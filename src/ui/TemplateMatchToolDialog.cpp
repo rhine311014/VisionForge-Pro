@@ -10,6 +10,7 @@
 #include "ui/ROI.h"
 #include "algorithm/TemplateMatchTool.h"
 #include "base/Logger.h"
+#include "base/ImageMemoryPool.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -848,8 +849,13 @@ void TemplateMatchToolDialog::updateTemplatePreview()
 
     if (tool_->hasTemplate()) {
         cv::Mat templ = tool_->templateImage();
-        auto templateImage = std::make_shared<Base::ImageData>(templ);
-        templateViewer_->setImage(templateImage);
+        // 使用内存池分配模板图像
+        auto templateImage = Base::ImageMemoryPool::instance().allocate(
+            templ.cols, templ.rows, templ.type());
+        if (templateImage) {
+            templ.copyTo(templateImage->mat());
+            templateViewer_->setImage(templateImage);
+        }
     } else {
         templateViewer_->clearImage();
     }
