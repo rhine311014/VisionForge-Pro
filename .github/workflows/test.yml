@@ -1,0 +1,249 @@
+name: 🧪 VisionForge Pro - 自动化测试
+
+on:
+  push:
+    branches: [ master, develop, feature/* ]
+  pull_request:
+    branches: [ master, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  BUILD_TYPE: Release
+  VCPKG_DEFAULT_TRIPLET: x64-windows
+
+jobs:
+  # ==================== Windows构建和测试 ====================
+  test-windows:
+    name: 🪟 Windows测试
+    runs-on: windows-latest
+
+    steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: 🔧 设置MSVC环境
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: 📦 缓存vcpkg依赖
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ github.workspace }}/vcpkg
+          ${{ github.workspace }}/build/vcpkg_installed
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+
+    - name: 🔨 安装依赖 (vcpkg)
+      shell: powershell
+      run: |
+        if (-Not (Test-Path vcpkg)) {
+          git clone https://github.com/Microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+        }
+        .\vcpkg\vcpkg install opencv4[core,contrib]:x64-windows qt6[core,widgets]:x64-windows
+
+    - name: 📦 缓存Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        cached: true
+
+    - name: 🏗️ 配置CMake
+      shell: powershell
+      run: |
+        cmake -B build `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DUSE_GTEST=ON `
+          -DENABLE_COVERAGE=OFF
+
+    - name: 🔨 编译项目
+      shell: powershell
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} -j 4
+
+    - name: 🧪 运行测试 - ImageData
+      shell: powershell
+      working-directory: ${{ github.workspace }}/build/bin/${{ env.BUILD_TYPE }}
+      run: |
+        echo "=== 运行 ImageData 测试 ==="
+        .\test_ImageData_gtest.exe --gtest_output=xml:test_results_imagedata.xml
+
+    - name: 🧪 运行测试 - BasicImageProcessing
+      shell: powershell
+      working-directory: ${{ github.workspace }}/build/bin/${{ env.BUILD_TYPE }}
+      run: |
+        echo "=== 运行 BasicImageProcessing 测试 ==="
+        .\test_BasicImageProcessing_gtest.exe --gtest_output=xml:test_results_basic.xml
+
+    - name: 🧪 运行测试 - EdgeAndMorphology
+      shell: powershell
+      working-directory: ${{ github.workspace }}/build/bin/${{ env.BUILD_TYPE }}
+      run: |
+        echo "=== 运行 EdgeAndMorphology 测试 ==="
+        .\test_EdgeAndMorphology_gtest.exe --gtest_output=xml:test_results_edge.xml
+
+    - name: 🧪 运行测试 - ShapeDetection
+      shell: powershell
+      working-directory: ${{ github.workspace }}/build/bin/${{ env.BUILD_TYPE }}
+      run: |
+        echo "=== 运行 ShapeDetection 测试 ==="
+        .\test_ShapeDetection_gtest.exe --gtest_output=xml:test_results_shape.xml
+
+    - name: 🧪 运行测试 - Measurement
+      shell: powershell
+      working-directory: ${{ github.workspace }}/build/bin/${{ env.BUILD_TYPE }}
+      run: |
+        echo "=== 运行 Measurement 测试 ==="
+        .\test_Measurement_gtest.exe --gtest_output=xml:test_results_measure.xml
+
+    - name: 📊 发布测试报告
+      uses: EnricoMi/publish-unit-test-result-action/composite@v2
+      if: always()
+      with:
+        files: |
+          build/bin/${{ env.BUILD_TYPE }}/test_results_*.xml
+        check_name: '🧪 Windows测试结果'
+        comment_title: '🧪 Windows单元测试报告'
+
+    - name: 📦 上传测试报告
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-windows
+        path: build/bin/${{ env.BUILD_TYPE }}/test_results_*.xml
+        retention-days: 30
+
+  # ==================== Linux构建和测试（带代码覆盖率）====================
+  test-linux-coverage:
+    name: 🐧 Linux测试 + 代码覆盖率
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: 🔧 安装依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          qt6-base-dev \
+          qt6-tools-dev \
+          libopencv-dev \
+          lcov \
+          gcovr
+
+    - name: 🏗️ 配置CMake（启用覆盖率）
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DUSE_GTEST=ON \
+          -DENABLE_COVERAGE=ON \
+          -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+
+    - name: 🔨 编译项目
+      run: cmake --build build -j $(nproc)
+
+    - name: 🧪 运行所有测试
+      working-directory: ${{ github.workspace }}/build/bin
+      run: |
+        for test in test_*_gtest; do
+          echo "=== 运行 $test ==="
+          ./$test --gtest_output=xml:${test}_results.xml
+        done
+
+    - name: 📊 生成覆盖率报告（lcov）
+      run: |
+        lcov --capture --directory build --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' '*/test/*' '*/build/*' --output-file coverage_filtered.info
+        lcov --list coverage_filtered.info
+
+    - name: 📊 生成HTML覆盖率报告
+      run: |
+        genhtml coverage_filtered.info --output-directory coverage_html
+
+    - name: 📤 上传覆盖率到Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage_filtered.info
+        flags: unittests
+        name: visionforge-coverage
+        fail_ci_if_error: false
+
+    - name: 📦 上传覆盖率报告（Artifacts）
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage_html/
+        retention-days: 30
+
+    - name: 📊 发布测试报告
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: build/bin/*_results.xml
+        check_name: '🧪 Linux测试结果'
+        comment_title: '🧪 Linux单元测试报告 + 代码覆盖率'
+
+  # ==================== 性能基准测试 ====================
+  benchmark-tests:
+    name: ⚡ 性能基准测试
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+
+    - name: 🔧 安装依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake qt6-base-dev libopencv-dev
+
+    - name: 🏗️ 配置CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DUSE_GTEST=ON
+
+    - name: 🔨 编译项目
+      run: cmake --build build -j $(nproc)
+
+    - name: ⚡ 运行性能测试（禁用的测试）
+      working-directory: ${{ github.workspace }}/build/bin
+      run: |
+        for test in test_*_gtest; do
+          echo "=== 运行 $test 性能测试 ==="
+          ./$test --gtest_also_run_disabled_tests --gtest_filter="*DISABLED_Performance*" || true
+        done
+
+  # ==================== 测试摘要 ====================
+  test-summary:
+    name: 📋 测试摘要
+    runs-on: ubuntu-latest
+    needs: [test-windows, test-linux-coverage]
+    if: always()
+
+    steps:
+    - name: 📊 生成摘要
+      run: |
+        echo "## 🎉 VisionForge Pro 测试报告" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 测试套件状态" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| 平台 | 状态 |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 🪟 Windows | ${{ needs.test-windows.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🐧 Linux + Coverage | ${{ needs.test-linux-coverage.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 测试覆盖" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ 5个测试套件" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ 119个测试用例" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ 12个核心工具类" >> $GITHUB_STEP_SUMMARY

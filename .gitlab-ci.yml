@@ -1,0 +1,210 @@
+# VisionForge Pro - GitLab CI/CD 配置
+# 自动化测试、代码覆盖率、性能基准测试
+
+stages:
+  - build
+  - test
+  - coverage
+  - deploy
+
+variables:
+  BUILD_TYPE: "Release"
+  GIT_SUBMODULE_STRATEGY: recursive
+
+# ==================== 缓存配置 ====================
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - build/
+    - vcpkg/
+    - .cache/
+
+# ==================== Windows构建 ====================
+build:windows:
+  stage: build
+  tags:
+    - windows
+    - msvc
+  script:
+    - echo "🏗️ 配置Windows构建环境"
+    - cmake -B build -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DUSE_GTEST=ON
+    - echo "🔨 编译项目"
+    - cmake --build build --config %BUILD_TYPE% -j 4
+  artifacts:
+    paths:
+      - build/bin/%BUILD_TYPE%/*.exe
+      - build/lib/%BUILD_TYPE%/*.lib
+    expire_in: 1 day
+  only:
+    - master
+    - develop
+    - merge_requests
+
+# ==================== Linux构建 ====================
+build:linux:
+  stage: build
+  image: ubuntu:22.04
+  tags:
+    - docker
+  before_script:
+    - apt-get update
+    - apt-get install -y build-essential cmake ninja-build qt6-base-dev libopencv-dev
+  script:
+    - echo "🏗️ 配置Linux构建环境"
+    - cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DUSE_GTEST=ON -DENABLE_COVERAGE=ON
+    - echo "🔨 编译项目"
+    - cmake --build build -j $(nproc)
+  artifacts:
+    paths:
+      - build/bin/test_*_gtest
+      - build/lib/*.a
+    expire_in: 1 day
+  only:
+    - master
+    - develop
+    - merge_requests
+
+# ==================== Windows测试 ====================
+test:windows:
+  stage: test
+  tags:
+    - windows
+  dependencies:
+    - build:windows
+  script:
+    - echo "🧪 运行Windows测试套件"
+    - cd build\bin\%BUILD_TYPE%
+    - test_ImageData_gtest.exe --gtest_output=xml:test_results_imagedata.xml
+    - test_BasicImageProcessing_gtest.exe --gtest_output=xml:test_results_basic.xml
+    - test_EdgeAndMorphology_gtest.exe --gtest_output=xml:test_results_edge.xml
+    - test_ShapeDetection_gtest.exe --gtest_output=xml:test_results_shape.xml
+    - test_Measurement_gtest.exe --gtest_output=xml:test_results_measure.xml
+  artifacts:
+    reports:
+      junit: build/bin/%BUILD_TYPE%/test_results_*.xml
+    paths:
+      - build/bin/%BUILD_TYPE%/test_results_*.xml
+    expire_in: 30 days
+  only:
+    - master
+    - develop
+    - merge_requests
+
+# ==================== Linux测试 + 代码覆盖率 ====================
+test:linux:
+  stage: test
+  image: ubuntu:22.04
+  tags:
+    - docker
+  dependencies:
+    - build:linux
+  before_script:
+    - apt-get update
+    - apt-get install -y libqt6core6 libqt6widgets6 libopencv-core4.5d libopencv-imgproc4.5d
+  script:
+    - echo "🧪 运行Linux测试套件"
+    - cd build/bin
+    - for test in test_*_gtest; do
+        echo "=== 运行 $test ===";
+        ./$test --gtest_output=xml:${test}_results.xml;
+      done
+  artifacts:
+    reports:
+      junit: build/bin/*_results.xml
+    paths:
+      - build/bin/*_results.xml
+    expire_in: 30 days
+  coverage: '/lines......: \d+\.\d+%/'
+  only:
+    - master
+    - develop
+    - merge_requests
+
+# ==================== 代码覆盖率报告 ====================
+coverage:report:
+  stage: coverage
+  image: ubuntu:22.04
+  tags:
+    - docker
+  dependencies:
+    - build:linux
+    - test:linux
+  before_script:
+    - apt-get update
+    - apt-get install -y lcov gcovr
+  script:
+    - echo "📊 生成代码覆盖率报告"
+    - lcov --capture --directory build --output-file coverage.info
+    - lcov --remove coverage.info '/usr/*' '*/test/*' '*/build/*' --output-file coverage_filtered.info
+    - lcov --list coverage_filtered.info
+    - genhtml coverage_filtered.info --output-directory coverage_html
+    - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}
+  artifacts:
+    paths:
+      - coverage_html/
+      - coverage.xml
+      - coverage_filtered.info
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 30 days
+  coverage: '/lines......: \d+\.\d+%/'
+  only:
+    - master
+    - develop
+    - merge_requests
+
+# ==================== 性能基准测试 ====================
+benchmark:performance:
+  stage: test
+  image: ubuntu:22.04
+  tags:
+    - docker
+    - performance
+  dependencies:
+    - build:linux
+  script:
+    - echo "⚡ 运行性能基准测试"
+    - cd build/bin
+    - for test in test_*_gtest; do
+        echo "=== 运行 $test 性能测试 ===";
+        ./$test --gtest_also_run_disabled_tests --gtest_filter="*DISABLED_Performance*" || true;
+      done
+  allow_failure: true
+  only:
+    - merge_requests
+    - master
+
+# ==================== 测试报告部署到Pages ====================
+pages:
+  stage: deploy
+  image: alpine:latest
+  dependencies:
+    - coverage:report
+  script:
+    - echo "📤 部署覆盖率报告到GitLab Pages"
+    - mkdir -p public
+    - cp -r coverage_html/* public/
+    - echo "<html><body><h1>VisionForge Pro 代码覆盖率报告</h1><a href='index.html'>查看报告</a></body></html>" > public/index.html
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  only:
+    - master
+
+# ==================== 每日定时测试 ====================
+scheduled:nightly:
+  stage: test
+  extends: test:linux
+  script:
+    - echo "🌙 每日夜间完整测试"
+    - cd build/bin
+    - for test in test_*_gtest; do
+        echo "=== 运行 $test (含性能测试) ===";
+        ./$test --gtest_also_run_disabled_tests;
+      done
+  only:
+    - schedules
+  allow_failure: false
