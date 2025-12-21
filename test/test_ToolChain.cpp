@@ -8,6 +8,7 @@
 #include "algorithm/VisionTool.h"
 #include "algorithm/ToolFactory.h"
 #include "base/ImageData.h"
+#include "base/ImageMemoryPool.h"
 #include "TestUtils.h"
 
 using namespace VisionForge;
@@ -131,7 +132,11 @@ private:
 void TestToolChain::initTestCase()
 {
     testImage_ = TestUtils::createGrayImage(640, 480, 128);
-    testImageData_ = std::make_shared<Base::ImageData>(testImage_);
+    testImageData_ = Base::ImageMemoryPool::instance().allocate(
+        testImage_.cols, testImage_.rows, testImage_.type());
+    if (testImageData_) {
+        testImage_.copyTo(testImageData_->mat());
+    }
 }
 
 void TestToolChain::cleanupTestCase()

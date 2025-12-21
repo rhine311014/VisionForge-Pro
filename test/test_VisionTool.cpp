@@ -6,6 +6,7 @@
 #include <QtTest/QtTest>
 #include "algorithm/VisionTool.h"
 #include "algorithm/ToolFactory.h"
+#include "base/ImageMemoryPool.h"
 #include "TestUtils.h"
 
 using namespace VisionForge;
@@ -138,7 +139,11 @@ void TestVisionTool::testToolProcess()
 
     // 创建测试图像
     cv::Mat colorImage = TestUtils::createColorImage(640, 480, 100, 150, 200);
-    auto input = std::make_shared<Base::ImageData>(colorImage);
+    auto input = Base::ImageMemoryPool::instance().allocate(
+        colorImage.cols, colorImage.rows, colorImage.type());
+    if (input) {
+        colorImage.copyTo(input->mat());
+    }
 
     // 执行工具
     Algorithm::ToolResult result;
@@ -164,7 +169,7 @@ void TestVisionTool::testToolProcessWithEmptyInput()
         QSKIP("Could not create tool");
     }
 
-    // 空输入
+    // 空输入 - 使用默认构造的ImageData
     auto emptyInput = std::make_shared<Base::ImageData>();
 
     // 执行应该失败但不崩溃
