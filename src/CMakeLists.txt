@@ -6,6 +6,12 @@
 # 子模块目录
 # ============================================================
 
+# 平台核心模型（P0重构核心）
+add_subdirectory(platform)
+
+# 标定和对齐模块
+add_subdirectory(calibration)
+
 # 基础设施层
 add_subdirectory(base)
 
@@ -20,6 +26,12 @@ add_subdirectory(core)
 
 # 通信层
 add_subdirectory(comm)
+
+# 工业级PLC通信模块
+add_subdirectory(plc)
+
+# 远程诊断层
+add_subdirectory(remote)
 
 # UI层
 add_subdirectory(ui)
@@ -52,11 +64,15 @@ add_executable(VisionForge
 # ============================================================
 target_link_libraries(VisionForge PRIVATE
     # 内部库
+    VisionForgePlatform
+    VisionForgeCalibration
     VisionForgeBase
     VisionForgeHAL
     VisionForgeAlgorithm
     VisionForgeCore
     VisionForgeComm
+    VisionForgePLC
+    VisionForgeRemote
     VisionForgeUI
 
     # Qt库
@@ -66,6 +82,7 @@ target_link_libraries(VisionForge PRIVATE
     Qt6::Network
     Qt6::Sql
     Qt6::Xml
+    Qt6::WebSockets
 
     # OpenCV库
     ${OpenCV_LIBS}

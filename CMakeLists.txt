@@ -45,6 +45,11 @@ message(STATUS "C++标准: C++${CMAKE_CXX_STANDARD}")
 message(STATUS "===========================================")
 
 # ============================================================
+# 代码覆盖率支持
+# ============================================================
+include(cmake/CodeCoverage.cmake)
+
+# ============================================================
 # 平台特定配置
 # ============================================================
 if(WIN32)
@@ -153,6 +158,7 @@ find_package(Qt6 6.2 REQUIRED COMPONENTS
     Xml
     SerialPort
     Concurrent
+    WebSockets
     LinguistTools
 )
 message(STATUS "Qt版本: ${Qt6_VERSION}")
