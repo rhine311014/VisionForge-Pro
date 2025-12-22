@@ -68,6 +68,7 @@ target_include_directories(VisionForgeBase PUBLIC
 target_link_libraries(VisionForgeBase PUBLIC
     Qt6::Core
     Qt6::Gui
+    Qt6::Network
     ${OpenCV_LIBS}
 )
 

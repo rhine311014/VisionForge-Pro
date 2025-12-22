@@ -168,8 +168,8 @@ OPCUAClient::OPCUAClient(QObject* parent)
     reconnectTimer_ = new QTimer(this);
     keepAliveTimer_ = new QTimer(this);
 
-    connect(reconnectTimer_, &QTimer::timeout, this, &OPCUAClient::onReconnectTimer);
-    connect(keepAliveTimer_, &QTimer::timeout, this, &OPCUAClient::onKeepAliveTimer);
+    QObject::connect(reconnectTimer_, &QTimer::timeout, this, &OPCUAClient::onReconnectTimer);
+    QObject::connect(keepAliveTimer_, &QTimer::timeout, this, &OPCUAClient::onKeepAliveTimer);
 }
 
 OPCUAClient::~OPCUAClient()

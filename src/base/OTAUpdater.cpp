@@ -11,8 +11,10 @@
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
+#include <QUrl>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QCryptographicHash>
@@ -285,7 +287,9 @@ void OTAUpdater::checkForUpdate(bool forceCheck)
         apiUrl += "&beta=1";
     }
 
-    QNetworkRequest request(QUrl(apiUrl));
+    QUrl requestUrl(apiUrl);
+    QNetworkRequest request;
+    request.setUrl(requestUrl);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("User-Agent", QString("%1/%2")
                         .arg(config_.applicationName)
@@ -342,7 +346,9 @@ bool OTAUpdater::startDownload()
     }
 
     // 构建下载请求
-    QNetworkRequest request(QUrl(packageInfo_.packageUrl));
+    QUrl downloadUrl(packageInfo_.packageUrl);
+    QNetworkRequest request;
+    request.setUrl(downloadUrl);
 
     // 断点续传
     if (existingSize > 0) {

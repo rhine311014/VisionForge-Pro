@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QCoreApplication>
 #include <QSysInfo>
 #include <QNetworkAccessManager>

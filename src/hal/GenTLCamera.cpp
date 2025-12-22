@@ -1016,19 +1016,16 @@ Base::ImageData::Ptr GenTLCamera::grabImage(int timeoutMs) {
     // 模拟采集延迟
     QThread::msleep(qMin(timeoutMs, 100));
 
-    // 创建测试图像
-    auto image = std::make_shared<Base::ImageData>();
-    image->width = config_.width;
-    image->height = config_.height;
-    image->channels = 1;  // 根据PixelFormat确定
-    image->data.resize(image->width * image->height * image->channels);
+    // 创建测试图像 (使用OpenCV格式 CV_8UC1)
+    auto image = std::make_shared<Base::ImageData>(config_.width, config_.height, CV_8UC1);
 
-    // 填充测试数据（棋盘图案）
-    for (int y = 0; y < image->height; ++y) {
-        for (int x = 0; x < image->width; ++x) {
-            int idx = y * image->width + x;
+    // 获取底层cv::Mat并填充测试数据（棋盘图案）
+    cv::Mat& mat = image->mat();
+    for (int y = 0; y < mat.rows; ++y) {
+        uchar* row = mat.ptr<uchar>(y);
+        for (int x = 0; x < mat.cols; ++x) {
             bool white = ((x / 64) + (y / 64)) % 2 == 0;
-            image->data[idx] = white ? 200 : 55;
+            row[x] = white ? 200 : 55;
         }
     }
 
