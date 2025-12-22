@@ -69,71 +69,71 @@ private:
 
 private:
     // 主标签页
-    QTabWidget* tabWidget_;
+    QTabWidget* tabWidget_ = nullptr;
 
     // ========== 平台类型设置 ==========
-    QGroupBox* platformGroupBox_;
-    QComboBox* platformTypeCombo_;
-    QLabel* platformDescLabel_;
-    QSpinBox* cameraNumSpin_;
-    QSpinBox* positionNumSpin_;
+    QGroupBox* platformGroupBox_ = nullptr;
+    QComboBox* platformTypeCombo_ = nullptr;
+    QLabel* platformDescLabel_ = nullptr;
+    QSpinBox* cameraNumSpin_ = nullptr;
+    QSpinBox* positionNumSpin_ = nullptr;
 
     // ========== 轴参数设置 ==========
-    QGroupBox* axisGroupBox_;
+    QGroupBox* axisGroupBox_ = nullptr;
 
     // X轴配置
-    QDoubleSpinBox* xRangeSpin_;
-    QDoubleSpinBox* xPulseSpin_;
-    QComboBox* xDirectionCombo_;
+    QDoubleSpinBox* xRangeSpin_ = nullptr;
+    QDoubleSpinBox* xPulseSpin_ = nullptr;
+    QComboBox* xDirectionCombo_ = nullptr;
 
     // X2轴配置（龙门结构）
-    QWidget* x2AxisWidget_;
-    QDoubleSpinBox* x2RangeSpin_;
-    QDoubleSpinBox* x2PulseSpin_;
-    QComboBox* x2DirectionCombo_;
+    QWidget* x2AxisWidget_ = nullptr;
+    QDoubleSpinBox* x2RangeSpin_ = nullptr;
+    QDoubleSpinBox* x2PulseSpin_ = nullptr;
+    QComboBox* x2DirectionCombo_ = nullptr;
 
     // Y轴配置
-    QDoubleSpinBox* yRangeSpin_;
-    QDoubleSpinBox* yPulseSpin_;
-    QComboBox* yDirectionCombo_;
+    QDoubleSpinBox* yRangeSpin_ = nullptr;
+    QDoubleSpinBox* yPulseSpin_ = nullptr;
+    QComboBox* yDirectionCombo_ = nullptr;
 
     // Y2轴配置（双Y结构）
-    QWidget* y2AxisWidget_;
-    QDoubleSpinBox* y2RangeSpin_;
-    QDoubleSpinBox* y2PulseSpin_;
-    QComboBox* y2DirectionCombo_;
+    QWidget* y2AxisWidget_ = nullptr;
+    QDoubleSpinBox* y2RangeSpin_ = nullptr;
+    QDoubleSpinBox* y2PulseSpin_ = nullptr;
+    QComboBox* y2DirectionCombo_ = nullptr;
 
     // D轴配置
-    QWidget* dAxisWidget_;
-    QDoubleSpinBox* dRangeSpin_;
-    QDoubleSpinBox* dPulseSpin_;
-    QComboBox* dDirectionCombo_;
-    QComboBox* dDriveTypeCombo_;
-    QDoubleSpinBox* rotationLengthSpin_;
+    QWidget* dAxisWidget_ = nullptr;
+    QDoubleSpinBox* dRangeSpin_ = nullptr;
+    QDoubleSpinBox* dPulseSpin_ = nullptr;
+    QComboBox* dDirectionCombo_ = nullptr;
+    QComboBox* dDriveTypeCombo_ = nullptr;
+    QDoubleSpinBox* rotationLengthSpin_ = nullptr;
 
     // ========== 相机平台设置 ==========
-    QGroupBox* cameraGroupBox_;
-    QComboBox* cameraPlatformTypeCombo_;
-    QComboBox* cam1XDirectionCombo_;
-    QComboBox* cam1YDirectionCombo_;
-    QComboBox* cam2XDirectionCombo_;
-    QComboBox* cam2YDirectionCombo_;
+    QGroupBox* cameraGroupBox_ = nullptr;
+    QComboBox* cameraPlatformTypeCombo_ = nullptr;
+    QComboBox* cam1XDirectionCombo_ = nullptr;
+    QComboBox* cam1YDirectionCombo_ = nullptr;
+    QComboBox* cam2XDirectionCombo_ = nullptr;
+    QComboBox* cam2YDirectionCombo_ = nullptr;
 
     // ========== GPU加速设置 ==========
-    QGroupBox* gpuGroupBox_;
-    QRadioButton* radioDisabled_;
-    QRadioButton* radioCUDA_;
-    QRadioButton* radioAuto_;
-    QButtonGroup* accelModeGroup_;
+    QGroupBox* gpuGroupBox_ = nullptr;
+    QRadioButton* radioDisabled_ = nullptr;
+    QRadioButton* radioCUDA_ = nullptr;
+    QRadioButton* radioAuto_ = nullptr;
+    QButtonGroup* accelModeGroup_ = nullptr;
 
     // GPU状态显示
-    QLabel* gpuStatusLabel_;
-    QLabel* gpuInfoLabel_;
+    QLabel* gpuStatusLabel_ = nullptr;
+    QLabel* gpuInfoLabel_ = nullptr;
 
     // ========== 按钮 ==========
-    QPushButton* okButton_;
-    QPushButton* applyButton_;
-    QPushButton* cancelButton_;
+    QPushButton* okButton_ = nullptr;
+    QPushButton* applyButton_ = nullptr;
+    QPushButton* cancelButton_ = nullptr;
 
     // ========== 当前配置 ==========
     Base::GPUAccelMode selectedMode_;

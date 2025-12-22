@@ -95,12 +95,17 @@ void SystemSettingsDialog::setupPlatformTab(QWidget* tab)
     // 平台类型下拉框
     platformTypeCombo_ = new QComboBox(this);
 
+    // 阻止信号，避免在items添加过程中触发槽函数
+    platformTypeCombo_->blockSignals(true);
+
     // 添加所有支持的平台类型
     QList<Platform::PlatformType> types = Platform::getSupportedPlatformTypes();
     for (Platform::PlatformType type : types) {
         QString name = Platform::getPlatformTypeName(type);
         platformTypeCombo_->addItem(name, static_cast<int>(type));
     }
+
+    platformTypeCombo_->blockSignals(false);
 
     connect(platformTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SystemSettingsDialog::onPlatformTypeChanged);
@@ -429,8 +434,21 @@ void SystemSettingsDialog::loadSettings()
 
 void SystemSettingsDialog::loadPlatformSettings()
 {
+    // 安全检查：确保所有必要控件已创建
+    if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
+        !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
+        !dRangeSpin_ || !dPulseSpin_ || !xDirectionCombo_ || !yDirectionCombo_ ||
+        !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
+        !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
+        !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
+        return;
+    }
+
     Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
     const Platform::PlatformConfig& config = mgr.currentConfig();
+
+    // 阻止信号，避免重复触发槽函数
+    platformTypeCombo_->blockSignals(true);
 
     // 设置平台类型
     selectedPlatformType_ = config.type;
@@ -438,6 +456,8 @@ void SystemSettingsDialog::loadPlatformSettings()
     if (typeIndex >= 0) {
         platformTypeCombo_->setCurrentIndex(typeIndex);
     }
+
+    platformTypeCombo_->blockSignals(false);
 
     // 基本参数
     cameraNumSpin_->setValue(config.cameraNum);
@@ -467,8 +487,10 @@ void SystemSettingsDialog::loadPlatformSettings()
         else if (auto x1x2yInfo = dynamic_cast<const Platform::PlatformX1X2YInfo*>(info)) {
             xDirectionCombo_->setCurrentIndex(
                 x1x2yInfo->x1Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
-            x2DirectionCombo_->setCurrentIndex(
-                x1x2yInfo->x2Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
+            if (x2DirectionCombo_) {
+                x2DirectionCombo_->setCurrentIndex(
+                    x1x2yInfo->x2Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
+            }
             yDirectionCombo_->setCurrentIndex(
                 x1x2yInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
         }
@@ -641,6 +663,12 @@ void SystemSettingsDialog::updateGPUStatusDisplay()
 
 void SystemSettingsDialog::updateAxisVisibility()
 {
+    // 安全检查：确保控件已创建
+    if (!x2AxisWidget_ || !y2AxisWidget_ || !dAxisWidget_ ||
+        !platformTypeCombo_ || !platformDescLabel_) {
+        return;
+    }
+
     Platform::PlatformType type = static_cast<Platform::PlatformType>(
         platformTypeCombo_->currentData().toInt());
 
