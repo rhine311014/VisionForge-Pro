@@ -2,6 +2,9 @@
 # 算法层 (Algorithm Layer)
 # ============================================================
 
+# AI深度学习子模块 (P6)
+add_subdirectory(ai)
+
 # 收集源文件
 set(ALGORITHM_SOURCES
     VisionTool.cpp
@@ -119,6 +122,7 @@ target_include_directories(VisionForgeAlgorithm PUBLIC
 # 链接依赖库
 target_link_libraries(VisionForgeAlgorithm PUBLIC
     VisionForgeBase
+    VisionForgeAI
     Qt6::Core
     Qt6::Network
     Qt6::SerialPort

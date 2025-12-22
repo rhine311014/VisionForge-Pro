@@ -249,6 +249,49 @@ if(USE_GTEST)
     message(STATUS "  - test_Platform_gtest (GTest - P0平台核心)")
     message(STATUS "  - test_Calibration_gtest (GTest - P1标定对齐)")
     message(STATUS "  - test_PLC_gtest (GTest - 工业级PLC通信)")
+
+    # 3D算法模块测试（P5 3D算法集成）
+    # 注意：Eigen通过VisionForgeAlgorithm3D的PUBLIC链接传递
+    set(EIGEN3_INCLUDE_DIR "F:/机器视觉/eigen-5.0.0")
+    add_executable(test_Algorithm3D_gtest test_Algorithm3D_gtest.cpp)
+    target_include_directories(test_Algorithm3D_gtest PRIVATE ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(test_Algorithm3D_gtest
+        VisionForgeAlgorithm3D
+        VisionForgeBase
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+        Qt6::Gui
+    )
+    set_target_properties(test_Algorithm3D_gtest PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        AUTOMOC ON
+    )
+    gtest_discover_tests(test_Algorithm3D_gtest)
+    message(STATUS "  - test_Algorithm3D_gtest (GTest - P5 3D算法)")
+
+    # AI深度学习模块测试（P6 AI检测算法）
+    add_executable(test_AI_gtest test_AI_gtest.cpp)
+    target_link_libraries(test_AI_gtest
+        VisionForgeAI
+        VisionForgeBase
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Test
+        Qt6::Gui
+        Qt6::Network
+        ${OpenCV_LIBS}
+    )
+    set_target_properties(test_AI_gtest PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        AUTOMOC ON
+    )
+    gtest_discover_tests(test_AI_gtest)
+    message(STATUS "  - test_AI_gtest (GTest - P6 AI深度学习)")
 endif()
 
 # ============================================================

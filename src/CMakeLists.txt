@@ -21,6 +21,9 @@ add_subdirectory(hal)
 # 算法层
 add_subdirectory(algorithm)
 
+# 3D算法模块（P5 3D算法集成）
+add_subdirectory(algorithm3d)
+
 # 核心业务层
 add_subdirectory(core)
 
@@ -69,6 +72,7 @@ target_link_libraries(VisionForge PRIVATE
     VisionForgeBase
     VisionForgeHAL
     VisionForgeAlgorithm
+    VisionForgeAlgorithm3D
     VisionForgeCore
     VisionForgeComm
     VisionForgePLC
