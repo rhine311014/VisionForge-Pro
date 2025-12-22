@@ -14,6 +14,10 @@
 #include <opencv2/cudaimgproc.hpp>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace VisionForge {
 namespace Base {
 
@@ -131,11 +135,103 @@ void GPUAccelerator::printDeviceInfo() const
     qInfo() << "========================================";
 }
 
+// 用于捕获OpenCV CUDA错误的静态变量
+static bool g_cudaErrorOccurred = false;
+static std::string g_cudaErrorMessage;
+
+// 自定义OpenCV错误处理函数
+static int cudaErrorHandler(int /*status*/, const char* /*func_name*/,
+                            const char* err_msg, const char* /*file_name*/,
+                            int /*line*/, void* /*userdata*/)
+{
+    g_cudaErrorOccurred = true;
+    g_cudaErrorMessage = err_msg ? err_msg : "Unknown CUDA error";
+    // 返回0表示不要调用默认的错误处理（避免terminate）
+    return 0;
+}
+
+#ifdef _WIN32
+// 检查必要的CUDA和cuDNN DLL是否存在
+static bool checkCudaDllsAvailable(QString& missingDll)
+{
+    // 必要的CUDA运行时DLL列表
+    const char* requiredDlls[] = {
+        "cudart64_12.dll",      // CUDA Runtime
+        "nppig64_12.dll",       // NPP Image Processing
+        "nppc64_12.dll",        // NPP Core
+        nullptr
+    };
+
+    // 可选但推荐的DLL（cuDNN） - 缺失时仍可运行基本CUDA功能
+    const char* optionalDlls[] = {
+        "cudnn64_9.dll",        // cuDNN 9.x
+        "cudnn64_8.dll",        // cuDNN 8.x (备选)
+        nullptr
+    };
+
+    // 检查必要的DLL
+    for (int i = 0; requiredDlls[i] != nullptr; ++i) {
+        HMODULE hModule = LoadLibraryExA(requiredDlls[i], NULL, LOAD_LIBRARY_AS_DATAFILE);
+        if (hModule == NULL) {
+            missingDll = QString::fromLatin1(requiredDlls[i]);
+            return false;
+        }
+        FreeLibrary(hModule);
+    }
+
+    // 检查cuDNN（任意一个版本即可）
+    bool cudnnFound = false;
+    for (int i = 0; optionalDlls[i] != nullptr; ++i) {
+        HMODULE hModule = LoadLibraryExA(optionalDlls[i], NULL, LOAD_LIBRARY_AS_DATAFILE);
+        if (hModule != NULL) {
+            cudnnFound = true;
+            FreeLibrary(hModule);
+            break;
+        }
+    }
+
+    if (!cudnnFound) {
+        // cuDNN未找到，但这不是致命错误，记录警告
+        LOG_WARNING("cuDNN未找到 (cudnn64_9.dll 或 cudnn64_8.dll)，部分深度学习功能可能不可用");
+    }
+
+    return true;
+}
+#endif
+
 void GPUAccelerator::detectDevices()
 {
 #ifdef USE_CUDA
+#ifdef _WIN32
+    // 首先检查必要的CUDA DLL是否存在
+    QString missingDll;
+    if (!checkCudaDllsAvailable(missingDll)) {
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+        LOG_WARNING(QString("CUDA DLL检查失败，缺少: %1").arg(missingDll));
+        LOG_INFO("请确保CUDA运行时DLL在系统PATH中或程序目录下");
+        return;
+    }
+#endif
+
+    // 重置错误状态
+    g_cudaErrorOccurred = false;
+    g_cudaErrorMessage.clear();
+
+    // 设置自定义错误处理器，避免OpenCV调用terminate
+    cv::ErrorCallback oldHandler = cv::redirectError(cudaErrorHandler);
+
     try {
         deviceCount_ = cv::cuda::getCudaEnabledDeviceCount();
+
+        // 检查是否发生了错误
+        if (g_cudaErrorOccurred) {
+            cudaAvailable_ = false;
+            deviceCount_ = 0;
+            LOG_WARNING(QString("CUDA检测失败: %1").arg(QString::fromStdString(g_cudaErrorMessage)));
+            cv::redirectError(oldHandler);
+            return;
+        }
 
         if (deviceCount_ > 0) {
             cudaAvailable_ = true;
@@ -180,7 +276,18 @@ void GPUAccelerator::detectDevices()
         cudaAvailable_ = false;
         deviceCount_ = 0;
         LOG_WARNING(QString("CUDA检测失败: %1").arg(e.what()));
+    } catch (const std::exception& e) {
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+        LOG_WARNING(QString("CUDA检测异常: %1").arg(e.what()));
+    } catch (...) {
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+        LOG_WARNING("CUDA检测时发生未知异常");
     }
+
+    // 恢复原来的错误处理器
+    cv::redirectError(oldHandler);
 #else
     cudaAvailable_ = false;
     deviceCount_ = 0;
