@@ -534,6 +534,16 @@ void SystemSettingsDialog::applySettings()
 
 void SystemSettingsDialog::applyPlatformSettings()
 {
+    // 安全检查：确保所有必要控件已创建
+    if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
+        !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
+        !dRangeSpin_ || !dPulseSpin_ || !xDirectionCombo_ || !yDirectionCombo_ ||
+        !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
+        !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
+        !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
+        return;
+    }
+
     Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
     Platform::PlatformConfig& config = mgr.currentConfig();
 
@@ -576,8 +586,10 @@ void SystemSettingsDialog::applyPlatformSettings()
         else if (auto x1x2yInfo = dynamic_cast<Platform::PlatformX1X2YInfo*>(info)) {
             x1x2yInfo->x1Direction = xDirectionCombo_->currentIndex() == 0
                 ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-            x1x2yInfo->x2Direction = x2DirectionCombo_->currentIndex() == 0
-                ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
+            if (x2DirectionCombo_) {
+                x1x2yInfo->x2Direction = x2DirectionCombo_->currentIndex() == 0
+                    ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
+            }
             x1x2yInfo->yDirection = yDirectionCombo_->currentIndex() == 0
                 ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
         }

@@ -76,11 +76,20 @@ if(WIN32)
         add_compile_options(/wd4251)  # DLL接口警告
         add_compile_options(/wd4275)  # 非DLL接口基类警告
 
-        # Release优化
-        if(CMAKE_BUILD_TYPE STREQUAL "Release")
-            add_compile_options(/O2 /Ob2 /Oi /Ot /GL)
-            add_link_options(/LTCG /OPT:REF /OPT:ICF)
-        endif()
+        # Release优化 - 使用生成器表达式确保只在Release配置生效
+        # 注意：不能同时使用 /O2 和 /RTC1，所以需要正确区分配置
+        add_compile_options(
+            "$<$<CONFIG:Release>:/O2>"
+            "$<$<CONFIG:Release>:/Ob2>"
+            "$<$<CONFIG:Release>:/Oi>"
+            "$<$<CONFIG:Release>:/Ot>"
+            "$<$<CONFIG:Release>:/GL>"
+        )
+        add_link_options(
+            "$<$<CONFIG:Release>:/LTCG>"
+            "$<$<CONFIG:Release>:/OPT:REF>"
+            "$<$<CONFIG:Release>:/OPT:ICF>"
+        )
 
         # 设置运行时库
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
