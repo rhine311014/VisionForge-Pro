@@ -39,6 +39,15 @@ if(USE_BASLER_PYLON)
     message(STATUS "HAL层: 启用Basler Pylon支持")
 endif()
 
+# ============================================================
+# GenTL通用相机支持（GenICam Transport Layer）
+# ============================================================
+if(USE_GENTL)
+    list(APPEND HAL_SOURCES GenTLCamera.cpp)
+    list(APPEND HAL_HEADERS ${CMAKE_SOURCE_DIR}/include/hal/GenTLCamera.h)
+    message(STATUS "HAL层: 启用GenTL通用相机支持")
+endif()
+
 # 创建HAL层静态库
 add_library(VisionForgeHAL STATIC
     ${HAL_SOURCES}
@@ -97,6 +106,18 @@ if(USE_BASLER_PYLON)
     target_compile_definitions(VisionForgeHAL PRIVATE USE_BASLER_PYLON)
 endif()
 
+# GenTL通用相机
+# GenTL不需要链接特定SDK，它在运行时动态加载.cti文件
+if(USE_GENTL)
+    target_compile_definitions(VisionForgeHAL PRIVATE USE_GENTL)
+    # 可选：指定GenICam参考实现路径
+    if(GENICAM_ROOT)
+        target_include_directories(VisionForgeHAL PRIVATE
+            ${GENICAM_ROOT}/library/CPP/include
+        )
+    endif()
+endif()
+
 # 设置属性
 set_target_properties(VisionForgeHAL PROPERTIES
     CXX_STANDARD 17
@@ -113,3 +134,4 @@ endif()
 message(STATUS "硬件抽象层 (VisionForgeHAL) 配置完成")
 message(STATUS "  - 海康威视MVS: ${USE_HIKVISION_MVS}")
 message(STATUS "  - Basler Pylon: ${USE_BASLER_PYLON}")
+message(STATUS "  - GenTL通用相机: ${USE_GENTL}")

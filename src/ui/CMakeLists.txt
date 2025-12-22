@@ -32,6 +32,7 @@ set(UI_SOURCES
     CircleToolDialog.cpp
     LineToolDialog.cpp
     FindEdgeToolDialog.cpp
+    SubPixelEdgeToolDialog.cpp
     BlobToolDialog.cpp
     AIDetectionToolDialog.cpp
     # 工具对话框 - 测量和判定
@@ -103,6 +104,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/CircleToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/LineToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/FindEdgeToolDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/SubPixelEdgeToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/BlobToolDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/AIDetectionToolDialog.h
     # 工具对话框头文件 - 测量和判定

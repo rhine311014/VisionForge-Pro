@@ -17,6 +17,10 @@
 #include "hal/BaslerCamera.h"
 #endif
 
+#ifdef USE_GENTL
+#include "hal/GenTLCamera.h"
+#endif
+
 namespace VisionForge {
 namespace HAL {
 
@@ -37,6 +41,12 @@ ICamera* CameraFactory::create(CameraType type, QObject* parent)
     case Basler:
         LOG_INFO("创建Basler相机");
         return new BaslerCamera(parent);
+#endif
+
+#ifdef USE_GENTL
+    case GenTL:
+        LOG_INFO("创建GenTL通用相机");
+        return new GenTLCamera(parent);
 #endif
 
     default:
@@ -73,6 +83,12 @@ QList<GenericDeviceInfo> CameraFactory::enumerateAllDevices()
     // 枚举Basler相机
     auto baslerDevices = enumerateDevices(Basler);
     allDevices.append(baslerDevices);
+#endif
+
+#ifdef USE_GENTL
+    // 枚举GenTL通用相机
+    auto gentlDevices = enumerateDevices(GenTL);
+    allDevices.append(gentlDevices);
 #endif
 
     return allDevices;
@@ -128,6 +144,23 @@ QList<GenericDeviceInfo> CameraFactory::enumerateDevices(CameraType type)
     }
 #endif
 
+#ifdef USE_GENTL
+    case GenTL: {
+        auto gentlDevices = GenTLCamera::enumerateDevices();
+        for (const auto& gentlInfo : gentlDevices) {
+            GenericDeviceInfo info;
+            info.manufacturer = gentlInfo.vendorName;
+            info.modelName = gentlInfo.modelName;
+            info.serialNumber = gentlInfo.serialNumber;
+            info.ipAddress = gentlInfo.ipAddress;
+            info.interfaceType = gentlInfo.tlType;
+            info.cameraType = GenTL;
+            devices.append(info);
+        }
+        break;
+    }
+#endif
+
     default:
         break;
     }
@@ -146,6 +179,10 @@ QStringList CameraFactory::supportedTypes()
 
 #ifdef USE_BASLER_PYLON
     types << "Basler";
+#endif
+
+#ifdef USE_GENTL
+    types << "GenTL";
 #endif
 
     return types;
@@ -167,6 +204,11 @@ bool CameraFactory::isTypeSupported(CameraType type)
         return true;
 #endif
 
+#ifdef USE_GENTL
+    case GenTL:
+        return true;
+#endif
+
     default:
         return false;
     }
@@ -181,6 +223,8 @@ QString CameraFactory::typeName(CameraType type)
         return "Hikvision";
     case Basler:
         return "Basler";
+    case GenTL:
+        return "GenTL";
     default:
         return "Unknown";
     }
@@ -198,6 +242,9 @@ CameraFactory::CameraType CameraFactory::typeFromName(const QString& name)
     }
     if (lowerName == "basler" || lowerName == "pylon") {
         return Basler;
+    }
+    if (lowerName == "gentl" || lowerName == "genicam" || lowerName == "generic") {
+        return GenTL;
     }
 
     return Simulated;  // 默认返回模拟相机

@@ -21,6 +21,10 @@ set(BASE_SOURCES
     ErrorRecovery.cpp
     SystemResourceMonitor.cpp
     PoolPerformanceMonitor.cpp
+    # 工业化优化模块
+    ApplicationWatchdog.cpp
+    CrashHandler.cpp
+    OTAUpdater.cpp
 )
 
 # 收集头文件
@@ -43,6 +47,10 @@ set(BASE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/base/ErrorRecovery.h
     ${CMAKE_SOURCE_DIR}/include/base/SystemResourceMonitor.h
     ${CMAKE_SOURCE_DIR}/include/base/PoolPerformanceMonitor.h
+    # 工业化优化模块头文件
+    ${CMAKE_SOURCE_DIR}/include/base/ApplicationWatchdog.h
+    ${CMAKE_SOURCE_DIR}/include/base/CrashHandler.h
+    ${CMAKE_SOURCE_DIR}/include/base/OTAUpdater.h
 )
 
 # 创建基础设施层静态库

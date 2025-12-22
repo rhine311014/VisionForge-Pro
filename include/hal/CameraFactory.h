@@ -44,6 +44,7 @@ public:
         Simulated = 0,    // 模拟相机
         Hikvision = 1,    // 海康威视
         Basler = 2,       // Basler
+        GenTL = 3,        // GenTL通用相机（支持所有GenICam标准相机）
         // 可扩展其他厂商...
     };
 
