@@ -421,9 +421,12 @@ void SystemSettingsDialog::loadSettings()
     Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
     selectedMode_ = gpu.getAccelMode();
 
-    QAbstractButton* button = accelModeGroup_->button(static_cast<int>(selectedMode_));
-    if (button) {
-        button->setChecked(true);
+    // 安全检查：确保accelModeGroup_已创建
+    if (accelModeGroup_) {
+        QAbstractButton* button = accelModeGroup_->button(static_cast<int>(selectedMode_));
+        if (button) {
+            button->setChecked(true);
+        }
     }
 
     updateGPUStatusDisplay();
@@ -622,6 +625,11 @@ void SystemSettingsDialog::applyPlatformSettings()
 
 void SystemSettingsDialog::updateGPUStatusDisplay()
 {
+    // 安全检查：确保控件已创建
+    if (!gpuStatusLabel_ || !gpuInfoLabel_ || !radioCUDA_) {
+        return;
+    }
+
     Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
 
     QString statusText;
