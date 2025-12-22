@@ -19,6 +19,7 @@
 #include <QDateTime>
 
 #include <cstdint>
+#include <cmath>
 #include <vector>
 #include <memory>
 #include <functional>
@@ -288,6 +289,110 @@ enum class ByteOrder {
 };
 
 // ============================================================
+// 串口配置
+// ============================================================
+
+/**
+ * @brief 串口奇偶校验类型
+ */
+enum class SerialParity {
+    None = 0,       ///< 无校验
+    Even,           ///< 偶校验
+    Odd,            ///< 奇校验
+    Mark,           ///< 标记校验
+    Space           ///< 空格校验
+};
+
+/**
+ * @brief 串口停止位
+ */
+enum class SerialStopBits {
+    One = 1,        ///< 1个停止位
+    OneAndHalf,     ///< 1.5个停止位
+    Two             ///< 2个停止位
+};
+
+/**
+ * @brief 串口流控制
+ */
+enum class SerialFlowControl {
+    None = 0,       ///< 无流控
+    Hardware,       ///< 硬件流控(RTS/CTS)
+    Software        ///< 软件流控(XON/XOFF)
+};
+
+/**
+ * @brief 串口配置结构体
+ */
+struct SerialConfig {
+    QString portName;                   ///< 串口名称 (如 "COM1", "/dev/ttyUSB0")
+    int baudRate = 9600;                ///< 波特率
+    int dataBits = 8;                   ///< 数据位 (5/6/7/8)
+    SerialParity parity = SerialParity::None;       ///< 校验位
+    SerialStopBits stopBits = SerialStopBits::One;  ///< 停止位
+    SerialFlowControl flowControl = SerialFlowControl::None;  ///< 流控制
+
+    // RTU特有参数
+    int interFrameDelay = 4;            ///< 帧间延时(ms), 3.5字符时间
+    int interCharTimeout = 2;           ///< 字符间超时(ms), 1.5字符时间
+
+    /**
+     * @brief 验证配置有效性
+     */
+    bool isValid() const {
+        if (portName.isEmpty()) return false;
+        if (baudRate <= 0) return false;
+        if (dataBits < 5 || dataBits > 8) return false;
+        return true;
+    }
+
+    /**
+     * @brief 计算3.5字符时间(ms)
+     * @return 帧间延时
+     */
+    int calculateInterFrameDelay() const {
+        // 一个字符 = 起始位(1) + 数据位 + 校验位(0/1) + 停止位
+        int bitsPerChar = 1 + dataBits + (parity != SerialParity::None ? 1 : 0);
+        bitsPerChar += (stopBits == SerialStopBits::Two) ? 2 : 1;
+        // 3.5字符时间(ms) = 3.5 * bitsPerChar * 1000 / baudRate
+        double delay = 3.5 * bitsPerChar * 1000.0 / baudRate;
+        return std::max(1, static_cast<int>(std::ceil(delay)));
+    }
+
+    /**
+     * @brief 转换为QVariantMap
+     */
+    QVariantMap toVariantMap() const {
+        QVariantMap map;
+        map["portName"] = portName;
+        map["baudRate"] = baudRate;
+        map["dataBits"] = dataBits;
+        map["parity"] = static_cast<int>(parity);
+        map["stopBits"] = static_cast<int>(stopBits);
+        map["flowControl"] = static_cast<int>(flowControl);
+        map["interFrameDelay"] = interFrameDelay;
+        map["interCharTimeout"] = interCharTimeout;
+        return map;
+    }
+
+    /**
+     * @brief 从QVariantMap加载
+     */
+    static SerialConfig fromVariantMap(const QVariantMap& map) {
+        SerialConfig config;
+        config.portName = map.value("portName").toString();
+        config.baudRate = map.value("baudRate", 9600).toInt();
+        config.dataBits = map.value("dataBits", 8).toInt();
+        config.parity = static_cast<SerialParity>(map.value("parity", 0).toInt());
+        config.stopBits = static_cast<SerialStopBits>(map.value("stopBits", 1).toInt());
+        config.flowControl = static_cast<SerialFlowControl>(map.value("flowControl", 0).toInt());
+        config.interFrameDelay = map.value("interFrameDelay", 4).toInt();
+        config.interCharTimeout = map.value("interCharTimeout", 2).toInt();
+        return config;
+    }
+};
+
+// ============================================================
 // 配置结构体
 // ============================================================
 
@@ -343,14 +448,31 @@ struct PLCConfig {
     bool enableLogging = false;         ///< 启用通信日志
     QString logPath;                    ///< 日志路径
 
+    // 串口配置 (用于RTU/ASCII协议)
+    SerialConfig serialConfig;          ///< 串口配置
+
+    /**
+     * @brief 判断是否为串口协议
+     */
+    bool isSerialProtocol() const {
+        return protocol == ProtocolType::ModbusRTU ||
+               protocol == ProtocolType::ModbusASCII ||
+               protocol == ProtocolType::OmronHostLink;
+    }
+
     /**
      * @brief 验证配置有效性
      */
     bool isValid() const {
-        if (ipAddress.isEmpty()) return false;
-        if (port == 0) return false;
         if (connectTimeout <= 0) return false;
         if (responseTimeout <= 0) return false;
+
+        if (isSerialProtocol()) {
+            return serialConfig.isValid();
+        } else {
+            if (ipAddress.isEmpty()) return false;
+            if (port == 0) return false;
+        }
         return true;
     }
 
@@ -376,6 +498,7 @@ struct PLCConfig {
         map["networkNo"] = networkNo;
         map["pcNo"] = pcNo;
         map["byteOrder"] = static_cast<int>(byteOrder);
+        map["serialConfig"] = serialConfig.toVariantMap();
         return map;
     }
 
@@ -401,6 +524,9 @@ struct PLCConfig {
         config.networkNo = static_cast<quint8>(map.value("networkNo", 0).toInt());
         config.pcNo = static_cast<quint8>(map.value("pcNo", 0xFF).toInt());
         config.byteOrder = static_cast<ByteOrder>(map.value("byteOrder", 0).toInt());
+        if (map.contains("serialConfig")) {
+            config.serialConfig = SerialConfig::fromVariantMap(map.value("serialConfig").toMap());
+        }
         return config;
     }
 };

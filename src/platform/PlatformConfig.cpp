@@ -109,54 +109,72 @@ void PlatformX1X2YInfo::fromJson(const QJsonObject& json) {
 
 void PlatformX1X2YInfo::convertToXYD(double x1, double x2, double y,
                                       double& x, double& yOut, double& d) const {
-    // 参考VisionASM的ConvertX1X2YPltfmPosToXYDPltfmPos
-    // 使用几何关系计算
+    // 参考VisionASM的CX1X2Y::ConvertX1X2YToXYD
+    // 核心原理：X1和X2的差值产生旋转，平均值确定X位置
 
-    // 获取轴作用点位置
-    double x1PosX = x1Pos.getMainX();
-    double x1PosY = x1Pos.getMainY();
-    double x2PosX = x2Pos.getMainX();
-    double x2PosY = x2Pos.getMainY();
-    double yPosX = yPos.getMainX();
-    double yPosY = yPos.getMainY();
+    // Step 1: 应用轴方向修正（转换为算法内部坐标系）
+    // 轴方向: Positive=1, Negative=-1, None=0
+    int x1Dir = (x1Direction == AxisDirectionType::None) ? 1 : static_cast<int>(x1Direction);
+    int x2Dir = (x2Direction == AxisDirectionType::None) ? 1 : static_cast<int>(x2Direction);
+    int yDir = (yDirection == AxisDirectionType::None) ? 1 : static_cast<int>(yDirection);
 
-    // 计算旋转中心和角度
-    // 简化计算：假设X1和X2对称布置
-    double dx = x2 - x1;  // X1X2的位置差产生旋转
+    double x1Corrected = x1 * x1Dir;
+    double x2Corrected = x2 * x2Dir;
+    double yCorrected = y * yDir;
 
-    // 计算旋转臂长度
-    double armLength = std::abs(x1PosY - x2PosY);
+    // Step 2: 计算旋转臂长度（X1和X2轴之间的Y方向距离）
+    double armLength = std::abs(x1Pos.getMainY() - x2Pos.getMainY());
     if (armLength < 1e-6) {
-        armLength = 1.0;  // 防止除零
+        // 如果Y位置相同，尝试使用X位置差
+        armLength = std::abs(x1Pos.getMainX() - x2Pos.getMainX());
+        if (armLength < 1e-6) {
+            armLength = 114.0;  // 默认旋转臂长度（VisionASM典型值）
+        }
     }
 
-    // 旋转角度（弧度）
+    // Step 3: 计算旋转角度
+    // X1和X2的位置差除以旋转臂长度得到tan(angle)
+    double dx = x2Corrected - x1Corrected;
     double angleRad = std::atan2(dx, armLength);
     d = angleRad * 180.0 / M_PI;
 
-    // 计算中心位置
-    x = (x1 + x2) / 2.0;
-    yOut = y;
+    // Step 4: 计算中心X位置
+    x = (x1Corrected + x2Corrected) / 2.0;
+
+    // Step 5: Y位置保持不变
+    yOut = yCorrected;
 }
 
 void PlatformX1X2YInfo::convertFromXYD(double x, double y, double d,
                                         double& x1, double& x2, double& yOut) const {
     // 从XYD逻辑位置转换到X1X2Y轴位置
+    // 参考VisionASM的CX1X2Y::ConvertXYDToX1X2Y
 
-    double x1PosY = x1Pos.getMainY();
-    double x2PosY = x2Pos.getMainY();
-
-    double armLength = std::abs(x1PosY - x2PosY);
+    // Step 1: 计算旋转臂长度
+    double armLength = std::abs(x1Pos.getMainY() - x2Pos.getMainY());
     if (armLength < 1e-6) {
-        armLength = 1.0;
+        armLength = std::abs(x1Pos.getMainX() - x2Pos.getMainX());
+        if (armLength < 1e-6) {
+            armLength = 114.0;  // 默认旋转臂长度
+        }
     }
 
+    // Step 2: 计算X1X2差值
     double angleRad = d * M_PI / 180.0;
     double dx = armLength * std::tan(angleRad);
 
-    x1 = x - dx / 2.0;
-    x2 = x + dx / 2.0;
-    yOut = y;
+    // Step 3: 分配到两个X轴
+    double x1Result = x - dx / 2.0;
+    double x2Result = x + dx / 2.0;
+
+    // Step 4: 应用逆向方向修正
+    int x1Dir = (x1Direction == AxisDirectionType::None) ? 1 : static_cast<int>(x1Direction);
+    int x2Dir = (x2Direction == AxisDirectionType::None) ? 1 : static_cast<int>(x2Direction);
+    int yDir = (yDirection == AxisDirectionType::None) ? 1 : static_cast<int>(yDirection);
+
+    x1 = x1Result / x1Dir;
+    x2 = x2Result / x2Dir;
+    yOut = y / yDir;
 }
 
 // ============ PlatformXY1Y2Info 实现 ============
@@ -208,38 +226,66 @@ void PlatformXY1Y2Info::fromJson(const QJsonObject& json) {
 
 void PlatformXY1Y2Info::convertToXYD(double y1, double y2, double x,
                                       double& xOut, double& y, double& d) const {
-    double y1PosX = y1Pos.getMainX();
-    double y2PosX = y2Pos.getMainX();
+    // 参考VisionASM的CXY1Y2::ConvertXY1Y2ToXYD
+    // 核心原理：Y1和Y2的差值产生旋转，平均值确定Y位置
 
-    double armLength = std::abs(y2PosX - y1PosX);
+    // Step 1: 应用轴方向修正
+    int y1Dir = (y1Direction == AxisDirectionType::None) ? 1 : static_cast<int>(y1Direction);
+    int y2Dir = (y2Direction == AxisDirectionType::None) ? 1 : static_cast<int>(y2Direction);
+    int xDir = (xDirection == AxisDirectionType::None) ? 1 : static_cast<int>(xDirection);
+
+    double y1Corrected = y1 * y1Dir;
+    double y2Corrected = y2 * y2Dir;
+    double xCorrected = x * xDir;
+
+    // Step 2: 计算旋转臂长度（Y1和Y2轴之间的X方向距离）
+    double armLength = std::abs(y2Pos.getMainX() - y1Pos.getMainX());
     if (armLength < 1e-6) {
-        armLength = 1.0;
+        armLength = std::abs(y2Pos.getMainY() - y1Pos.getMainY());
+        if (armLength < 1e-6) {
+            armLength = 157.0;  // 默认旋转臂长度（VisionASM典型值）
+        }
     }
 
-    double dy = y2 - y1;
+    // Step 3: 计算旋转角度
+    double dy = y2Corrected - y1Corrected;
     double angleRad = std::atan2(dy, armLength);
-
     d = angleRad * 180.0 / M_PI;
-    xOut = x;
-    y = (y1 + y2) / 2.0;
+
+    // Step 4: 计算位置
+    xOut = xCorrected;
+    y = (y1Corrected + y2Corrected) / 2.0;
 }
 
 void PlatformXY1Y2Info::convertFromXYD(double x, double y, double d,
                                         double& y1, double& y2, double& xOut) const {
-    double y1PosX = y1Pos.getMainX();
-    double y2PosX = y2Pos.getMainX();
+    // 参考VisionASM的CXY1Y2::ConvertXYDToXY1Y2
 
-    double armLength = std::abs(y2PosX - y1PosX);
+    // Step 1: 计算旋转臂长度
+    double armLength = std::abs(y2Pos.getMainX() - y1Pos.getMainX());
     if (armLength < 1e-6) {
-        armLength = 1.0;
+        armLength = std::abs(y2Pos.getMainY() - y1Pos.getMainY());
+        if (armLength < 1e-6) {
+            armLength = 157.0;  // 默认旋转臂长度
+        }
     }
 
+    // Step 2: 计算Y1Y2差值
     double angleRad = d * M_PI / 180.0;
     double dy = armLength * std::tan(angleRad);
 
-    y1 = y - dy / 2.0;
-    y2 = y + dy / 2.0;
-    xOut = x;
+    // Step 3: 分配到两个Y轴
+    double y1Result = y - dy / 2.0;
+    double y2Result = y + dy / 2.0;
+
+    // Step 4: 应用逆向方向修正
+    int y1Dir = (y1Direction == AxisDirectionType::None) ? 1 : static_cast<int>(y1Direction);
+    int y2Dir = (y2Direction == AxisDirectionType::None) ? 1 : static_cast<int>(y2Direction);
+    int xDir = (xDirection == AxisDirectionType::None) ? 1 : static_cast<int>(xDirection);
+
+    y1 = y1Result / y1Dir;
+    y2 = y2Result / y2Dir;
+    xOut = x / xDir;
 }
 
 // ============ PlatformDXYInfo 实现 ============

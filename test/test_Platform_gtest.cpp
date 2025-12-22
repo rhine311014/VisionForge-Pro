@@ -644,6 +644,257 @@ TEST_F(PlatformConfigManagerTest, SetCurrentIndex) {
 }
 
 // ============================================================
+// X1X2Y坐标转换测试
+// ============================================================
+
+class PlatformX1X2YTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 设置标准旋转臂配置: X1和X2之间Y方向距离114mm
+        info.x1Pos.setMainPos(67.5, -57.0);
+        info.x2Pos.setMainPos(67.5, 57.0);
+        info.x1Direction = AxisDirectionType::Positive;
+        info.x2Direction = AxisDirectionType::Positive;
+        info.yDirection = AxisDirectionType::Positive;
+    }
+    void TearDown() override {}
+
+    PlatformX1X2YInfo info;
+
+    bool isNear(double a, double b, double eps = 0.01) {
+        return std::abs(a - b) < eps;
+    }
+};
+
+TEST_F(PlatformX1X2YTest, ConvertToXYD_NoRotation) {
+    // X1=X2时无旋转
+    double x, y, d;
+    info.convertToXYD(100.0, 100.0, 50.0, x, y, d);
+
+    EXPECT_NEAR(x, 100.0, 0.001);
+    EXPECT_NEAR(y, 50.0, 0.001);
+    EXPECT_NEAR(d, 0.0, 0.001);
+}
+
+TEST_F(PlatformX1X2YTest, ConvertToXYD_WithRotation) {
+    // X1=90, X2=110 产生旋转
+    // 差值20mm, 臂长114mm
+    // 角度 = atan2(20, 114) * 180/π ≈ 9.95度
+    double x, y, d;
+    info.convertToXYD(90.0, 110.0, 50.0, x, y, d);
+
+    EXPECT_NEAR(x, 100.0, 0.001);  // 中心位置
+    EXPECT_NEAR(y, 50.0, 0.001);
+    EXPECT_NEAR(d, 9.95, 0.5);     // 旋转角度约10度
+}
+
+TEST_F(PlatformX1X2YTest, ConvertToXYD_NegativeRotation) {
+    // X1 > X2 产生负向旋转
+    double x, y, d;
+    info.convertToXYD(110.0, 90.0, 50.0, x, y, d);
+
+    EXPECT_NEAR(x, 100.0, 0.001);
+    EXPECT_NEAR(y, 50.0, 0.001);
+    EXPECT_NEAR(d, -9.95, 0.5);    // 负向旋转
+}
+
+TEST_F(PlatformX1X2YTest, ConvertFromXYD_NoRotation) {
+    // 无旋转时X1=X2=X
+    double x1, x2, yOut;
+    info.convertFromXYD(100.0, 50.0, 0.0, x1, x2, yOut);
+
+    EXPECT_NEAR(x1, 100.0, 0.001);
+    EXPECT_NEAR(x2, 100.0, 0.001);
+    EXPECT_NEAR(yOut, 50.0, 0.001);
+}
+
+TEST_F(PlatformX1X2YTest, ConvertFromXYD_WithRotation) {
+    // 10度旋转 -> dx = 114 * tan(10°) ≈ 20mm
+    double x1, x2, yOut;
+    info.convertFromXYD(100.0, 50.0, 10.0, x1, x2, yOut);
+
+    // X1 = 100 - 10 = 90, X2 = 100 + 10 = 110
+    EXPECT_NEAR(x1, 90.0, 1.0);
+    EXPECT_NEAR(x2, 110.0, 1.0);
+    EXPECT_NEAR(yOut, 50.0, 0.001);
+}
+
+TEST_F(PlatformX1X2YTest, RoundTrip) {
+    // 往返转换测试：X1X2Y -> XYD -> X1X2Y
+    double x1_in = 95.0, x2_in = 105.0, y_in = 60.0;
+    double x, y, d;
+    double x1_out, x2_out, y_out;
+
+    // 正向转换
+    info.convertToXYD(x1_in, x2_in, y_in, x, y, d);
+
+    // 逆向转换
+    info.convertFromXYD(x, y, d, x1_out, x2_out, y_out);
+
+    // 验证往返转换精度
+    EXPECT_NEAR(x1_in, x1_out, 0.01);
+    EXPECT_NEAR(x2_in, x2_out, 0.01);
+    EXPECT_NEAR(y_in, y_out, 0.01);
+}
+
+TEST_F(PlatformX1X2YTest, RoundTrip_Inverse) {
+    // 往返转换测试：XYD -> X1X2Y -> XYD
+    double x_in = 100.0, y_in = 50.0, d_in = 5.0;
+    double x1, x2, yTemp;
+    double x_out, y_out, d_out;
+
+    // XYD -> X1X2Y
+    info.convertFromXYD(x_in, y_in, d_in, x1, x2, yTemp);
+
+    // X1X2Y -> XYD
+    info.convertToXYD(x1, x2, yTemp, x_out, y_out, d_out);
+
+    EXPECT_NEAR(x_in, x_out, 0.01);
+    EXPECT_NEAR(y_in, y_out, 0.01);
+    EXPECT_NEAR(d_in, d_out, 0.01);
+}
+
+TEST_F(PlatformX1X2YTest, AxisDirection_X1Negative) {
+    // X1轴方向为负
+    info.x1Direction = AxisDirectionType::Negative;
+    info.x2Direction = AxisDirectionType::Positive;
+
+    double x, y, d;
+    // X1=-100（物理正向=逻辑负向）, X2=100
+    // 修正后: x1_corrected = -100 * (-1) = 100, x2_corrected = 100 * 1 = 100
+    info.convertToXYD(-100.0, 100.0, 50.0, x, y, d);
+
+    // 无旋转（修正后X1=X2=100）
+    EXPECT_NEAR(d, 0.0, 0.01);
+    EXPECT_NEAR(x, 100.0, 0.01);
+}
+
+TEST_F(PlatformX1X2YTest, AxisDirection_BothNegative) {
+    // 两个X轴方向都为负
+    info.x1Direction = AxisDirectionType::Negative;
+    info.x2Direction = AxisDirectionType::Negative;
+
+    double x, y, d;
+    // X1=-90, X2=-110
+    // 修正后: x1=90, x2=110, 差值20mm
+    info.convertToXYD(-90.0, -110.0, 50.0, x, y, d);
+
+    EXPECT_NEAR(x, 100.0, 0.01);
+    EXPECT_NEAR(d, 9.95, 0.5);  // 正向旋转
+}
+
+TEST_F(PlatformX1X2YTest, AxisDirection_InverseTransform) {
+    // 测试轴方向的逆向转换
+    info.x1Direction = AxisDirectionType::Negative;
+    info.x2Direction = AxisDirectionType::Positive;
+    info.yDirection = AxisDirectionType::Negative;
+
+    double x1, x2, yOut;
+    info.convertFromXYD(100.0, 50.0, 0.0, x1, x2, yOut);
+
+    // X1需要取反（因为x1Direction为Negative）
+    // x1Result = 100, x1 = 100 / (-1) = -100
+    EXPECT_NEAR(x1, -100.0, 0.01);
+    EXPECT_NEAR(x2, 100.0, 0.01);
+    EXPECT_NEAR(yOut, -50.0, 0.01);  // Y也取反
+}
+
+TEST_F(PlatformX1X2YTest, LargeAngleRotation) {
+    // 大角度旋转测试
+    double x1, x2, yOut;
+    info.convertFromXYD(100.0, 50.0, 30.0, x1, x2, yOut);
+
+    // dx = 114 * tan(30°) ≈ 65.8mm
+    EXPECT_NEAR(x1, 100.0 - 32.9, 1.0);
+    EXPECT_NEAR(x2, 100.0 + 32.9, 1.0);
+
+    // 验证往返
+    double x_back, y_back, d_back;
+    info.convertToXYD(x1, x2, yOut, x_back, y_back, d_back);
+    EXPECT_NEAR(d_back, 30.0, 0.1);
+}
+
+// ============================================================
+// XY1Y2坐标转换测试
+// ============================================================
+
+class PlatformXY1Y2Test : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 设置标准旋转臂配置: Y1和Y2之间X方向距离157mm
+        info.y1Pos.setMainPos(-78.5, 0.0);
+        info.y2Pos.setMainPos(78.5, 0.0);
+        info.y1Direction = AxisDirectionType::Positive;
+        info.y2Direction = AxisDirectionType::Positive;
+        info.xDirection = AxisDirectionType::Positive;
+    }
+    void TearDown() override {}
+
+    PlatformXY1Y2Info info;
+
+    bool isNear(double a, double b, double eps = 0.01) {
+        return std::abs(a - b) < eps;
+    }
+};
+
+TEST_F(PlatformXY1Y2Test, ConvertToXYD_NoRotation) {
+    // Y1=Y2时无旋转
+    double xOut, y, d;
+    info.convertToXYD(100.0, 100.0, 50.0, xOut, y, d);
+
+    EXPECT_NEAR(xOut, 50.0, 0.001);
+    EXPECT_NEAR(y, 100.0, 0.001);
+    EXPECT_NEAR(d, 0.0, 0.001);
+}
+
+TEST_F(PlatformXY1Y2Test, ConvertToXYD_WithRotation) {
+    // Y1=90, Y2=110 产生旋转
+    // 差值20mm, 臂长157mm
+    // 角度 = atan2(20, 157) * 180/π ≈ 7.26度
+    double xOut, y, d;
+    info.convertToXYD(90.0, 110.0, 50.0, xOut, y, d);
+
+    EXPECT_NEAR(xOut, 50.0, 0.001);
+    EXPECT_NEAR(y, 100.0, 0.001);
+    EXPECT_NEAR(d, 7.26, 0.5);
+}
+
+TEST_F(PlatformXY1Y2Test, ConvertFromXYD_NoRotation) {
+    double y1, y2, xOut;
+    info.convertFromXYD(50.0, 100.0, 0.0, y1, y2, xOut);
+
+    EXPECT_NEAR(y1, 100.0, 0.001);
+    EXPECT_NEAR(y2, 100.0, 0.001);
+    EXPECT_NEAR(xOut, 50.0, 0.001);
+}
+
+TEST_F(PlatformXY1Y2Test, RoundTrip) {
+    // 往返转换测试
+    double y1_in = 95.0, y2_in = 105.0, x_in = 60.0;
+    double xOut, y, d;
+    double y1_out, y2_out, x_out;
+
+    info.convertToXYD(y1_in, y2_in, x_in, xOut, y, d);
+    info.convertFromXYD(xOut, y, d, y1_out, y2_out, x_out);
+
+    EXPECT_NEAR(y1_in, y1_out, 0.01);
+    EXPECT_NEAR(y2_in, y2_out, 0.01);
+    EXPECT_NEAR(x_in, x_out, 0.01);
+}
+
+TEST_F(PlatformXY1Y2Test, AxisDirection_Y1Negative) {
+    info.y1Direction = AxisDirectionType::Negative;
+    info.y2Direction = AxisDirectionType::Positive;
+
+    double xOut, y, d;
+    info.convertToXYD(-100.0, 100.0, 50.0, xOut, y, d);
+
+    // 无旋转
+    EXPECT_NEAR(d, 0.0, 0.01);
+    EXPECT_NEAR(y, 100.0, 0.01);
+}
+
+// ============================================================
 // 集成测试：完整工作流程
 // ============================================================
 

@@ -12,12 +12,15 @@ set(PLC_SOURCES
     PLCTypes.cpp
     PLCProtocol.cpp
     PLCClient.cpp
+    EtherCATMaster.cpp
 )
 
 set(PLC_HEADERS
     ${CMAKE_SOURCE_DIR}/include/plc/PLCTypes.h
     ${CMAKE_SOURCE_DIR}/include/plc/PLCProtocol.h
     ${CMAKE_SOURCE_DIR}/include/plc/PLCClient.h
+    ${CMAKE_SOURCE_DIR}/include/plc/EtherCATTypes.h
+    ${CMAKE_SOURCE_DIR}/include/plc/EtherCATMaster.h
 )
 
 # ============================================================
@@ -97,5 +100,5 @@ install(FILES ${PLC_HEADERS}
 )
 
 message(STATUS "PLC通信模块配置完成")
-message(STATUS "  - 协议支持: Modbus TCP, Mitsubishi MC 3E")
-message(STATUS "  - 特性: 异步通信, 自动重连, 心跳检测")
+message(STATUS "  - 协议支持: Modbus TCP/RTU, Mitsubishi MC 3E, Omron FINS, EtherCAT")
+message(STATUS "  - 特性: 异步通信, 自动重连, 心跳检测, 分布式时钟同步")

@@ -23,6 +23,7 @@
 #include "calibration/CalibrationTypes.h"
 #include "calibration/CalibrationManager.h"
 #include "calibration/AlignmentEngine.h"
+#include "calibration/QRCodeCalibration.h"
 #include "platform/PlatformTypes.h"
 #include "platform/CoordPosition.h"
 
@@ -1321,6 +1322,664 @@ TEST_F(FactoryTest, ReleaseInstance) {
     auto* manager2 = CalibrationManagerFactory::getInstance(5);
     EXPECT_NE(manager2, nullptr);
     // 地址可能不同（新创建的实例）
+}
+
+// ============================================================
+// QRCodeCalibration 测试
+// ============================================================
+
+class QRCodeCalibrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        calibrator = std::make_unique<QRCodeCalibration>();
+    }
+    void TearDown() override {}
+
+    std::unique_ptr<QRCodeCalibration> calibrator;
+};
+
+TEST_F(QRCodeCalibrationTest, DefaultConfiguration) {
+    const auto& detConfig = calibrator->getDetectionConfig();
+    EXPECT_EQ(detConfig.expectedType, Code2DType::Auto);
+    EXPECT_EQ(detConfig.maxCodes, 16);
+    EXPECT_TRUE(detConfig.refineCorners);
+
+    const auto& boardConfig = calibrator->getBoardConfig();
+    EXPECT_EQ(boardConfig.layout, CalibrationBoardLayout::Single);
+    EXPECT_EQ(boardConfig.gridRows, 1);
+    EXPECT_EQ(boardConfig.gridCols, 1);
+    EXPECT_DOUBLE_EQ(boardConfig.codeSize, 10.0);
+}
+
+TEST_F(QRCodeCalibrationTest, SetDetectionConfig) {
+    Code2DDetectionConfig config;
+    config.expectedType = Code2DType::QRCode;
+    config.maxCodes = 9;
+    config.minConfidence = 0.8;
+    config.refineCorners = false;
+
+    calibrator->setDetectionConfig(config);
+
+    const auto& loaded = calibrator->getDetectionConfig();
+    EXPECT_EQ(loaded.expectedType, Code2DType::QRCode);
+    EXPECT_EQ(loaded.maxCodes, 9);
+    EXPECT_DOUBLE_EQ(loaded.minConfidence, 0.8);
+    EXPECT_FALSE(loaded.refineCorners);
+}
+
+TEST_F(QRCodeCalibrationTest, SetBoardConfig) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Grid3x3;
+    config.codeSize = 15.0;
+    config.codeSpacingX = 40.0;
+    config.codeSpacingY = 40.0;
+
+    calibrator->setBoardConfig(config);
+
+    const auto& loaded = calibrator->getBoardConfig();
+    EXPECT_EQ(loaded.layout, CalibrationBoardLayout::Grid3x3);
+    EXPECT_EQ(loaded.gridRows, 3);
+    EXPECT_EQ(loaded.gridCols, 3);
+    EXPECT_DOUBLE_EQ(loaded.codeSize, 15.0);
+}
+
+TEST_F(QRCodeCalibrationTest, BoardConfigGrid2x2) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Grid2x2;
+
+    calibrator->setBoardConfig(config);
+
+    const auto& loaded = calibrator->getBoardConfig();
+    EXPECT_EQ(loaded.gridRows, 2);
+    EXPECT_EQ(loaded.gridCols, 2);
+}
+
+TEST_F(QRCodeCalibrationTest, BoardConfigGrid4x4) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Grid4x4;
+
+    calibrator->setBoardConfig(config);
+
+    const auto& loaded = calibrator->getBoardConfig();
+    EXPECT_EQ(loaded.gridRows, 4);
+    EXPECT_EQ(loaded.gridCols, 4);
+}
+
+TEST_F(QRCodeCalibrationTest, BoardConfigCustom) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Custom;
+    config.gridRows = 5;
+    config.gridCols = 3;
+
+    calibrator->setBoardConfig(config);
+
+    const auto& loaded = calibrator->getBoardConfig();
+    EXPECT_EQ(loaded.gridRows, 5);
+    EXPECT_EQ(loaded.gridCols, 3);
+}
+
+TEST_F(QRCodeCalibrationTest, GetCodeWorldCorners) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Grid3x3;
+    config.codeSize = 10.0;
+    config.codeSpacingX = 30.0;
+    config.codeSpacingY = 30.0;
+    config.originOffset = QPointF(0, 0);
+
+    auto corners = config.getCodeWorldCorners(0, 0);
+
+    // 第一个码(0,0)的左上角应该在(-5, -5)
+    EXPECT_DOUBLE_EQ(corners[0].x(), -5.0);
+    EXPECT_DOUBLE_EQ(corners[0].y(), -5.0);
+    // 右下角应该在(5, 5)
+    EXPECT_DOUBLE_EQ(corners[2].x(), 5.0);
+    EXPECT_DOUBLE_EQ(corners[2].y(), 5.0);
+}
+
+TEST_F(QRCodeCalibrationTest, GetCodeWorldCornersWithOffset) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Single;
+    config.codeSize = 10.0;
+    config.originOffset = QPointF(100, 100);
+
+    auto corners = config.getCodeWorldCorners(0, 0);
+
+    // 原点偏移后，左上角应该在(95, 95)
+    EXPECT_DOUBLE_EQ(corners[0].x(), 95.0);
+    EXPECT_DOUBLE_EQ(corners[0].y(), 95.0);
+}
+
+TEST_F(QRCodeCalibrationTest, GetAllCodeWorldCorners) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Grid2x2;
+    config.gridRows = 2;  // 需要同时设置行列数
+    config.gridCols = 2;
+    config.codeSize = 10.0;
+    config.codeSpacingX = 30.0;
+    config.codeSpacingY = 30.0;
+
+    auto allCorners = config.getAllCodeWorldCorners();
+
+    EXPECT_EQ(allCorners.size(), 4);  // 2x2 = 4个码
+}
+
+TEST_F(QRCodeCalibrationTest, GetTotalPointCount) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Grid3x3;
+
+    calibrator->setBoardConfig(config);
+
+    const auto& loaded = calibrator->getBoardConfig();
+    EXPECT_EQ(loaded.getTotalPointCount(), 36);  // 3x3码 * 4角点 = 36点
+}
+
+TEST_F(QRCodeCalibrationTest, InitialCalibrationState) {
+    EXPECT_FALSE(calibrator->isCalibrated());
+    EXPECT_NE(calibrator->getCalibrationManager(), nullptr);
+}
+
+TEST_F(QRCodeCalibrationTest, AddManualPoint) {
+    int idx = calibrator->addManualPoint(QPointF(100, 100), QPointF(10, 10));
+    EXPECT_EQ(idx, 0);
+
+    idx = calibrator->addManualPoint(QPointF(200, 100), QPointF(20, 10));
+    EXPECT_EQ(idx, 1);
+
+    auto* manager = calibrator->getCalibrationManager();
+    EXPECT_EQ(manager->getCalibrationPointCount(), 2);
+}
+
+TEST_F(QRCodeCalibrationTest, RemovePoint) {
+    calibrator->addManualPoint(QPointF(100, 100), QPointF(10, 10));
+    calibrator->addManualPoint(QPointF(200, 100), QPointF(20, 10));
+
+    bool success = calibrator->removePoint(0);
+    EXPECT_TRUE(success);
+
+    auto* manager = calibrator->getCalibrationManager();
+    EXPECT_EQ(manager->getCalibrationPointCount(), 1);
+}
+
+TEST_F(QRCodeCalibrationTest, ClearPoints) {
+    calibrator->addManualPoint(QPointF(100, 100), QPointF(10, 10));
+    calibrator->addManualPoint(QPointF(200, 100), QPointF(20, 10));
+
+    calibrator->clearPoints();
+
+    auto* manager = calibrator->getCalibrationManager();
+    EXPECT_EQ(manager->getCalibrationPointCount(), 0);
+}
+
+TEST_F(QRCodeCalibrationTest, DetectEmptyImage) {
+    QImage emptyImage;
+    auto results = calibrator->detect(emptyImage);
+
+    EXPECT_TRUE(results.empty());
+    EXPECT_FALSE(calibrator->getLastError().isEmpty());
+}
+
+TEST_F(QRCodeCalibrationTest, DetectNonExistentFile) {
+    auto results = calibrator->detect("non_existent_file.png");
+
+    EXPECT_TRUE(results.empty());
+    EXPECT_FALSE(calibrator->getLastError().isEmpty());
+}
+
+TEST_F(QRCodeCalibrationTest, ClearDetectionResults) {
+    calibrator->clearDetectionResults();
+    EXPECT_TRUE(calibrator->getLastDetectionResults().empty());
+}
+
+TEST_F(QRCodeCalibrationTest, ValidateEmptyDetectionResults) {
+    std::vector<Code2DResult> emptyResults;
+    EXPECT_FALSE(calibrator->validateDetectionResults(emptyResults));
+}
+
+TEST_F(QRCodeCalibrationTest, CalculateDetectionQualityEmpty) {
+    std::vector<Code2DResult> emptyResults;
+    double quality = calibrator->calculateDetectionQuality(emptyResults);
+    EXPECT_DOUBLE_EQ(quality, 0.0);
+}
+
+TEST_F(QRCodeCalibrationTest, CalculateDetectionQualitySingle) {
+    CalibrationBoardConfig config;
+    config.layout = CalibrationBoardLayout::Single;
+    calibrator->setBoardConfig(config);
+
+    std::vector<Code2DResult> results;
+    Code2DResult result;
+    result.type = Code2DType::QRCode;
+    result.confidence = 0.9;
+    results.push_back(result);
+
+    double quality = calibrator->calculateDetectionQuality(results);
+    EXPECT_GT(quality, 0.0);
+    EXPECT_LE(quality, 100.0);
+}
+
+TEST_F(QRCodeCalibrationTest, GetDiagnosticInfo) {
+    QString info = calibrator->getDiagnosticInfo();
+
+    EXPECT_FALSE(info.isEmpty());
+    EXPECT_TRUE(info.contains("QR码标定诊断信息"));
+    EXPECT_TRUE(info.contains("标定板配置"));
+    EXPECT_TRUE(info.contains("检测配置"));
+}
+
+// ============================================================
+// Code2DResult 测试
+// ============================================================
+
+class Code2DResultTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(Code2DResultTest, DefaultState) {
+    Code2DResult result;
+
+    EXPECT_EQ(result.type, Code2DType::None);
+    EXPECT_TRUE(result.content.isEmpty());
+    EXPECT_FALSE(result.decoded);
+    EXPECT_DOUBLE_EQ(result.confidence, 0.0);
+    EXPECT_FALSE(result.isValid());
+}
+
+TEST_F(Code2DResultTest, IsValid) {
+    Code2DResult result;
+    result.type = Code2DType::QRCode;
+    result.confidence = 0.8;
+
+    EXPECT_TRUE(result.isValid());
+
+    result.confidence = 0.3;
+    EXPECT_FALSE(result.isValid());
+}
+
+TEST_F(Code2DResultTest, ToCalibrationPoints) {
+    Code2DResult result;
+    result.type = Code2DType::QRCode;
+    result.index = 0;
+    result.corners[0] = QPointF(100, 100);
+    result.corners[1] = QPointF(200, 100);
+    result.corners[2] = QPointF(200, 200);
+    result.corners[3] = QPointF(100, 200);
+
+    std::array<QPointF, 4> worldCorners = {
+        QPointF(0, 0), QPointF(10, 0), QPointF(10, 10), QPointF(0, 10)
+    };
+
+    auto points = result.toCalibrationPoints(worldCorners);
+
+    EXPECT_EQ(points.size(), 4);
+    EXPECT_TRUE(points[0].isValid);
+    EXPECT_EQ(points[0].pixelPos, QPointF(100, 100));
+    EXPECT_EQ(points[0].worldPos, QPointF(0, 0));
+}
+
+TEST_F(Code2DResultTest, CalculatePhysicalSize) {
+    Code2DResult result;
+
+    std::array<QPointF, 4> worldCorners = {
+        QPointF(0, 0), QPointF(10, 0), QPointF(10, 10), QPointF(0, 10)
+    };
+
+    QPointF size = result.calculatePhysicalSize(worldCorners);
+
+    EXPECT_DOUBLE_EQ(size.x(), 10.0);
+    EXPECT_DOUBLE_EQ(size.y(), 10.0);
+}
+
+TEST_F(Code2DResultTest, JsonSerialization) {
+    Code2DResult original;
+    original.type = Code2DType::DataMatrix;
+    original.content = "Test123";
+    original.decoded = true;
+    original.boundingRect = QRectF(100, 100, 50, 50);
+    original.center = QPointF(125, 125);
+    original.corners[0] = QPointF(100, 100);
+    original.corners[1] = QPointF(150, 100);
+    original.corners[2] = QPointF(150, 150);
+    original.corners[3] = QPointF(100, 150);
+    original.confidence = 0.95;
+    original.angle = 5.0;
+    original.index = 3;
+
+    QJsonObject json = original.toJson();
+    Code2DResult loaded = Code2DResult::fromJson(json);
+
+    EXPECT_EQ(loaded.type, original.type);
+    EXPECT_EQ(loaded.content, original.content);
+    EXPECT_EQ(loaded.decoded, original.decoded);
+    EXPECT_EQ(loaded.center, original.center);
+    EXPECT_DOUBLE_EQ(loaded.confidence, original.confidence);
+    EXPECT_DOUBLE_EQ(loaded.angle, original.angle);
+    EXPECT_EQ(loaded.index, original.index);
+}
+
+TEST_F(Code2DResultTest, ToString) {
+    Code2DResult result;
+    result.type = Code2DType::QRCode;
+    result.content = "Hello World";
+    result.center = QPointF(100, 200);
+    result.confidence = 0.85;
+
+    QString str = result.toString();
+
+    EXPECT_FALSE(str.isEmpty());
+    EXPECT_TRUE(str.contains("QR码"));
+    EXPECT_TRUE(str.contains("Hello"));
+}
+
+// ============================================================
+// Code2DDetectionConfig 测试
+// ============================================================
+
+class Code2DDetectionConfigTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(Code2DDetectionConfigTest, DefaultValues) {
+    Code2DDetectionConfig config;
+
+    EXPECT_EQ(config.expectedType, Code2DType::Auto);
+    EXPECT_EQ(config.maxCodes, 10);
+    EXPECT_TRUE(config.decodeContent);
+    EXPECT_TRUE(config.enablePreprocessing);
+    EXPECT_TRUE(config.refineCorners);
+    EXPECT_DOUBLE_EQ(config.minConfidence, 0.6);
+}
+
+TEST_F(Code2DDetectionConfigTest, JsonSerialization) {
+    Code2DDetectionConfig original;
+    original.expectedType = Code2DType::QRCode;
+    original.maxCodes = 20;
+    original.minConfidence = 0.75;
+    original.refineWindowSize = 15;
+    original.regionOfInterest = QRectF(50, 50, 400, 300);
+
+    QJsonObject json = original.toJson();
+    Code2DDetectionConfig loaded = Code2DDetectionConfig::fromJson(json);
+
+    EXPECT_EQ(loaded.expectedType, original.expectedType);
+    EXPECT_EQ(loaded.maxCodes, original.maxCodes);
+    EXPECT_DOUBLE_EQ(loaded.minConfidence, original.minConfidence);
+    EXPECT_EQ(loaded.refineWindowSize, original.refineWindowSize);
+    EXPECT_EQ(loaded.regionOfInterest, original.regionOfInterest);
+}
+
+// ============================================================
+// CalibrationBoardConfig 测试
+// ============================================================
+
+class CalibrationBoardConfigTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(CalibrationBoardConfigTest, DefaultValues) {
+    CalibrationBoardConfig config;
+
+    EXPECT_EQ(config.layout, CalibrationBoardLayout::Single);
+    EXPECT_EQ(config.gridRows, 1);
+    EXPECT_EQ(config.gridCols, 1);
+    EXPECT_DOUBLE_EQ(config.codeSize, 10.0);
+    EXPECT_DOUBLE_EQ(config.codeSpacingX, 20.0);
+    EXPECT_DOUBLE_EQ(config.codeSpacingY, 20.0);
+}
+
+TEST_F(CalibrationBoardConfigTest, JsonSerialization) {
+    CalibrationBoardConfig original;
+    original.layout = CalibrationBoardLayout::Grid3x3;
+    original.gridRows = 3;
+    original.gridCols = 3;
+    original.codeSize = 15.0;
+    original.codeSpacingX = 40.0;
+    original.codeSpacingY = 40.0;
+    original.originOffset = QPointF(5, 5);
+    original.validateContent = true;
+    original.expectedContents.append("CODE1");
+    original.expectedContents.append("CODE2");
+
+    QJsonObject json = original.toJson();
+    CalibrationBoardConfig loaded = CalibrationBoardConfig::fromJson(json);
+
+    EXPECT_EQ(loaded.layout, original.layout);
+    EXPECT_EQ(loaded.gridRows, original.gridRows);
+    EXPECT_EQ(loaded.gridCols, original.gridCols);
+    EXPECT_DOUBLE_EQ(loaded.codeSize, original.codeSize);
+    EXPECT_DOUBLE_EQ(loaded.codeSpacingX, original.codeSpacingX);
+    EXPECT_EQ(loaded.originOffset, original.originOffset);
+    EXPECT_EQ(loaded.validateContent, original.validateContent);
+    EXPECT_EQ(loaded.expectedContents.size(), 2);
+}
+
+// ============================================================
+// QRCodeCalibration 工具函数测试
+// ============================================================
+
+class QRCodeUtilsTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(QRCodeUtilsTest, GetCode2DTypeName) {
+    EXPECT_EQ(getCode2DTypeName(Code2DType::None), QStringLiteral("无"));
+    EXPECT_EQ(getCode2DTypeName(Code2DType::QRCode), QStringLiteral("QR码"));
+    EXPECT_EQ(getCode2DTypeName(Code2DType::DataMatrix), QStringLiteral("DataMatrix"));
+    EXPECT_EQ(getCode2DTypeName(Code2DType::Auto), QStringLiteral("自动检测"));
+}
+
+TEST_F(QRCodeUtilsTest, GetCode2DTypeFromName) {
+    EXPECT_EQ(getCode2DTypeFromName("QR码"), Code2DType::QRCode);
+    EXPECT_EQ(getCode2DTypeFromName("QRCode"), Code2DType::QRCode);
+    EXPECT_EQ(getCode2DTypeFromName("DataMatrix"), Code2DType::DataMatrix);
+    EXPECT_EQ(getCode2DTypeFromName("DM码"), Code2DType::DataMatrix);
+    EXPECT_EQ(getCode2DTypeFromName("自动检测"), Code2DType::Auto);
+    EXPECT_EQ(getCode2DTypeFromName("Auto"), Code2DType::Auto);
+    EXPECT_EQ(getCode2DTypeFromName("unknown"), Code2DType::None);
+}
+
+TEST_F(QRCodeUtilsTest, GetBoardLayoutName) {
+    EXPECT_EQ(getBoardLayoutName(CalibrationBoardLayout::Single), QStringLiteral("单码"));
+    EXPECT_EQ(getBoardLayoutName(CalibrationBoardLayout::Grid2x2), QStringLiteral("2x2网格"));
+    EXPECT_EQ(getBoardLayoutName(CalibrationBoardLayout::Grid3x3), QStringLiteral("3x3网格"));
+    EXPECT_EQ(getBoardLayoutName(CalibrationBoardLayout::Grid4x4), QStringLiteral("4x4网格"));
+    EXPECT_EQ(getBoardLayoutName(CalibrationBoardLayout::Custom), QStringLiteral("自定义"));
+}
+
+TEST_F(QRCodeUtilsTest, GetBoardLayoutFromName) {
+    EXPECT_EQ(getBoardLayoutFromName("单码"), CalibrationBoardLayout::Single);
+    EXPECT_EQ(getBoardLayoutFromName("Single"), CalibrationBoardLayout::Single);
+    EXPECT_EQ(getBoardLayoutFromName("2x2网格"), CalibrationBoardLayout::Grid2x2);
+    EXPECT_EQ(getBoardLayoutFromName("Grid2x2"), CalibrationBoardLayout::Grid2x2);
+    EXPECT_EQ(getBoardLayoutFromName("3x3网格"), CalibrationBoardLayout::Grid3x3);
+    EXPECT_EQ(getBoardLayoutFromName("Grid3x3"), CalibrationBoardLayout::Grid3x3);
+    EXPECT_EQ(getBoardLayoutFromName("自定义"), CalibrationBoardLayout::Custom);
+    EXPECT_EQ(getBoardLayoutFromName("Custom"), CalibrationBoardLayout::Custom);
+    EXPECT_EQ(getBoardLayoutFromName("unknown"), CalibrationBoardLayout::Single);
+}
+
+// ============================================================
+// QRCodeCalibration 持久化测试
+// ============================================================
+
+class QRCodeCalibrationPersistenceTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        calibrator = std::make_unique<QRCodeCalibration>();
+    }
+    void TearDown() override {}
+
+    std::unique_ptr<QRCodeCalibration> calibrator;
+};
+
+TEST_F(QRCodeCalibrationPersistenceTest, ExportImportJson) {
+    // 配置标定器
+    Code2DDetectionConfig detConfig;
+    detConfig.expectedType = Code2DType::QRCode;
+    detConfig.maxCodes = 9;
+    calibrator->setDetectionConfig(detConfig);
+
+    CalibrationBoardConfig boardConfig;
+    boardConfig.layout = CalibrationBoardLayout::Grid3x3;
+    boardConfig.codeSize = 12.0;
+    calibrator->setBoardConfig(boardConfig);
+
+    // 导出
+    QJsonObject json = calibrator->exportToJson();
+
+    EXPECT_FALSE(json.isEmpty());
+    EXPECT_EQ(json["type"].toString(), "QRCodeCalibration");
+
+    // 导入
+    auto newCalibrator = std::make_unique<QRCodeCalibration>();
+    EXPECT_TRUE(newCalibrator->importFromJson(json));
+
+    // 验证
+    EXPECT_EQ(newCalibrator->getDetectionConfig().expectedType, Code2DType::QRCode);
+    EXPECT_EQ(newCalibrator->getDetectionConfig().maxCodes, 9);
+    EXPECT_EQ(newCalibrator->getBoardConfig().layout, CalibrationBoardLayout::Grid3x3);
+    EXPECT_DOUBLE_EQ(newCalibrator->getBoardConfig().codeSize, 12.0);
+}
+
+TEST_F(QRCodeCalibrationPersistenceTest, SaveLoadFile) {
+    // 配置标定器
+    CalibrationBoardConfig boardConfig;
+    boardConfig.layout = CalibrationBoardLayout::Grid2x2;
+    calibrator->setBoardConfig(boardConfig);
+
+    QTemporaryFile tempFile;
+    ASSERT_TRUE(tempFile.open());
+    QString filePath = tempFile.fileName();
+    tempFile.close();
+
+    EXPECT_TRUE(calibrator->saveToFile(filePath));
+
+    auto newCalibrator = std::make_unique<QRCodeCalibration>();
+    EXPECT_TRUE(newCalibrator->loadFromFile(filePath));
+
+    EXPECT_EQ(newCalibrator->getBoardConfig().layout, CalibrationBoardLayout::Grid2x2);
+}
+
+TEST_F(QRCodeCalibrationPersistenceTest, LoadNonExistentFile) {
+    EXPECT_FALSE(calibrator->loadFromFile("non_existent_file.json"));
+    EXPECT_FALSE(calibrator->getLastError().isEmpty());
+}
+
+TEST_F(QRCodeCalibrationPersistenceTest, ImportInvalidJson) {
+    QJsonObject invalidJson;
+    invalidJson["type"] = "InvalidType";
+
+    EXPECT_FALSE(calibrator->importFromJson(invalidJson));
+    EXPECT_FALSE(calibrator->getLastError().isEmpty());
+}
+
+// ============================================================
+// QRCodeCalibration 集成测试
+// ============================================================
+
+class QRCodeCalibrationIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        calibrator = std::make_unique<QRCodeCalibration>();
+    }
+    void TearDown() override {}
+
+    std::unique_ptr<QRCodeCalibration> calibrator;
+};
+
+TEST_F(QRCodeCalibrationIntegrationTest, ManualCalibrationWorkflow) {
+    // 设置标定配置
+    CalibrationConfig calConfig;
+    calConfig.type = CalibrationType::DMCode;
+    calibrator->setCalibrationConfig(calConfig);
+
+    // 手动添加标定点（模拟从检测结果中提取的角点）
+    calibrator->addManualPoint(QPointF(100, 100), QPointF(0, 0));
+    calibrator->addManualPoint(QPointF(200, 100), QPointF(10, 0));
+    calibrator->addManualPoint(QPointF(200, 200), QPointF(10, 10));
+    calibrator->addManualPoint(QPointF(100, 200), QPointF(0, 10));
+
+    // 执行标定
+    auto* manager = calibrator->getCalibrationManager();
+    CalibrationResult result = manager->calibrate();
+
+    EXPECT_EQ(result.status, CalibrationStatus::Calibrated);
+    EXPECT_TRUE(calibrator->isCalibrated());
+}
+
+TEST_F(QRCodeCalibrationIntegrationTest, PixelToWorldAfterCalibration) {
+    // 手动添加标定点
+    calibrator->addManualPoint(QPointF(100, 100), QPointF(0, 0));
+    calibrator->addManualPoint(QPointF(200, 100), QPointF(10, 0));
+    calibrator->addManualPoint(QPointF(200, 200), QPointF(10, 10));
+    calibrator->addManualPoint(QPointF(100, 200), QPointF(0, 10));
+
+    auto* manager = calibrator->getCalibrationManager();
+    manager->calibrate();
+
+    ASSERT_TRUE(calibrator->isCalibrated());
+
+    // 测试坐标变换
+    QPointF pixel(150, 150);
+    QPointF world = calibrator->pixelToWorld(pixel);
+
+    // 应该约为(5, 5)
+    EXPECT_TRUE(isNear(world.x(), 5.0, 0.5));
+    EXPECT_TRUE(isNear(world.y(), 5.0, 0.5));
+}
+
+TEST_F(QRCodeCalibrationIntegrationTest, WorldToPixelAfterCalibration) {
+    calibrator->addManualPoint(QPointF(100, 100), QPointF(0, 0));
+    calibrator->addManualPoint(QPointF(200, 100), QPointF(10, 0));
+    calibrator->addManualPoint(QPointF(200, 200), QPointF(10, 10));
+    calibrator->addManualPoint(QPointF(100, 200), QPointF(0, 10));
+
+    auto* manager = calibrator->getCalibrationManager();
+    manager->calibrate();
+
+    QPointF world(5, 5);
+    QPointF pixel = calibrator->worldToPixel(world);
+
+    EXPECT_TRUE(isNear(pixel.x(), 150.0, 1.0));
+    EXPECT_TRUE(isNear(pixel.y(), 150.0, 1.0));
+}
+
+TEST_F(QRCodeCalibrationIntegrationTest, ExtractCalibrationPointsFromMockDetection) {
+    // 设置标定板配置
+    CalibrationBoardConfig boardConfig;
+    boardConfig.layout = CalibrationBoardLayout::Single;
+    boardConfig.codeSize = 10.0;
+    boardConfig.originOffset = QPointF(5, 5);  // 中心在(5,5)
+    calibrator->setBoardConfig(boardConfig);
+
+    // 创建模拟检测结果
+    std::vector<Code2DResult> results;
+    Code2DResult detection;
+    detection.type = Code2DType::QRCode;
+    detection.confidence = 0.9;
+    detection.index = 0;
+    detection.corners[0] = QPointF(100, 100);
+    detection.corners[1] = QPointF(200, 100);
+    detection.corners[2] = QPointF(200, 200);
+    detection.corners[3] = QPointF(100, 200);
+    results.push_back(detection);
+
+    // 提取标定点
+    CalibrationPointSet pointSet = calibrator->extractCalibrationPoints(results);
+
+    EXPECT_EQ(pointSet.count(), 4);
+
+    // 验证第一个角点
+    const CalibrationPoint* pt = pointSet.getPoint(0);
+    ASSERT_NE(pt, nullptr);
+    EXPECT_EQ(pt->pixelPos, QPointF(100, 100));
 }
 
 // ============================================================

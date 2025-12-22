@@ -15,6 +15,7 @@ set(CALIBRATION_HEADERS
     ${CMAKE_SOURCE_DIR}/include/calibration/CalibrationTypes.h
     ${CMAKE_SOURCE_DIR}/include/calibration/CalibrationManager.h
     ${CMAKE_SOURCE_DIR}/include/calibration/AlignmentEngine.h
+    ${CMAKE_SOURCE_DIR}/include/calibration/QRCodeCalibration.h
 )
 
 # ============================================================
@@ -24,6 +25,7 @@ set(CALIBRATION_SOURCES
     CalibrationTypes.cpp
     CalibrationManager.cpp
     AlignmentEngine.cpp
+    QRCodeCalibration.cpp
 )
 
 # ============================================================
@@ -66,6 +68,9 @@ target_link_libraries(VisionForgeCalibration PUBLIC
 
     # Eigen矩阵库（用于精密几何计算）
     Eigen3::Eigen
+
+    # OpenCV库（用于QR码检测和图像处理）
+    ${OpenCV_LIBS}
 
     # 内部依赖
     VisionForgePlatform
