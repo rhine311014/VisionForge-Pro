@@ -10,6 +10,10 @@ set(CORE_SOURCES
     Recipe.cpp
     RecipeManager.cpp
     WorkStation.cpp
+    PositionCameraBinding.cpp
+    StationConfig.cpp
+    MultiStationManager.cpp
+    PositionToolChainManager.cpp
 )
 
 # 收集头文件
@@ -20,6 +24,10 @@ set(CORE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/core/Recipe.h
     ${CMAKE_SOURCE_DIR}/include/core/RecipeManager.h
     ${CMAKE_SOURCE_DIR}/include/core/WorkStation.h
+    ${CMAKE_SOURCE_DIR}/include/core/PositionCameraBinding.h
+    ${CMAKE_SOURCE_DIR}/include/core/StationConfig.h
+    ${CMAKE_SOURCE_DIR}/include/core/MultiStationManager.h
+    ${CMAKE_SOURCE_DIR}/include/core/PositionToolChainManager.h
 )
 
 # 创建核心业务层静态库
@@ -38,6 +46,7 @@ target_link_libraries(VisionForgeCore PUBLIC
     VisionForgeBase
     VisionForgeAlgorithm
     VisionForgeHAL
+    VisionForgePlatform
     Qt6::Core
     ${OpenCV_LIBS}
 )

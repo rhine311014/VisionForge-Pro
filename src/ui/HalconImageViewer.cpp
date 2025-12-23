@@ -914,16 +914,30 @@ void HalconImageViewer::drawROI(const ROIShapePtr& roi)
         }
 
         // 使用Halcon预定义颜色名以确保兼容性
-        const char* colorName = "green";
+        // 支持更多颜色，并使用RGB格式作为后备
+        QString colorStr;
         if (color == Qt::yellow) {
-            colorName = "yellow";
+            colorStr = "yellow";
         } else if (color == Qt::red) {
-            colorName = "red";
+            colorStr = "red";
         } else if (color == Qt::blue) {
-            colorName = "blue";
+            colorStr = "blue";
+        } else if (color == Qt::green) {
+            colorStr = "green";
+        } else if (color == Qt::cyan) {
+            colorStr = "cyan";
+        } else if (color == Qt::magenta) {
+            colorStr = "magenta";
+        } else if (color == Qt::white) {
+            colorStr = "white";
+        } else if (color == Qt::black) {
+            colorStr = "black";
+        } else {
+            // 对于其他颜色，使用RGB格式 "#RRGGBB"
+            colorStr = color.name();
         }
 
-        SetColor(windowHandle_, colorName);
+        SetColor(windowHandle_, colorStr.toStdString().c_str());
         SetLineWidth(windowHandle_, roi->getLineWidth());
 
         // 直接使用Halcon绘图函数，而不是通过HRegion

@@ -92,6 +92,9 @@ public:
         // 标定
         CameraCalib, NinePointCalib,
 
+        // 识别
+        CodeRead,
+
         // 自定义
         Custom
     };

@@ -314,6 +314,7 @@ private:
     void updateImageSequenceActions();        // 更新图片序列相关动作状态
     void applyImageTransform(Base::ImageData::Ptr& image);  // 应用图像变换（旋转、镜像）
     bool tryAutoConnectCamera();              // 尝试自动连接已保存的相机
+    void showCameraConfigOnStartup();         // 启动时显示相机配置对话框
 };
 
 } // namespace UI

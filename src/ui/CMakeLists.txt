@@ -18,6 +18,7 @@ set(UI_SOURCES
     RecipeEditorDialog.cpp
     CameraCalibDialog.cpp
     NinePointCalibDialog.cpp
+    QRCalibDialog.cpp
     SystemSettingsDialog.cpp
     PreviewHelper.cpp
     # 工具对话框 - 预处理
@@ -58,6 +59,10 @@ set(UI_SOURCES
     MultiPointAlignmentDialog.cpp
     AlignmentOutputDialog.cpp
     WorkStationDialog.cpp
+    # 工位配置工具
+    StationConfigTool.cpp
+    # 相机设置对话框
+    CameraSetupDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -70,6 +75,15 @@ if(USE_HALCON)
         ShapeModelLibraryDialog.cpp
         ShapeMatchToolDialog.cpp
         ModelCheckPointDialog.cpp
+        # 多工位多相机视图组件
+        MultiCameraView.cpp
+        StationSwitchBar.cpp
+        # 手动调试中心
+        ManualDebugDialog.cpp
+        # 标定向导
+        CalibrationWizard.cpp
+        # 读码工具对话框
+        CodeReadToolDialog.cpp
     )
 endif()
 
@@ -90,6 +104,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/RecipeEditorDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/CameraCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/NinePointCalibDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/QRCalibDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/SystemSettingsDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/PreviewHelper.h
     # 工具对话框头文件 - 预处理
@@ -130,6 +145,10 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/MultiPointAlignmentDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/AlignmentOutputDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/WorkStationDialog.h
+    # 工位配置工具头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/StationConfigTool.h
+    # 相机设置对话框头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/CameraSetupDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件
@@ -142,6 +161,15 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/ui/ShapeModelLibraryDialog.h
         ${CMAKE_SOURCE_DIR}/include/ui/ShapeMatchToolDialog.h
         ${CMAKE_SOURCE_DIR}/include/ui/ModelCheckPointDialog.h
+        # 多工位多相机视图组件头文件
+        ${CMAKE_SOURCE_DIR}/include/ui/MultiCameraView.h
+        ${CMAKE_SOURCE_DIR}/include/ui/StationSwitchBar.h
+        # 手动调试中心头文件
+        ${CMAKE_SOURCE_DIR}/include/ui/ManualDebugDialog.h
+        # 标定向导头文件
+        ${CMAKE_SOURCE_DIR}/include/ui/CalibrationWizard.h
+        # 读码工具对话框头文件
+        ${CMAKE_SOURCE_DIR}/include/ui/CodeReadToolDialog.h
     )
 endif()
 
@@ -161,6 +189,7 @@ target_link_libraries(VisionForgeUI PUBLIC
     VisionForgeBase
     VisionForgeHAL
     VisionForgeAlgorithm
+    VisionForgeCalibration
     VisionForgeComm
     VisionForgeCore
     Qt6::Core

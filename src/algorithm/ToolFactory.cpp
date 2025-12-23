@@ -32,6 +32,7 @@
 
 #ifdef USE_HALCON
 #include "algorithm/ShapeMatchTool.h"
+#include "algorithm/CodeReadTool.h"
 #endif
 
 namespace VisionForge {
@@ -479,6 +480,21 @@ void ToolFactory::registerBuiltInTools()
         ),
         []() -> VisionTool* { return new AIDetectionTool(); }
     );
+
+    // 注册读码工具
+#ifdef USE_HALCON
+    registerTool(
+        VisionTool::CodeRead,
+        ToolInfo(
+            tr("读码工具"),
+            CAT_DETECTION,
+            tr("识别二维码(DataMatrix/QR)和一维码，支持粗定位修正"),
+            ":/icons/code_read.png",
+            VisionTool::CodeRead
+        ),
+        []() -> VisionTool* { return new CodeReadTool(); }
+    );
+#endif
 
     LOG_INFO(QString(tr("已注册 %1 个内置工具")).arg(tools_.size()));
 }

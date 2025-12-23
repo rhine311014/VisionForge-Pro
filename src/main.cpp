@@ -23,6 +23,11 @@
 // UI层
 #include "ui/MainWindow.h"
 #include "ui/Theme.h"
+#include "ui/StationConfigTool.h"
+#include "ui/CameraSetupDialog.h"
+
+// 核心层
+#include "core/MultiStationManager.h"
 
 using namespace VisionForge::Base;
 using namespace VisionForge::UI;
@@ -106,6 +111,70 @@ int main(int argc, char *argv[])
     // 应用工业深色主题
     Theme::applyTheme(Theme::IndustrialDark);
     LOG_INFO("[主题] 应用工业深色主题");
+
+    // 检查命令行参数
+    bool skipConfigTool = false;
+    bool forceConfigTool = false;
+    QStringList args = app.arguments();
+    for (const QString& arg : args) {
+        if (arg == "--skip-config" || arg == "-s") {
+            skipConfigTool = true;
+        } else if (arg == "--config" || arg == "-c") {
+            forceConfigTool = true;
+        }
+    }
+
+    // 检查是否需要显示工位配置工具
+    // 条件：首次运行（无配置）或强制显示配置工具
+    auto& stationManager = VisionForge::Core::MultiStationManager::instance();
+    LOG_INFO(QString("[配置] 配置目录: %1").arg(stationManager.getConfigDirectory()));
+    stationManager.loadConfig();
+    bool hasExistingConfig = (stationManager.getStationCount() > 0);
+
+    if (!skipConfigTool && (forceConfigTool || !hasExistingConfig)) {
+        LOG_INFO("[配置] 显示工位配置工具...");
+
+        StationConfigTool configTool;
+        int result = configTool.exec();
+
+        if (result != QDialog::Accepted || !configTool.isSaveAndExit()) {
+            // 如果用户取消且没有现有配置，则退出程序
+            if (!hasExistingConfig) {
+                LOG_WARNING("[配置] 用户取消配置，程序退出");
+                return 0;
+            }
+            LOG_INFO("[配置] 用户取消配置，使用现有配置");
+        } else {
+            LOG_INFO(QString("[配置] 工位配置完成: %1 个平台").arg(configTool.getStationCount()));
+            // 重新加载配置
+            stationManager.loadConfig();
+        }
+    } else {
+        LOG_INFO(QString("[配置] 使用现有配置: %1 个工位").arg(stationManager.getStationCount()));
+    }
+
+    // 检查相机配置
+    // 条件：没有相机配置文件时显示相机设置对话框
+    bool hasCameraConfig = CameraSetupDialog::hasExistingConfig();
+    if (!hasCameraConfig) {
+        LOG_INFO("[相机] 未检测到相机配置，显示相机设置对话框...");
+        LOG_INFO(QString("[相机] 相机配置文件路径: %1").arg(CameraSetupDialog::configFilePath()));
+
+        CameraSetupDialog cameraSetup;
+        int cameraResult = cameraSetup.exec();
+
+        if (cameraResult == QDialog::Accepted) {
+            if (cameraSetup.isSaveAndExit()) {
+                LOG_INFO("[相机] 相机配置已保存");
+            } else if (cameraSetup.isSkipped()) {
+                LOG_INFO("[相机] 用户跳过相机配置");
+            }
+        } else {
+            LOG_INFO("[相机] 用户取消相机配置，使用默认设置");
+        }
+    } else {
+        LOG_INFO("[相机] 已检测到相机配置");
+    }
 
     // 创建主窗口
     MainWindow mainWindow;

@@ -549,7 +549,27 @@ void HikvisionCamera::setExposure(double exposure)
     config_.exposure = exposure;
 
     if (isOpen_ && handle_) {
-        setFloatValue("ExposureTime", exposure);
+        // 海康相机某些型号需要停止采集才能设置参数
+        bool wasGrabbing = isGrabbing_;
+        if (wasGrabbing) {
+            LOG_DEBUG(QString("[HikvisionCamera] 设置曝光前停止采集"));
+            MV_CC_StopGrabbing(handle_);
+            isGrabbing_ = false;
+        }
+
+        bool success = setFloatValue("ExposureTime", exposure);
+        LOG_INFO(QString("[HikvisionCamera] 设置曝光: %1 us, 结果: %2")
+                 .arg(exposure).arg(success ? "成功" : "失败"));
+
+        // 恢复采集
+        if (wasGrabbing) {
+            MV_CC_StartGrabbing(handle_);
+            isGrabbing_ = true;
+            LOG_DEBUG(QString("[HikvisionCamera] 设置曝光后恢复采集"));
+        }
+    } else {
+        LOG_WARNING(QString("[HikvisionCamera] 相机未打开，无法设置曝光: isOpen_=%1, handle_=%2")
+                    .arg(isOpen_).arg(handle_ != nullptr));
     }
 }
 
@@ -567,7 +587,27 @@ void HikvisionCamera::setGain(double gain)
     config_.gain = gain;
 
     if (isOpen_ && handle_) {
-        setFloatValue("Gain", gain);
+        // 海康相机某些型号需要停止采集才能设置参数
+        bool wasGrabbing = isGrabbing_;
+        if (wasGrabbing) {
+            LOG_DEBUG(QString("[HikvisionCamera] 设置增益前停止采集"));
+            MV_CC_StopGrabbing(handle_);
+            isGrabbing_ = false;
+        }
+
+        bool success = setFloatValue("Gain", gain);
+        LOG_INFO(QString("[HikvisionCamera] 设置增益: %1 dB, 结果: %2")
+                 .arg(gain).arg(success ? "成功" : "失败"));
+
+        // 恢复采集
+        if (wasGrabbing) {
+            MV_CC_StartGrabbing(handle_);
+            isGrabbing_ = true;
+            LOG_DEBUG(QString("[HikvisionCamera] 设置增益后恢复采集"));
+        }
+    } else {
+        LOG_WARNING(QString("[HikvisionCamera] 相机未打开，无法设置增益: isOpen_=%1, handle_=%2")
+                    .arg(isOpen_).arg(handle_ != nullptr));
     }
 }
 

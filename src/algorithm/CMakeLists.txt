@@ -53,6 +53,7 @@ if(USE_HALCON)
     list(APPEND ALGORITHM_SOURCES
         ShapeMatchTool.cpp
         ShapeModelManager.cpp
+        CodeReadTool.cpp
     )
 endif()
 
@@ -105,6 +106,7 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeMatchTool.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/HalconObjectWrapper.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeModelManager.h
+        ${CMAKE_SOURCE_DIR}/include/algorithm/CodeReadTool.h
     )
 endif()
 

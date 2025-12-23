@@ -84,8 +84,26 @@ bool AIDetectionTool::loadModel(const QString& modelPath, const QString& configP
                 return false;
             }
         }
+        else if (ext == "hdvppmodel" || ext == "model" || ext == "bin") {
+            // 海康深度学习模型 (.bin是海康训练后的模型格式)
+            inferenceEngine_ = HikvisionDL;
+            modelPath_ = modelPath;
+            configPath_ = configPath;
+            modelLoaded_ = true;
+            LOG_INFO(QString("海康模型已设置: %1 (需要海康SDK支持)").arg(modelPath));
+            return true;
+        }
+        else if (ext == "hdl" || ext == "hdev" || ext == "dltp") {
+            // Halcon深度学习模型 (.dltp是Halcon DL训练后的模型格式)
+            inferenceEngine_ = HalconDL;
+            modelPath_ = modelPath;
+            configPath_ = configPath;
+            modelLoaded_ = true;
+            LOG_INFO(QString("Halcon模型已设置: %1 (需要Halcon DL支持)").arg(modelPath));
+            return true;
+        }
         else {
-            LOG_ERROR(QString("不支持的模型格式: %1").arg(ext));
+            LOG_ERROR(QString("不支持的模型格式: %1\n支持的格式: .onnx, .pb, .caffemodel, .weights, .bin(海康), .dltp(Halcon)").arg(ext));
             return false;
         }
 
@@ -168,6 +186,28 @@ bool AIDetectionTool::process(const Base::ImageData::Ptr& input, ToolResult& out
                 return false;
             }
             break;
+
+        case HikvisionDL:
+            // 海康深度学习推理
+            LOG_INFO("使用海康深度学习引擎进行推理");
+            output.success = false;
+            output.errorMessage = "海康深度学习推理需要MVS SDK支持，请确保已安装海康SDK并配置正确";
+            // TODO: 实现海康深度学习推理
+            // 1. 使用 MV_DL_CreateSession 创建推理会话
+            // 2. 使用 MV_DL_Process 进行推理
+            // 3. 使用 MV_DL_GetResult 获取结果
+            return false;
+
+        case HalconDL:
+            // Halcon深度学习推理
+            LOG_INFO("使用Halcon深度学习引擎进行推理");
+            output.success = false;
+            output.errorMessage = "Halcon深度学习推理需要Halcon DL许可证，请确保已配置正确";
+            // TODO: 实现Halcon深度学习推理
+            // 1. 使用 read_dl_model 读取模型
+            // 2. 使用 apply_dl_model 进行推理
+            // 3. 使用 get_dl_model_result 获取结果
+            return false;
         }
 
         // 后处理

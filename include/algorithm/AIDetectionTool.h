@@ -66,7 +66,9 @@ public:
     enum InferenceEngine {
         OpenCVDNN,          // OpenCV DNN模块
         ONNXRuntime,        // ONNX Runtime
-        TensorRT            // NVIDIA TensorRT
+        TensorRT,           // NVIDIA TensorRT
+        HikvisionDL,        // 海康深度学习推理
+        HalconDL            // Halcon深度学习推理
     };
     Q_ENUM(InferenceEngine)
 

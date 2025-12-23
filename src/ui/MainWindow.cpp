@@ -279,7 +279,11 @@ MainWindow::MainWindow(QWidget* parent)
     if (tryAutoConnectCamera()) {
         LOG_INFO("已自动连接保存的相机配置");
     } else {
-        LOG_DEBUG("使用模拟相机作为默认相机");
+        LOG_DEBUG("未能自动连接相机，将弹出相机配置对话框");
+        // 延迟弹出相机配置对话框，确保主窗口构造完成后再弹出
+        QTimer::singleShot(100, this, [this]() {
+            showCameraConfigOnStartup();
+        });
     }
 
     // 更新界面状态
@@ -2259,6 +2263,19 @@ void MainWindow::onCameraConfig()
             }
         }
 
+        // 保存相机显示设置到配置文件
+        if (camera_ && camera_->isOpen()) {
+            HAL::ICamera::Config cameraConfig = camera_->getConfig();
+            Base::ConfigManager& config = Base::ConfigManager::instance();
+            config.setValue("Camera/RotationAngle", cameraConfig.rotationAngle);
+            config.setValue("Camera/FlipHorizontal", cameraConfig.flipHorizontal);
+            config.setValue("Camera/FlipVertical", cameraConfig.flipVertical);
+            LOG_INFO(QString("保存相机显示设置: 旋转=%1°, 水平镜像=%2, 垂直镜像=%3")
+                .arg(cameraConfig.rotationAngle)
+                .arg(cameraConfig.flipHorizontal ? "是" : "否")
+                .arg(cameraConfig.flipVertical ? "是" : "否"));
+        }
+
         updateActions();
         LOG_INFO("相机配置已更新");
     }
@@ -2693,6 +2710,17 @@ bool MainWindow::tryAutoConnectCamera()
     }
     camera_.reset(newCamera);
 
+    // 加载并应用显示设置（旋转、镜像）
+    HAL::ICamera::Config cameraConfig = camera_->getConfig();
+    cameraConfig.rotationAngle = config.getValue("Camera/RotationAngle", 0).toInt();
+    cameraConfig.flipHorizontal = config.getValue("Camera/FlipHorizontal", false).toBool();
+    cameraConfig.flipVertical = config.getValue("Camera/FlipVertical", false).toBool();
+    camera_->setConfig(cameraConfig);
+    LOG_INFO(QString("加载相机显示设置: 旋转=%1°, 水平镜像=%2, 垂直镜像=%3")
+        .arg(cameraConfig.rotationAngle)
+        .arg(cameraConfig.flipHorizontal ? "是" : "否")
+        .arg(cameraConfig.flipVertical ? "是" : "否"));
+
     // 更新工具参数面板的相机指针
     if (toolParameterPanel_) {
         toolParameterPanel_->setCamera(camera_.get());
@@ -2727,6 +2755,111 @@ bool MainWindow::tryAutoConnectCamera()
     }
 
     return true;
+}
+
+void MainWindow::showCameraConfigOnStartup()
+{
+    Base::ConfigManager& config = Base::ConfigManager::instance();
+
+    // 检查是否有配置的相机
+    int cameraType = config.getValue("Camera/Type", -1).toInt();
+    QString serialNumber = config.getValue("Camera/SerialNumber", "").toString();
+    QString ipAddress = config.getValue("Camera/IPAddress", "").toString();
+
+    QString reason;
+    if (cameraType < 0 || (serialNumber.isEmpty() && ipAddress.isEmpty())) {
+        reason = tr("未检测到相机配置，请选择相机设备");
+    } else {
+        reason = tr("配置的相机未找到或已断开，请重新选择");
+    }
+
+    // 弹出消息框提示用户
+    QMessageBox::information(this, tr("相机配置"), reason);
+
+    // 打开相机配置对话框
+    CameraConfigDialog dialog(this);
+
+    // 如果当前有相机（模拟相机或其他），传递给对话框
+    if (camera_) {
+        dialog.setCamera(camera_.get());
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        // 获取用户选择的相机
+        HAL::ICamera* newCamera = dialog.takeSelectedCamera();
+
+        if (newCamera && newCamera->isOpen()) {
+            // 停止当前相机
+            if (camera_) {
+                if (isContinuousGrabbing_) {
+                    continuousTimer_->stop();
+                    isContinuousGrabbing_ = false;
+                }
+                camera_->stopGrabbing();
+                camera_->close();
+            }
+
+            // 使用新相机
+            camera_.reset(newCamera);
+
+            // 更新工具参数面板的相机指针
+            if (toolParameterPanel_) {
+                toolParameterPanel_->setCamera(camera_.get());
+            }
+
+            // 获取相机信息并保存配置
+            QString modelName = QString::fromStdString(camera_->getModelName());
+            QString serial = QString::fromStdString(camera_->getSerialNumber());
+
+            // 获取相机类型
+            int camType = static_cast<int>(HAL::CameraFactory::Simulated);  // 默认模拟相机
+#ifdef USE_HIKVISION_MVS
+            if (dynamic_cast<HAL::HikvisionCamera*>(camera_.get())) {
+                camType = static_cast<int>(HAL::CameraFactory::Hikvision);
+            }
+#endif
+
+            // 保存相机配置
+            config.setValue("Camera/Type", camType);
+            config.setValue("Camera/SerialNumber", serial);
+            config.setValue("Camera/ModelName", modelName);
+
+            // 保存显示设置
+            HAL::ICamera::Config cameraConfig = camera_->getConfig();
+            config.setValue("Camera/RotationAngle", cameraConfig.rotationAngle);
+            config.setValue("Camera/FlipHorizontal", cameraConfig.flipHorizontal);
+            config.setValue("Camera/FlipVertical", cameraConfig.flipVertical);
+
+            statusLabel_->setText(tr("已连接相机: %1").arg(modelName));
+            LOG_INFO(QString("启动时配置相机成功: %1 (%2)").arg(modelName).arg(serial));
+
+            // 如果实时显示已启用，开始连续采集
+            if (isLiveDisplay_ && liveDisplayAction_ && liveDisplayAction_->isChecked()) {
+                if (!isContinuousGrabbing_) {
+                    QTimer::singleShot(500, this, [this]() {
+                        if (camera_ && camera_->isOpen() && isLiveDisplay_) {
+                            isContinuousGrabbing_ = true;
+                            continuousTimer_->start(150);
+                            LOG_INFO("启动时配置相机后，自动开始实时显示");
+                        }
+                    });
+                }
+            }
+        } else {
+            // 用户选择了相机但打开失败，继续使用模拟相机
+            statusLabel_->setText(tr("相机连接失败，使用模拟相机"));
+            LOG_WARNING("启动时相机配置失败，继续使用模拟相机");
+            if (newCamera) {
+                delete newCamera;
+            }
+        }
+    } else {
+        // 用户取消了配置，继续使用模拟相机
+        statusLabel_->setText(tr("使用模拟相机"));
+        LOG_INFO("用户取消相机配置，使用模拟相机");
+    }
+
+    updateActions();
 }
 
 // ========== 多工位多相机 ==========

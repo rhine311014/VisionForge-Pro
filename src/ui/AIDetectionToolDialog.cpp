@@ -295,7 +295,7 @@ void AIDetectionToolDialog::createModelGroup(QVBoxLayout* layout)
     QHBoxLayout* modelLayout = new QHBoxLayout();
     modelLayout->addWidget(new QLabel("模型路径:"));
     modelPathEdit_ = new QLineEdit(this);
-    modelPathEdit_->setPlaceholderText("选择模型文件 (.onnx, .pb, .caffemodel, etc.)");
+    modelPathEdit_->setPlaceholderText("选择模型文件 (.onnx, .pb, .bin, .dltp, etc.)");
     modelLayout->addWidget(modelPathEdit_, 1);
     browseModelBtn_ = new QPushButton("浏览...", this);
     modelLayout->addWidget(browseModelBtn_);
@@ -505,7 +505,14 @@ void AIDetectionToolDialog::onBrowseModelClicked()
     QString filePath = QFileDialog::getOpenFileName(
         this, "选择模型文件",
         QString(),
-        "模型文件 (*.onnx *.pb *.caffemodel *.weights *.pt);;所有文件 (*)");
+        "所有模型文件 (*.onnx *.pb *.caffemodel *.weights *.pt *.bin *.dltp);;"
+        "ONNX模型 (*.onnx);;"
+        "TensorFlow模型 (*.pb);;"
+        "Caffe模型 (*.caffemodel);;"
+        "YOLO模型 (*.weights);;"
+        "海康模型 (*.bin);;"
+        "Halcon深度学习模型 (*.dltp);;"
+        "所有文件 (*)");
 
     if (!filePath.isEmpty()) {
         modelPathEdit_->setText(filePath);
