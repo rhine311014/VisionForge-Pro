@@ -1219,8 +1219,8 @@ void MainWindow::onContinuousTimer()
             // 应用图像变换（旋转、镜像）
             applyImageTransform(image);
 
-            // 处理图像
-            processImage(image);
+            // 实时显示：只显示图像，不运行工具
+            displayImage(image);
         } else {
             // 图像为空（可能是临时超时）
             consecutiveFailures++;
@@ -1953,6 +1953,10 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
     QVariantMap lastDisplayObjects;  // 保存最后一个工具的displayObjects
 
     for (Algorithm::VisionTool* tool : tools) {
+        if (!tool) {
+            LOG_WARNING("processImage: 工具列表中存在空指针");
+            continue;
+        }
         if (!tool->isEnabled()) {
             continue;
         }
@@ -2004,9 +2008,11 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
 
     // 根据当前模式显示图像
     if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
-        // 多视图模式：更新当前选中的视图
-        int selectedIndex = multiCameraView_->selectedView();
-        multiCameraView_->updateImage(selectedIndex, currentImage_);
+        // 多视图模式：实时采集时更新所有视图位置（因为共享同一相机）
+        int viewCount = multiCameraView_->viewerCount();
+        for (int i = 0; i < viewCount; ++i) {
+            multiCameraView_->updateImage(i, currentImage_);
+        }
 
         // 同时更新隐藏的单图像查看器（用于其他功能）
         imageViewer_->setImage(currentImage_);
@@ -2064,6 +2070,41 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
     LOG_INFO(QString("图像处理完成 - 工具链: %1, 总耗时: %2 ms")
         .arg(toolChainDesc)
         .arg(totalExecutionTime, 0, 'f', 2));
+}
+
+void MainWindow::displayImage(Base::ImageData::Ptr image)
+{
+    if (!image) {
+        return;
+    }
+
+    // 更新当前图像
+    currentImage_ = image;
+
+    // 根据当前模式显示图像
+    if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+        // 多视图模式：更新所有视图位置
+        int viewCount = multiCameraView_->viewerCount();
+        for (int i = 0; i < viewCount; ++i) {
+            multiCameraView_->updateImage(i, currentImage_);
+        }
+        // 同时更新隐藏的单图像查看器
+        if (imageViewer_) {
+            imageViewer_->setImage(currentImage_);
+        }
+    } else {
+        // 单视图模式
+        if (imageViewer_) {
+            imageViewer_->setImage(currentImage_);
+        }
+    }
+
+    // 更新状态栏显示图像信息
+    cv::Mat mat = image->mat();
+    if (!mat.empty()) {
+        statusLabel_->setText(QString("图像: %1x%2, %3通道")
+            .arg(mat.cols).arg(mat.rows).arg(mat.channels()));
+    }
 }
 
 void MainWindow::showAddToolDialog()

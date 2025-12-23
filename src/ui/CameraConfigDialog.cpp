@@ -453,7 +453,21 @@ void CameraConfigDialog::createSideButtons(QWidget* parent)
     okBtn_->setStyleSheet(
         "QToolButton { background-color: #4a90d9; color: white; border-radius: 5px; font-size: 14px; }"
         "QToolButton:hover { background-color: #5aa0e9; }");
-    connect(okBtn_, &QToolButton::clicked, this, &QDialog::accept);
+    connect(okBtn_, &QToolButton::clicked, this, [this]() {
+        // 保存显示设置到相机配置
+        if (camera_ && camera_->isOpen()) {
+            HAL::ICamera::Config config = camera_->getConfig();
+            config.rotationAngle = rotationAngle_;
+            config.flipHorizontal = flipHorizontal_;
+            config.flipVertical = flipVertical_;
+            camera_->setConfig(config);
+            LOG_INFO(QString("相机显示设置已保存: 旋转=%1°, 水平镜像=%2, 垂直镜像=%3")
+                .arg(rotationAngle_)
+                .arg(flipHorizontal_ ? "是" : "否")
+                .arg(flipVertical_ ? "是" : "否"));
+        }
+        accept();
+    });
     layout->addWidget(okBtn_);
 
     // 取消按钮
@@ -777,6 +791,38 @@ void CameraConfigDialog::setCamera(HAL::ICamera* camera)
         if (crosslineYSpin_) crosslineYSpin_->setValue(config.height / 2.0);
         crosslineX_ = config.width / 2.0;
         crosslineY_ = config.height / 2.0;
+
+        // 加载显示设置
+        rotationAngle_ = config.rotationAngle;
+        flipHorizontal_ = config.flipHorizontal;
+        flipVertical_ = config.flipVertical;
+
+        // 更新镜像复选框
+        if (flipHorizontalCheck_) {
+            flipHorizontalCheck_->blockSignals(true);
+            flipHorizontalCheck_->setChecked(flipHorizontal_);
+            flipHorizontalCheck_->blockSignals(false);
+        }
+        if (flipVerticalCheck_) {
+            flipVerticalCheck_->blockSignals(true);
+            flipVerticalCheck_->setChecked(flipVertical_);
+            flipVerticalCheck_->blockSignals(false);
+        }
+
+        // 更新旋转单选按钮
+        if (rotationGroup_) {
+            QAbstractButton* btn = rotationGroup_->button(rotationAngle_);
+            if (btn) {
+                btn->blockSignals(true);
+                btn->setChecked(true);
+                btn->blockSignals(false);
+            }
+        }
+
+        LOG_DEBUG(QString("加载相机显示设置: 旋转=%1°, 水平镜像=%2, 垂直镜像=%3")
+            .arg(rotationAngle_)
+            .arg(flipHorizontal_ ? "是" : "否")
+            .arg(flipVertical_ ? "是" : "否"));
     } else {
         setControlsEnabled(false);
     }

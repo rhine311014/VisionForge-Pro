@@ -170,6 +170,7 @@ private:
     void updateStatusBar();
 
     void processImage(Base::ImageData::Ptr image);
+    void displayImage(Base::ImageData::Ptr image);  // 只显示图像，不运行工具
     void showAddToolDialog();
 
 private:
