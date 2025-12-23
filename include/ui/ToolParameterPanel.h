@@ -9,6 +9,7 @@
 #pragma once
 
 #include "algorithm/VisionTool.h"
+#include "hal/ICamera.h"
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QFormLayout>
@@ -52,6 +53,11 @@ public:
      */
     void clear();
 
+    /**
+     * @brief 设置相机指针（用于工具对话框中的采集功能）
+     */
+    void setCamera(HAL::ICamera* camera);
+
 signals:
     /**
      * @brief 参数改变信号
@@ -83,6 +89,11 @@ private:
     void createShapeMatchToolParameters();
 
     /**
+     * @brief 创建读码工具参数界面
+     */
+    void createCodeReadToolParameters();
+
+    /**
      * @brief 更新工具参数（从UI到工具）
      */
     void updateToolParameters();
@@ -94,6 +105,7 @@ private:
 
 private:
     Algorithm::VisionTool* currentTool_;    // 当前工具
+    HAL::ICamera* camera_;                  // 相机指针
 
     // 主布局
     QVBoxLayout* mainLayout_;

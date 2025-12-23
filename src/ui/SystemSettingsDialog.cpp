@@ -69,11 +69,6 @@ void SystemSettingsDialog::setupUI()
     connect(okButton_, &QPushButton::clicked, this, &SystemSettingsDialog::onOkClicked);
     buttonLayout->addWidget(okButton_);
 
-    applyButton_ = new QPushButton("应用", this);
-    applyButton_->setFixedWidth(80);
-    connect(applyButton_, &QPushButton::clicked, this, &SystemSettingsDialog::onApplyClicked);
-    buttonLayout->addWidget(applyButton_);
-
     cancelButton_ = new QPushButton("取消", this);
     cancelButton_->setFixedWidth(80);
     connect(cancelButton_, &QPushButton::clicked, this, &SystemSettingsDialog::onCancelClicked);
@@ -417,11 +412,16 @@ void SystemSettingsDialog::setupGPUTab(QWidget* tab)
 
 void SystemSettingsDialog::loadSettings()
 {
+    LOG_DEBUG("loadSettings: 开始");
+
     // 加载GPU设置
+    LOG_DEBUG("loadSettings: 获取GPUAccelerator实例");
     Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
+    LOG_DEBUG("loadSettings: 获取加速模式");
     selectedMode_ = gpu.getAccelMode();
 
     // 安全检查：确保accelModeGroup_已创建
+    LOG_DEBUG("loadSettings: 设置加速模式按钮");
     if (accelModeGroup_) {
         QAbstractButton* button = accelModeGroup_->button(static_cast<int>(selectedMode_));
         if (button) {
@@ -429,14 +429,20 @@ void SystemSettingsDialog::loadSettings()
         }
     }
 
+    LOG_DEBUG("loadSettings: 更新GPU状态显示");
     updateGPUStatusDisplay();
 
     // 加载平台设置
+    LOG_DEBUG("loadSettings: 加载平台设置");
     loadPlatformSettings();
+
+    LOG_DEBUG("loadSettings: 完成");
 }
 
 void SystemSettingsDialog::loadPlatformSettings()
 {
+    LOG_DEBUG("loadPlatformSettings: 开始");
+
     // 安全检查：确保所有必要控件已创建
     if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
         !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
@@ -444,11 +450,15 @@ void SystemSettingsDialog::loadPlatformSettings()
         !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
         !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
         !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
+        LOG_WARNING("loadPlatformSettings: 控件未完全初始化，跳过");
         return;
     }
 
+    LOG_DEBUG("loadPlatformSettings: 获取PlatformConfigManager实例");
     Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
+    LOG_DEBUG("loadPlatformSettings: 获取当前配置");
     const Platform::PlatformConfig& config = mgr.currentConfig();
+    LOG_DEBUG("loadPlatformSettings: 配置获取成功");
 
     // 阻止信号，避免重复触发槽函数
     platformTypeCombo_->blockSignals(true);

@@ -18,6 +18,7 @@
 #include <QInputDialog>
 #include <QSplitter>
 #include <QActionGroup>
+#include <QThread>
 #include <opencv2/opencv.hpp>
 #include <chrono>
 
@@ -32,6 +33,7 @@
 #include "ui/RecipeEditorDialog.h"
 #include "ui/CameraCalibDialog.h"
 #include "ui/NinePointCalibDialog.h"
+#include "ui/QRCalibDialog.h"
 #include "ui/SystemSettingsDialog.h"
 // 工具对话框 - 预处理
 #include "ui/GrayToolDialog.h"
@@ -70,6 +72,11 @@
 #include "ui/AlignmentOutputDialog.h"
 #include "ui/WorkStationDialog.h"
 #include "core/WorkStation.h"
+// 多工位多相机组件
+#include "ui/ManualDebugDialog.h"
+#include "ui/CalibrationWizard.h"
+#include "core/MultiStationManager.h"
+#include "core/PositionToolChainManager.h"
 // 基础设施
 #include "base/PermissionManager.h"
 #include "base/SystemMonitor.h"
@@ -133,8 +140,14 @@ MainWindow::MainWindow(QWidget* parent)
     , historyPanel_(nullptr)
     , recipeManagerWidget_(nullptr)
     , statisticsPanel_(nullptr)
+    , stationSwitchBar_(nullptr)
+    , multiCameraView_(nullptr)
+    , centralContainer_(nullptr)
+    , isMultiViewMode_(false)
     , camera_(nullptr)
     , isContinuousGrabbing_(false)
+    , isFrameValid_(true)
+    , isLiveDisplay_(true)
     , currentImageIndex_(-1)
 {
     setWindowTitle("VisionForge Pro - 机器视觉检测平台");
@@ -175,7 +188,8 @@ MainWindow::MainWindow(QWidget* parent)
     connectSignals();
 
     // 创建模拟相机作为默认相机（备用）
-    HAL::SimulatedCamera* simCamera = new HAL::SimulatedCamera(this);
+    // 注意：不传递parent，让unique_ptr完全管理生命周期，避免双重删除
+    HAL::SimulatedCamera* simCamera = new HAL::SimulatedCamera(nullptr);
     simCamera->useTestPattern(0);  // 使用渐变测试图案
     camera_.reset(simCamera);
 
@@ -185,6 +199,81 @@ MainWindow::MainWindow(QWidget* parent)
 
     // 初始化配方管理器（扫描目录并加载上次使用的配方）
     Core::RecipeManager::instance().initialize();
+
+    // 初始化多工位管理器
+    Core::MultiStationManager::instance().loadConfig();
+
+    // 创建工位切换栏（使用QToolBar包装）
+#ifdef USE_HALCON
+    stationSwitchBar_ = new StationSwitchBar(this);
+
+    // 创建工具栏包装器来承载工位切换栏
+    QToolBar* stationToolBar = new QToolBar(tr("工位切换"), this);
+    stationToolBar->setObjectName("stationToolBar");
+    stationToolBar->addWidget(stationSwitchBar_);
+    stationToolBar->setVisible(false);  // 默认隐藏，有多工位配置时显示
+    addToolBar(Qt::TopToolBarArea, stationToolBar);
+
+    // 连接工位切换信号
+    connect(stationSwitchBar_, &StationSwitchBar::stationSelected,
+            this, &MainWindow::onStationSelected);
+    connect(stationSwitchBar_, &StationSwitchBar::showAllStations,
+            this, &MainWindow::onShowAllStations);
+
+    // 创建多相机视图（但默认不显示）
+    multiCameraView_ = new MultiCameraView(this);
+    multiCameraView_->setVisible(false);
+
+    // 连接多相机视图信号
+    connect(multiCameraView_, &MultiCameraView::viewSelected,
+            this, &MainWindow::onMultiViewSelected);
+
+    // 根据工位配置初始化界面
+    auto& stationManager = Core::MultiStationManager::instance();
+    auto& toolChainManager = Core::PositionToolChainManager::instance();
+
+    int stationCount = stationManager.getStationCount();
+    if (stationCount > 0) {
+        // 刷新工位切换栏
+        stationSwitchBar_->refreshStations();
+        stationToolBar->setVisible(true);
+
+        // 获取当前工位配置
+        auto* currentStation = stationManager.currentStation();
+        if (currentStation) {
+            // 初始化工位的工具链管理
+            toolChainManager.initializeStation(currentStation);
+
+            // 设置多相机视图
+            multiCameraView_->setStation(currentStation);
+
+            // 如果位置数量大于1，默认显示多相机视图
+            if (currentStation->positionNum > 1) {
+                // 切换到多相机视图模式
+                isMultiViewMode_ = true;
+                imageViewer_->setVisible(false);
+                multiCameraView_->setVisible(true);
+                setCentralWidget(multiCameraView_);
+
+                // 设置当前位置为第一个位置，并初始化工具链
+                if (!currentStation->positionBindings.isEmpty()) {
+                    QString firstPosId = currentStation->positionBindings.first().positionId;
+                    toolChainManager.setCurrentPosition(currentStation->id, firstPosId);
+
+                    // 更新工具链面板显示当前位置的工具
+                    auto tools = toolChainManager.currentTools();
+                    toolChainPanel_->clear();
+                    for (auto* tool : tools) {
+                        toolChainPanel_->addTool(tool);
+                    }
+                }
+
+                LOG_INFO(QString("多工位模式: %1 个工位, 当前工位 %2 个位置")
+                         .arg(stationCount).arg(currentStation->positionNum));
+            }
+        }
+    }
+#endif
 
     // 尝试自动连接已保存的相机配置
     if (tryAutoConnectCamera()) {
@@ -616,82 +705,100 @@ void MainWindow::onRunAll()
 
 // ========== 相机操作 ==========
 
-void MainWindow::onOpenCamera()
+void MainWindow::onFrameValidToggled(bool checked)
 {
-    if (!camera_) {
-        return;
-    }
+    isFrameValid_ = checked;
 
-    if (camera_->open()) {
-        statusLabel_->setText("相机已打开");
-        updateActions();
-        LOG_INFO("相机已打开");
-    } else {
-        QMessageBox::warning(this, "错误", "打开相机失败");
+    if (checked) {
+        // 帧有效：触发单帧采集
+        if (camera_ && camera_->isOpen()) {
+            bool wasGrabbing = camera_->isGrabbing();
+
+            // 如果相机未在采集，先启动
+            if (!wasGrabbing) {
+                if (!camera_->startGrabbing()) {
+                    LOG_ERROR("启动相机采集失败");
+                    statusLabel_->setText("帧有效: 采集失败");
+                    frameValidAction_->setChecked(false);
+                    return;
+                }
+            }
+
+            // 触发采集（软触发模式）
+            if (camera_->getConfig().triggerMode == HAL::ICamera::Software) {
+                camera_->trigger();
+            }
+
+            // 获取图像
+            Base::ImageData::Ptr image = camera_->grabImage(1000);
+
+            // 如果之前未在连续采集，停止采集
+            if (!wasGrabbing && !isContinuousGrabbing_) {
+                camera_->stopGrabbing();
+            }
+
+            if (image) {
+                // 应用图像变换（旋转、镜像）
+                applyImageTransform(image);
+                // 处理图像
+                processImage(image);
+                statusLabel_->setText("帧有效: 采集成功");
+                LOG_INFO("帧有效采集成功");
+            } else {
+                statusLabel_->setText("帧有效: 获取图像失败");
+                LOG_WARNING("帧有效获取图像失败");
+            }
+        } else {
+            LOG_WARNING("相机未连接或未打开");
+            statusLabel_->setText("帧有效: 相机未就绪");
+        }
+
+        // 重置为未选中状态（单次触发）
+        frameValidAction_->setChecked(false);
     }
 }
 
-void MainWindow::onCloseCamera()
+void MainWindow::onLiveDisplayToggled(bool checked)
 {
-    if (!camera_) {
-        return;
-    }
+    isLiveDisplay_ = checked;
 
-    camera_->close();
-    continuousTimer_->stop();
-    isContinuousGrabbing_ = false;
-
-    statusLabel_->setText("相机已关闭");
-    updateActions();
-    LOG_INFO("相机已关闭");
-}
-
-void MainWindow::onGrabImage()
-{
-    if (!camera_ || !camera_->isOpen()) {
-        return;
-    }
-
-    camera_->trigger();
-    Base::ImageData::Ptr image = camera_->grabImage(5000);
-
-    if (image) {
-        // 应用图像变换（旋转、镜像）
-        applyImageTransform(image);
-
-        currentImage_ = image;
-        imageViewer_->setImage(currentImage_);
-        statusLabel_->setText("图像采集成功");
-        updateActions();
-        updateStatusBar();
-
-        LOG_DEBUG("采集图像成功");
+    if (checked) {
+        // 启用实时显示 - 开始连续采集
+        if (camera_ && camera_->isOpen()) {
+            if (!isContinuousGrabbing_) {
+                // 先启动相机采集
+                if (!camera_->isGrabbing()) {
+                    if (!camera_->startGrabbing()) {
+                        LOG_ERROR("启动相机采集失败");
+                        statusLabel_->setText("实时显示: 启动失败");
+                        liveDisplayAction_->setChecked(false);
+                        return;
+                    }
+                }
+                isContinuousGrabbing_ = true;
+                continuousTimer_->start(150);  // 约6-7 FPS，减轻CPU负担
+            }
+        } else {
+            LOG_WARNING("相机未连接或未打开，无法启用实时显示");
+            statusLabel_->setText("实时显示: 相机未就绪");
+            liveDisplayAction_->setChecked(false);
+            return;
+        }
+        statusLabel_->setText("实时显示: 已启用");
+        LOG_INFO("实时显示已启用");
     } else {
-        QMessageBox::warning(this, "错误", "图像采集失败");
+        // 禁用实时显示 - 停止连续采集
+        if (isContinuousGrabbing_) {
+            isContinuousGrabbing_ = false;
+            continuousTimer_->stop();
+            // 停止相机采集
+            if (camera_ && camera_->isGrabbing()) {
+                camera_->stopGrabbing();
+            }
+        }
+        statusLabel_->setText("实时显示: 已禁用");
+        LOG_INFO("实时显示已禁用");
     }
-}
-
-void MainWindow::onContinuousGrab()
-{
-    if (!camera_ || !camera_->isOpen()) {
-        return;
-    }
-
-    if (!isContinuousGrabbing_) {
-        isContinuousGrabbing_ = true;
-        continuousTimer_->start(100);  // 10 FPS
-        continuousGrabAction_->setText("停止连续采集");
-        statusLabel_->setText("连续采集中...");
-        LOG_INFO("开始连续采集");
-    } else {
-        isContinuousGrabbing_ = false;
-        continuousTimer_->stop();
-        continuousGrabAction_->setText("连续采集");
-        statusLabel_->setText("已停止连续采集");
-        LOG_INFO("停止连续采集");
-    }
-
-    updateActions();
 }
 
 // ========== 工具链 ==========
@@ -1069,22 +1176,88 @@ void MainWindow::applyImageTransform(Base::ImageData::Ptr& image)
 
 void MainWindow::onContinuousTimer()
 {
-    if (!camera_ || !camera_->isOpen()) {
-        continuousTimer_->stop();
-        isContinuousGrabbing_ = false;
+    // 防止重入
+    static bool isGrabbing = false;
+    static int consecutiveFailures = 0;  // 连续失败次数
+    static int successCount = 0;         // 成功计数
+
+    if (isGrabbing) {
         return;
     }
 
-    camera_->trigger();
-    Base::ImageData::Ptr image = camera_->grabImage(100);
-
-    if (image) {
-        // 应用图像变换（旋转、镜像）
-        applyImageTransform(image);
-
-        // 处理图像
-        processImage(image);
+    if (!camera_ || !camera_->isOpen()) {
+        continuousTimer_->stop();
+        isContinuousGrabbing_ = false;
+        liveDisplayAction_->setChecked(false);
+        consecutiveFailures = 0;
+        successCount = 0;
+        return;
     }
+
+    // 检查是否需要显示（实时显示开启时才更新画面）
+    if (!isLiveDisplay_) {
+        return;
+    }
+
+    isGrabbing = true;
+
+    try {
+        // 连续采集模式下不需要trigger，直接获取图像
+        // 如果是软触发模式才需要调用trigger
+        if (camera_->getConfig().triggerMode == HAL::ICamera::Software) {
+            camera_->trigger();
+        }
+
+        // 使用较长超时避免超时错误，连续采集模式下相机应该持续输出帧
+        Base::ImageData::Ptr image = camera_->grabImage(1000);
+
+        if (image) {
+            // 重置失败计数
+            consecutiveFailures = 0;
+            successCount++;
+
+            // 应用图像变换（旋转、镜像）
+            applyImageTransform(image);
+
+            // 处理图像
+            processImage(image);
+        } else {
+            // 图像为空（可能是临时超时）
+            consecutiveFailures++;
+
+            // 只在首次失败或每隔10次失败时记录日志，避免刷屏
+            if (consecutiveFailures == 1 || consecutiveFailures % 10 == 0) {
+                LOG_WARNING(QString("连续采集：获取图像失败（第%1次）").arg(consecutiveFailures));
+            }
+
+            // 如果连续失败超过30次（约30秒），尝试重启采集
+            if (consecutiveFailures >= 30) {
+                LOG_WARNING("连续采集失败次数过多，尝试重启采集");
+                camera_->stopGrabbing();
+                QThread::msleep(100);
+                if (camera_->startGrabbing()) {
+                    consecutiveFailures = 0;
+                    LOG_INFO("重启采集成功");
+                } else {
+                    LOG_ERROR("重启采集失败，停止实时显示");
+                    continuousTimer_->stop();
+                    isContinuousGrabbing_ = false;
+                    liveDisplayAction_->setChecked(false);
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("连续采集异常: %1").arg(e.what()));
+        consecutiveFailures++;
+    } catch (...) {
+        LOG_ERROR("连续采集未知异常");
+        consecutiveFailures++;
+    }
+
+    isGrabbing = false;
+
+    // 让出CPU时间给UI，避免界面卡顿
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
 
 // ========== 私有方法 ==========
@@ -1215,35 +1388,21 @@ void MainWindow::createMenus()
     // 相机菜单
     cameraMenu_ = menuBar()->addMenu("相机(&C)");
 
-    openCameraAction_ = new QAction(Theme::getIcon(Icons::CAMERA_PHOTO), "打开相机(&O)", this);
-    openCameraAction_->setStatusTip("打开相机设备");
-    connect(openCameraAction_, &QAction::triggered, this, &MainWindow::onOpenCamera);
-    cameraMenu_->addAction(openCameraAction_);
+    // 帧有效切换
+    frameValidAction_ = new QAction(Theme::getIcon(Icons::TOOL_RUN), "帧有效(&F)", this);
+    frameValidAction_->setCheckable(true);
+    frameValidAction_->setChecked(true);
+    frameValidAction_->setStatusTip("切换帧有效状态");
+    connect(frameValidAction_, &QAction::toggled, this, &MainWindow::onFrameValidToggled);
+    cameraMenu_->addAction(frameValidAction_);
 
-    closeCameraAction_ = new QAction(Theme::getIcon(Icons::TOOL_STOP), "关闭相机(&C)", this);
-    closeCameraAction_->setStatusTip("关闭相机设备");
-    connect(closeCameraAction_, &QAction::triggered, this, &MainWindow::onCloseCamera);
-    cameraMenu_->addAction(closeCameraAction_);
-
-    cameraMenu_->addSeparator();
-
-    grabImageAction_ = new QAction(Theme::getIcon(Icons::CAMERA_PHOTO), tr("采集单帧(&G)"), this);
-    grabImageAction_->setShortcut(Qt::Key_F7);
-    grabImageAction_->setStatusTip(tr("采集单帧图像 (F7 / Ctrl+G)"));
-    connect(grabImageAction_, &QAction::triggered, this, &MainWindow::onGrabImage);
-    cameraMenu_->addAction(grabImageAction_);
-
-    // 添加备用快捷键 Ctrl+G
-    QAction* grabShortcut = new QAction(this);
-    grabShortcut->setShortcut(Qt::CTRL | Qt::Key_G);
-    connect(grabShortcut, &QAction::triggered, this, &MainWindow::onGrabImage);
-    addAction(grabShortcut);
-
-    continuousGrabAction_ = new QAction(Theme::getIcon(Icons::CAMERA_VIDEO), "连续采集(&C)", this);
-    continuousGrabAction_->setCheckable(true);
-    continuousGrabAction_->setStatusTip("连续采集图像");
-    connect(continuousGrabAction_, &QAction::triggered, this, &MainWindow::onContinuousGrab);
-    cameraMenu_->addAction(continuousGrabAction_);
+    // 实时显示切换
+    liveDisplayAction_ = new QAction(Theme::getIcon(Icons::CAMERA_VIDEO), "实时显示(&L)", this);
+    liveDisplayAction_->setCheckable(true);
+    liveDisplayAction_->setChecked(true);
+    liveDisplayAction_->setStatusTip("切换实时显示状态");
+    connect(liveDisplayAction_, &QAction::toggled, this, &MainWindow::onLiveDisplayToggled);
+    cameraMenu_->addAction(liveDisplayAction_);
 
     cameraMenu_->addSeparator();
 
@@ -1264,6 +1423,11 @@ void MainWindow::createMenus()
     ninePointCalibAction_->setStatusTip("图像坐标到物理坐标映射标定");
     connect(ninePointCalibAction_, &QAction::triggered, this, &MainWindow::onNinePointCalibration);
     calibMenu_->addAction(ninePointCalibAction_);
+
+    qrCalibAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "QR码标定(&Q)...", this);
+    qrCalibAction_->setStatusTip("基于QR码/DM码的自动标定");
+    connect(qrCalibAction_, &QAction::triggered, this, &MainWindow::onQRCalibration);
+    calibMenu_->addAction(qrCalibAction_);
 
     // 对位菜单
     alignmentMenu_ = menuBar()->addMenu("对位(&A)");
@@ -1289,6 +1453,32 @@ void MainWindow::createMenus()
     alignmentOutputAction_->setStatusTip("配置对位结果输出（PLC/TCP/串口）");
     connect(alignmentOutputAction_, &QAction::triggered, this, &MainWindow::onAlignmentOutput);
     alignmentMenu_->addAction(alignmentOutputAction_);
+
+    alignmentMenu_->addSeparator();
+
+    // 多工位调试功能
+#ifdef USE_HALCON
+    manualDebugAction_ = new QAction(Theme::getIcon(Icons::TOOL_RUN), "手动调试中心(&D)...", this);
+    manualDebugAction_->setShortcut(Qt::Key_F8);
+    manualDebugAction_->setStatusTip("打开多工位手动调试中心（F8）");
+    connect(manualDebugAction_, &QAction::triggered, this, &MainWindow::onManualDebugCenter);
+    alignmentMenu_->addAction(manualDebugAction_);
+
+    calibWizardAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "标定向导(&W)...", this);
+    calibWizardAction_->setStatusTip("多位置标定向导");
+    connect(calibWizardAction_, &QAction::triggered, this, &MainWindow::onCalibrationWizard);
+    alignmentMenu_->addAction(calibWizardAction_);
+
+    alignmentMenu_->addSeparator();
+
+    toggleMultiViewAction_ = new QAction(Theme::getIcon(Icons::CAMERA_VIDEO), "切换多相机视图(&V)", this);
+    toggleMultiViewAction_->setShortcut(Qt::Key_F9);
+    toggleMultiViewAction_->setCheckable(true);
+    toggleMultiViewAction_->setChecked(false);
+    toggleMultiViewAction_->setStatusTip("切换单相机/多相机显示模式（F9）");
+    connect(toggleMultiViewAction_, &QAction::triggered, this, &MainWindow::onToggleMultiCameraView);
+    alignmentMenu_->addAction(toggleMultiViewAction_);
+#endif
 
     // 通信菜单
     commMenu_ = menuBar()->addMenu("通信(&M)");
@@ -1486,10 +1676,8 @@ void MainWindow::createToolBars()
 
     // 相机工具栏
     cameraToolBar_ = addToolBar("相机");
-    cameraToolBar_->addAction(openCameraAction_);
-    cameraToolBar_->addAction(closeCameraAction_);
-    cameraToolBar_->addAction(grabImageAction_);
-    cameraToolBar_->addAction(continuousGrabAction_);
+    cameraToolBar_->addAction(frameValidAction_);
+    cameraToolBar_->addAction(liveDisplayAction_);
 
     // 处理工具栏
     processToolBar_ = addToolBar("处理");
@@ -1518,6 +1706,11 @@ void MainWindow::createDockWindows()
 
     toolParameterPanel_ = new ToolParameterPanel(this);
     toolParameterDock_->setWidget(toolParameterPanel_);
+
+    // 设置相机指针（用于工具对话框中的采集功能）
+    if (camera_) {
+        toolParameterPanel_->setCamera(camera_.get());
+    }
 
     addDockWidget(Qt::RightDockWidgetArea, toolParameterDock_);
 
@@ -1713,7 +1906,6 @@ void MainWindow::updateActions()
 {
     bool hasImage = (currentImage_ != nullptr);
     bool hasTool = (toolChainPanel_->getCurrentTool() != nullptr);
-    bool cameraOpen = (camera_ && camera_->isOpen());
 
     saveImageAction_->setEnabled(hasImage);
 
@@ -1721,10 +1913,9 @@ void MainWindow::updateActions()
     runAllAction_->setEnabled(hasImage);
     removeToolAction_->setEnabled(hasTool);
 
-    openCameraAction_->setEnabled(!cameraOpen);
-    closeCameraAction_->setEnabled(cameraOpen);
-    grabImageAction_->setEnabled(cameraOpen && !isContinuousGrabbing_);
-    continuousGrabAction_->setEnabled(cameraOpen);
+    // 帧有效和实时显示始终可用
+    frameValidAction_->setEnabled(true);
+    liveDisplayAction_->setEnabled(true);
 }
 
 void MainWindow::updateStatusBar()
@@ -1742,6 +1933,12 @@ void MainWindow::updateStatusBar()
 void MainWindow::processImage(Base::ImageData::Ptr image)
 {
     if (!image) {
+        return;
+    }
+
+    // 安全检查：确保所有面板已初始化
+    if (!toolChainPanel_ || !resultTablePanel_ || !historyPanel_ || !imageViewer_) {
+        LOG_ERROR("processImage: 面板未初始化");
         return;
     }
 
@@ -1804,7 +2001,19 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
 
     // 更新当前图像
     currentImage_ = result;
-    imageViewer_->setImage(currentImage_);
+
+    // 根据当前模式显示图像
+    if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+        // 多视图模式：更新当前选中的视图
+        int selectedIndex = multiCameraView_->selectedView();
+        multiCameraView_->updateImage(selectedIndex, currentImage_);
+
+        // 同时更新隐藏的单图像查看器（用于其他功能）
+        imageViewer_->setImage(currentImage_);
+    } else {
+        // 单视图模式
+        imageViewer_->setImage(currentImage_);
+    }
 
     // 处理displayObjects - XLD轮廓显示
 #ifdef USE_HALCON
@@ -1821,11 +2030,25 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
 
                 QList<HXLDCont> contours;
                 contours.append(xldPtr->contours());
+
+                // 在多视图模式下也需要更新对应视图的XLD
+                if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+                    HalconImageViewer* viewer = multiCameraView_->getSelectedViewer();
+                    if (viewer) {
+                        viewer->setXLDContours(contours);
+                    }
+                }
                 imageViewer_->setXLDContours(contours);
             }
         }
     } else {
         // 清除之前的XLD显示
+        if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+            HalconImageViewer* viewer = multiCameraView_->getSelectedViewer();
+            if (viewer) {
+                viewer->clearXLDContours();
+            }
+        }
         imageViewer_->clearXLDContours();
     }
 #endif
@@ -1959,6 +2182,17 @@ void MainWindow::onPLCConfig()
 
 void MainWindow::onCameraConfig()
 {
+    // 保存当前连续采集状态并暂停
+    bool wasGrabbing = isContinuousGrabbing_;
+    if (isContinuousGrabbing_) {
+        continuousTimer_->stop();
+        isContinuousGrabbing_ = false;
+        // 停止相机采集以释放资源给配置对话框
+        if (camera_ && camera_->isGrabbing()) {
+            camera_->stopGrabbing();
+        }
+    }
+
     CameraConfigDialog dialog(this);
 
     // 如果有当前相机，传递给对话框
@@ -1977,10 +2211,23 @@ void MainWindow::onCameraConfig()
             // 使用reset转移所有权，旧相机自动释放
             camera_.reset(newCamera);
             LOG_INFO(QString("相机已切换: %1").arg(camera_->deviceName()));
+
+            // 更新工具参数面板的相机指针
+            if (toolParameterPanel_) {
+                toolParameterPanel_->setCamera(camera_.get());
+            }
         }
 
         updateActions();
         LOG_INFO("相机配置已更新");
+    }
+
+    // 恢复连续采集状态
+    if (wasGrabbing && camera_ && camera_->isOpen() && isLiveDisplay_) {
+        if (camera_->startGrabbing()) {
+            isContinuousGrabbing_ = true;
+            continuousTimer_->start(150);
+        }
     }
 }
 
@@ -2094,6 +2341,27 @@ void MainWindow::onNinePointCalibration()
         Algorithm::CalibrationManager::instance().setNinePointCalibResult(result);
         LOG_INFO("九点标定结果已保存到CalibrationManager");
         statusLabel_->setText("九点标定完成");
+    });
+
+    dialog.exec();
+}
+
+void MainWindow::onQRCalibration()
+{
+    QRCalibDialog dialog(this);
+
+    // 设置当前图像
+    if (currentImage_) {
+        dialog.setCurrentImage(currentImage_);
+    }
+
+    // 连接标定完成信号
+    connect(&dialog, &QRCalibDialog::calibrationCompleted,
+            this, [this](const Algorithm::CalibrationResult& result) {
+        // 保存标定结果到CalibrationManager
+        Algorithm::CalibrationManager::instance().setNinePointCalibResult(result);
+        LOG_INFO("QR码标定结果已保存到CalibrationManager");
+        statusLabel_->setText("QR码标定完成");
     });
 
     dialog.exec();
@@ -2384,13 +2652,176 @@ bool MainWindow::tryAutoConnectCamera()
     }
     camera_.reset(newCamera);
 
+    // 更新工具参数面板的相机指针
+    if (toolParameterPanel_) {
+        toolParameterPanel_->setCamera(camera_.get());
+    }
+
+    // 开始采集（必须在获取图像之前调用）
+    if (!camera_->startGrabbing()) {
+        LOG_ERROR("启动相机采集失败");
+        statusLabel_->setText("相机采集启动失败");
+        return false;
+    }
+
     statusLabel_->setText(QString("已自动连接相机: %1").arg(matchedCamera.modelName));
     updateActions();
 
     LOG_INFO(QString("相机自动连接成功: %1 (%2)")
         .arg(matchedCamera.modelName).arg(matchedCamera.serialNumber));
 
+    // 如果实时显示已启用，自动开始连续采集
+    if (isLiveDisplay_ && liveDisplayAction_->isChecked()) {
+        if (!isContinuousGrabbing_) {
+            // 等待相机稳定后再开始连续采集
+            // 给相机一些时间来采集第一帧
+            QTimer::singleShot(500, this, [this]() {
+                if (camera_ && camera_->isOpen() && isLiveDisplay_) {
+                    isContinuousGrabbing_ = true;
+                    continuousTimer_->start(150);  // 10 FPS
+                    LOG_INFO("相机连接成功，自动开始实时显示");
+                }
+            });
+        }
+    }
+
     return true;
+}
+
+// ========== 多工位多相机 ==========
+
+void MainWindow::onStationSelected(int index)
+{
+#ifdef USE_HALCON
+    auto& manager = Core::MultiStationManager::instance();
+    if (manager.setCurrentStationByIndex(index)) {
+        auto* station = manager.currentStation();
+        if (station && multiCameraView_) {
+            multiCameraView_->setStation(station);
+        }
+        statusLabel_->setText(QString("切换到工位: %1").arg(station ? station->name : ""));
+        LOG_INFO(QString("切换到工位索引 %1").arg(index));
+    }
+#else
+    Q_UNUSED(index);
+#endif
+}
+
+void MainWindow::onShowAllStations()
+{
+#ifdef USE_HALCON
+    statusLabel_->setText("显示所有工位");
+    LOG_INFO("显示所有工位");
+#endif
+}
+
+void MainWindow::onManualDebugCenter()
+{
+#ifdef USE_HALCON
+    auto& manager = Core::MultiStationManager::instance();
+    auto* station = manager.currentStation();
+
+    ManualDebugDialog dialog(this);
+    if (station) {
+        dialog.setStation(station);
+    }
+    dialog.exec();
+#endif
+}
+
+void MainWindow::onCalibrationWizard()
+{
+#ifdef USE_HALCON
+    auto& manager = Core::MultiStationManager::instance();
+    auto* station = manager.currentStation();
+
+    if (!station) {
+        QMessageBox::warning(this, tr("警告"), tr("请先配置工位"));
+        return;
+    }
+
+    CalibrationWizard wizard(station, this);
+    wizard.exec();
+#endif
+}
+
+void MainWindow::onToggleMultiCameraView()
+{
+#ifdef USE_HALCON
+    isMultiViewMode_ = !isMultiViewMode_;
+
+    if (isMultiViewMode_) {
+        // 切换到多相机视图
+        imageViewer_->setVisible(false);
+        multiCameraView_->setVisible(true);
+        setCentralWidget(multiCameraView_);
+
+        // 显示工位切换栏
+        stationSwitchBar_->setVisible(true);
+        stationSwitchBar_->refreshStations();
+
+        // 加载当前工位配置
+        auto& manager = Core::MultiStationManager::instance();
+        auto* station = manager.currentStation();
+        if (station) {
+            multiCameraView_->setStation(station);
+        }
+
+        statusLabel_->setText("多相机视图模式");
+    } else {
+        // 切换回单相机视图
+        multiCameraView_->setVisible(false);
+        imageViewer_->setVisible(true);
+        setCentralWidget(imageViewer_);
+
+        // 隐藏工位切换栏
+        stationSwitchBar_->setVisible(false);
+
+        statusLabel_->setText("单相机视图模式");
+    }
+
+    toggleMultiViewAction_->setChecked(isMultiViewMode_);
+#endif
+}
+
+void MainWindow::onMultiViewSelected(int index, const QString& positionId)
+{
+#ifdef USE_HALCON
+    Q_UNUSED(index);
+
+    auto& stationManager = Core::MultiStationManager::instance();
+    auto& toolChainManager = Core::PositionToolChainManager::instance();
+
+    QString stationId = stationManager.currentStationId();
+
+    // 切换到选中位置的工具链
+    if (toolChainManager.setCurrentPosition(stationId, positionId)) {
+        // 获取该位置的工具列表
+        auto tools = toolChainManager.currentTools();
+
+        // 更新工具链面板
+        toolChainPanel_->clear();
+        for (auto* tool : tools) {
+            toolChainPanel_->addTool(tool);
+        }
+
+        // 获取位置名称
+        auto* station = stationManager.currentStation();
+        QString positionName = positionId;
+        if (station) {
+            auto* binding = station->getPositionBinding(positionId);
+            if (binding) {
+                positionName = binding->positionName;
+            }
+        }
+
+        statusLabel_->setText(QString("当前位置: %1 (%2)").arg(positionName).arg(positionId));
+        LOG_INFO(QString("切换到位置: %1/%2").arg(stationId).arg(positionId));
+    }
+#else
+    Q_UNUSED(index);
+    Q_UNUSED(positionId);
+#endif
 }
 
 } // namespace UI

@@ -11,6 +11,8 @@
 #ifdef USE_HALCON
 #include "ui/ShapeMatchParamPanel.h"
 #include "algorithm/ShapeMatchTool.h"
+#include "ui/CodeReadToolDialog.h"
+#include "algorithm/CodeReadTool.h"
 #endif
 
 namespace VisionForge {
@@ -19,6 +21,7 @@ namespace UI {
 ToolParameterPanel::ToolParameterPanel(QWidget* parent)
     : QWidget(parent)
     , currentTool_(nullptr)
+    , camera_(nullptr)
     , convertModeCombo_(nullptr)
     , channelCombo_(nullptr)
     , shapeMatchParamPanel_(nullptr)
@@ -37,7 +40,8 @@ ToolParameterPanel::ToolParameterPanel(QWidget* parent)
     commonLayout->addRow("启用:", enabledCheckBox_);
 
     displayNameEdit_ = new QLineEdit(this);
-    connect(displayNameEdit_, &QLineEdit::textChanged, this, &ToolParameterPanel::onParameterChanged);
+    // 使用 editingFinished 而不是 textChanged，避免每输入一个字符都触发更新导致卡顿
+    connect(displayNameEdit_, &QLineEdit::editingFinished, this, &ToolParameterPanel::onParameterChanged);
     commonLayout->addRow("显示名称:", displayNameEdit_);
 
     mainLayout_->addWidget(commonGroup_);
@@ -94,6 +98,9 @@ void ToolParameterPanel::setTool(Algorithm::VisionTool* tool)
 #ifdef USE_HALCON
     else if (currentTool_->toolType() == Algorithm::VisionTool::Match) {
         createShapeMatchToolParameters();
+    }
+    else if (currentTool_->toolType() == Algorithm::VisionTool::CodeRead) {
+        createCodeReadToolParameters();
     }
 #endif
 
@@ -278,6 +285,31 @@ void ToolParameterPanel::createShapeMatchToolParameters()
             this, &ToolParameterPanel::trainModelRequested);
 }
 #endif
+
+void ToolParameterPanel::createCodeReadToolParameters()
+{
+#ifdef USE_HALCON
+    using namespace Algorithm;
+    CodeReadTool* codeTool = dynamic_cast<CodeReadTool*>(currentTool_);
+    if (!codeTool) return;
+
+    QPushButton* configBtn = new QPushButton("打开配置对话框", this);
+    connect(configBtn, &QPushButton::clicked, [this, codeTool]() {
+        CodeReadToolDialog dlg(codeTool, this);
+        // 传递相机指针以启用采集功能
+        if (camera_) {
+            dlg.setCamera(camera_);
+        }
+        dlg.exec();
+    });
+    specificLayout_->addRow(configBtn);
+#endif
+}
+
+void ToolParameterPanel::setCamera(HAL::ICamera* camera)
+{
+    camera_ = camera;
+}
 
 } // namespace UI
 } // namespace VisionForge

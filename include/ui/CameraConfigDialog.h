@@ -9,6 +9,7 @@
 
 #include <QDialog>
 #include <QTimer>
+#include <QButtonGroup>
 #include <opencv2/core.hpp>
 #include "hal/ICamera.h"
 #include "hal/CameraFactory.h"
@@ -16,19 +17,22 @@
 class QLabel;
 class QComboBox;
 class QPushButton;
+class QToolButton;
 class QDoubleSpinBox;
 class QSpinBox;
 class QSlider;
 class QGroupBox;
-class QTableWidget;
 class QCheckBox;
+class QRadioButton;
+class QVBoxLayout;
 
 namespace VisionForge {
 
 /**
  * @brief 相机配置对话框
  *
- * 提供相机选择、参数配置和预览功能
+ * 提供相机参数配置和预览功能
+ * 注：设备选择已移至CameraSetupDialog
  */
 class CameraConfigDialog : public QDialog {
     Q_OBJECT
@@ -57,71 +61,82 @@ signals:
     void cameraSelected(HAL::ICamera* camera);
 
 private slots:
-    void onRefreshDevices();
-    void onDeviceSelectionChanged();
-    void onConnectCamera();
-    void onDisconnectCamera();
-    void onStartPreview();
-    void onStopPreview();
+    void onPositionChanged(int id);
+    void onStartCapture();
     void onExposureChanged(double value);
     void onGainChanged(double value);
-    void onTriggerModeChanged(int index);
+    void onGammaChanged(double value);
+    void onGammaEnabled(bool enabled);
+    void onLightSettings();
+    void onTriggerSettings();
+    void onRotationChanged(int id);
+    void onCrosslineEnabled(bool enabled);
+    void onCrosslineCenterClicked();
     void onPreviewTimer();
-    void onApplySettings();
     void onCameraError(const QString& error);
 
 private:
     void setupUI();
-    void createDeviceListGroup();
-    void createParameterGroup();
-    void createTransformGroup();
-    void createPreviewGroup();
-    void createButtonGroup();
-    void updateDeviceList();
+    void createPreviewArea(QWidget* parent);
+    void createControlPanel(QWidget* parent);
+    void createPositionGroup(QVBoxLayout* layout);
+    void createParameterGroup(QVBoxLayout* layout);
+    void createDisplayGroup(QVBoxLayout* layout);
+    void createCrosslineGroup(QVBoxLayout* layout);
+    void createSideButtons(QWidget* parent);
     void updateParameterRanges();
     void updatePreviewImage(Base::ImageData::Ptr image);
     void setControlsEnabled(bool enabled);
     cv::Mat applyTransform(const cv::Mat& src);
+    void drawCrossline(cv::Mat& image);
 
 private:
-    // 设备列表
-    QGroupBox* deviceGroup_;
-    QTableWidget* deviceTable_;
-    QPushButton* refreshBtn_;
-    QComboBox* cameraTypeCombo_;
+    // 预览区域
+    QLabel* previewLabel_;
 
-    // 参数配置
+    // 位置选择
+    QButtonGroup* positionGroup_;
+    QRadioButton* positionRadios_[4];
+
+    // 参数设置
     QGroupBox* paramGroup_;
-    QDoubleSpinBox* exposureSpin_;
     QSlider* exposureSlider_;
-    QDoubleSpinBox* gainSpin_;
-    QSlider* gainSlider_;
-    QComboBox* triggerModeCombo_;
-    QSpinBox* widthSpin_;
-    QSpinBox* heightSpin_;
-    QSpinBox* offsetXSpin_;
-    QSpinBox* offsetYSpin_;
+    QDoubleSpinBox* exposureSpin_;
+    QToolButton* exposureDecBtn_;
+    QToolButton* exposureIncBtn_;
 
-    // 图像变换
-    QGroupBox* transformGroup_;
-    QComboBox* rotationCombo_;
+    QSlider* gainSlider_;
+    QDoubleSpinBox* gainSpin_;
+    QToolButton* gainDecBtn_;
+    QToolButton* gainIncBtn_;
+
+    QCheckBox* gammaCheck_;
+    QSlider* gammaSlider_;
+    QDoubleSpinBox* gammaSpin_;
+
+    QPushButton* lightSettingsBtn_;
+    QPushButton* triggerSettingsBtn_;
+
+    // 显示设置
+    QGroupBox* displayGroup_;
     QCheckBox* flipHorizontalCheck_;
     QCheckBox* flipVerticalCheck_;
+    QButtonGroup* rotationGroup_;
+    QRadioButton* rotationRadios_[4];
 
-    // 预览
-    QGroupBox* previewGroup_;
-    QLabel* previewLabel_;
-    QPushButton* startPreviewBtn_;
-    QPushButton* stopPreviewBtn_;
-    QLabel* fpsLabel_;
-    QCheckBox* autoExposureCheck_;
+    // 十字线设置
+    QGroupBox* crosslineGroup_;
+    QCheckBox* crosslineCheck_;
+    QDoubleSpinBox* crosslineXSpin_;
+    QDoubleSpinBox* crosslineYSpin_;
+    QPushButton* crosslineCenterBtn_;
 
-    // 按钮
-    QPushButton* connectBtn_;
-    QPushButton* disconnectBtn_;
-    QPushButton* applyBtn_;
-    QPushButton* okBtn_;
-    QPushButton* cancelBtn_;
+    // 采集按钮
+    QPushButton* startCaptureBtn_;
+
+    // 侧边按钮
+    QToolButton* okBtn_;
+    QToolButton* cancelBtn_;
 
     // 相机和状态
     HAL::ICamera* camera_;
@@ -129,14 +144,24 @@ private:
     QTimer* previewTimer_;
     int frameCount_;
     qint64 lastFpsTime_;
-
-    // 设备信息缓存
-    QList<HAL::GenericDeviceInfo> deviceList_;
+    bool isCapturing_;
 
     // 图像变换设置
-    int rotationAngle_;         // 旋转角度: 0, 90, 180, 270
-    bool flipHorizontal_;       // 水平镜像
-    bool flipVertical_;         // 垂直镜像
+    int rotationAngle_;
+    bool flipHorizontal_;
+    bool flipVertical_;
+
+    // 十字线设置
+    bool crosslineEnabled_;
+    double crosslineX_;
+    double crosslineY_;
+
+    // Gamma设置
+    bool gammaEnabled_;
+    double gammaValue_;
+
+    // 当前位置
+    int currentPosition_;
 };
 
 } // namespace VisionForge

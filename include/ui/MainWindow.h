@@ -22,6 +22,8 @@
 #include "ui/RecipeManagerWidget.h"
 #include "ui/StatisticsPanel.h"
 #include "ui/UIModeManager.h"
+#include "ui/StationSwitchBar.h"
+#include "ui/MultiCameraView.h"
 #include "hal/SimulatedCamera.h"
 #include "hal/ICamera.h"
 #include "algorithm/VisionTool.h"
@@ -86,10 +88,8 @@ private slots:
     void onRunAll();
 
     // 相机操作
-    void onOpenCamera();
-    void onCloseCamera();
-    void onGrabImage();
-    void onContinuousGrab();
+    void onFrameValidToggled(bool checked);   // 帧有效切换
+    void onLiveDisplayToggled(bool checked);  // 实时显示切换
 
     // 工具链
     void onToolSelectionChanged(Algorithm::VisionTool* tool);
@@ -126,6 +126,7 @@ private slots:
     // 标定
     void onCameraCalibration();
     void onNinePointCalibration();
+    void onQRCalibration();
 
     // 多相机多位置对位
     void onMultiCameraManager();
@@ -148,6 +149,14 @@ private slots:
 
     // UI模式
     void onUIModeChanged(VisionForge::UI::UIMode mode);
+
+    // 多工位多相机
+    void onStationSelected(int index);
+    void onShowAllStations();
+    void onManualDebugCenter();
+    void onCalibrationWizard();
+    void onToggleMultiCameraView();
+    void onMultiViewSelected(int index, const QString& positionId);
 
 private:
     void createMenus();
@@ -227,10 +236,8 @@ private:
     QAction* runSingleAction_;
     QAction* runAllAction_;
 
-    QAction* openCameraAction_;
-    QAction* closeCameraAction_;
-    QAction* grabImageAction_;
-    QAction* continuousGrabAction_;
+    QAction* frameValidAction_;       // 帧有效切换
+    QAction* liveDisplayAction_;      // 实时显示切换
 
     // ROI操作动作
     QAction* drawRectangleAction_;
@@ -250,6 +257,7 @@ private:
     // 标定动作
     QAction* cameraCalibAction_;
     QAction* ninePointCalibAction_;
+    QAction* qrCalibAction_;
 
     // 对位菜单和动作
     QMenu* alignmentMenu_;
@@ -257,6 +265,17 @@ private:
     QAction* multiPointAlignmentAction_;
     QAction* alignmentOutputAction_;
     QAction* workStationConfigAction_;
+
+    // 多工位相关动作
+    QAction* manualDebugAction_;
+    QAction* calibWizardAction_;
+    QAction* toggleMultiViewAction_;
+
+    // 多工位相关组件
+    StationSwitchBar* stationSwitchBar_;
+    MultiCameraView* multiCameraView_;
+    QWidget* centralContainer_;         // 中央容器（切换单视图/多视图）
+    bool isMultiViewMode_;              // 是否多视图模式
 
     // 系统设置动作
     QAction* systemSettingsAction_;
@@ -279,6 +298,8 @@ private:
     std::unique_ptr<HAL::ICamera> camera_;
     QTimer* continuousTimer_;
     bool isContinuousGrabbing_;
+    bool isFrameValid_;           // 帧有效状态
+    bool isLiveDisplay_;          // 实时显示状态
 
     // 当前图像
     Base::ImageData::Ptr currentImage_;
