@@ -28,8 +28,25 @@ GPUAccelerator::GPUAccelerator()
     , currentDevice_(-1)
     , accelMode_(GPUAccelMode::Auto)
 {
-    detectDevices();
-    loadSettings();
+    try {
+        detectDevices();
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("GPUAccelerator构造: detectDevices异常: %1").arg(e.what()));
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+    } catch (...) {
+        LOG_ERROR("GPUAccelerator构造: detectDevices未知异常");
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+    }
+
+    try {
+        loadSettings();
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("GPUAccelerator构造: loadSettings异常: %1").arg(e.what()));
+    } catch (...) {
+        LOG_ERROR("GPUAccelerator构造: loadSettings未知异常");
+    }
 }
 
 GPUAccelerator& GPUAccelerator::instance()
@@ -151,6 +168,22 @@ static int cudaErrorHandler(int /*status*/, const char* /*func_name*/,
 }
 
 #ifdef _WIN32
+// SEH包装的DLL检查（纯C风格，不使用C++对象）
+static int checkSingleDll(const char* dllName)
+{
+    __try {
+        HMODULE hModule = LoadLibraryExA(dllName, NULL, LOAD_LIBRARY_AS_DATAFILE);
+        if (hModule == NULL) {
+            return 0;  // DLL不存在
+        }
+        FreeLibrary(hModule);
+        return 1;  // DLL存在
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER) {
+        return -1;  // 发生异常
+    }
+}
+
 // 检查必要的CUDA和cuDNN DLL是否存在
 static bool checkCudaDllsAvailable(QString& missingDll)
 {
@@ -162,37 +195,36 @@ static bool checkCudaDllsAvailable(QString& missingDll)
         nullptr
     };
 
-    // 可选但推荐的DLL（cuDNN） - 缺失时仍可运行基本CUDA功能
+    // 检查必要的DLL
+    for (int i = 0; requiredDlls[i] != nullptr; ++i) {
+        int result = checkSingleDll(requiredDlls[i]);
+        if (result == 0) {
+            missingDll = QString::fromLatin1(requiredDlls[i]);
+            return false;
+        } else if (result < 0) {
+            missingDll = QString("检测%1时发生异常").arg(requiredDlls[i]);
+            return false;
+        }
+    }
+
+    // 可选的cuDNN检查（不影响返回值）
     const char* optionalDlls[] = {
         "cudnn64_9.dll",        // cuDNN 9.x
         "cudnn64_8.dll",        // cuDNN 8.x (备选)
         nullptr
     };
 
-    // 检查必要的DLL
-    for (int i = 0; requiredDlls[i] != nullptr; ++i) {
-        HMODULE hModule = LoadLibraryExA(requiredDlls[i], NULL, LOAD_LIBRARY_AS_DATAFILE);
-        if (hModule == NULL) {
-            missingDll = QString::fromLatin1(requiredDlls[i]);
-            return false;
-        }
-        FreeLibrary(hModule);
-    }
-
-    // 检查cuDNN（任意一个版本即可）
     bool cudnnFound = false;
     for (int i = 0; optionalDlls[i] != nullptr; ++i) {
-        HMODULE hModule = LoadLibraryExA(optionalDlls[i], NULL, LOAD_LIBRARY_AS_DATAFILE);
-        if (hModule != NULL) {
+        int result = checkSingleDll(optionalDlls[i]);
+        if (result == 1) {
             cudnnFound = true;
-            FreeLibrary(hModule);
             break;
         }
     }
 
     if (!cudnnFound) {
-        // cuDNN未找到，但这不是致命错误，记录警告
-        LOG_WARNING("cuDNN未找到 (cudnn64_9.dll 或 cudnn64_8.dll)，部分深度学习功能可能不可用");
+        LOG_WARNING("cuDNN未找到，部分深度学习功能可能不可用");
     }
 
     return true;
