@@ -234,8 +234,37 @@ static bool checkCudaDllsAvailable(QString& missingDll)
 void GPUAccelerator::detectDevices()
 {
 #ifdef USE_CUDA
+    // 首先检查OpenCV是否编译了CUDA支持
+    try {
+        std::string buildInfo = cv::getBuildInformation();
+        // 检查是否包含CUDA支持的标志
+        bool hasCudaSupport = false;
+        if (buildInfo.find("NVIDIA CUDA") != std::string::npos) {
+            // 进一步检查是否真的启用了（不是NO）
+            size_t cudaPos = buildInfo.find("NVIDIA CUDA:");
+            if (cudaPos != std::string::npos) {
+                std::string afterCuda = buildInfo.substr(cudaPos, 100);
+                if (afterCuda.find("YES") != std::string::npos) {
+                    hasCudaSupport = true;
+                }
+            }
+        }
+
+        if (!hasCudaSupport) {
+            cudaAvailable_ = false;
+            deviceCount_ = 0;
+            LOG_INFO("OpenCV未编译CUDA支持，GPU加速不可用");
+            return;
+        }
+    } catch (...) {
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+        LOG_WARNING("检查OpenCV CUDA支持时发生异常");
+        return;
+    }
+
 #ifdef _WIN32
-    // 首先检查必要的CUDA DLL是否存在
+    // 检查必要的CUDA DLL是否存在
     QString missingDll;
     if (!checkCudaDllsAvailable(missingDll)) {
         cudaAvailable_ = false;
