@@ -13,6 +13,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QSplitter>
+#include <QScrollArea>
 #include <QMessageBox>
 #include <QHeaderView>
 #include <QApplication>
@@ -54,10 +55,10 @@ StationConfigTool::StationConfigTool(QWidget* parent)
     , saveAndExit_(false)
     , isUpdating_(false)
 {
-    setWindowTitle(tr("VisionInspectConfigTool"));
+    setWindowTitle(tr("VisionForge 工位配置工具"));
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    setMinimumSize(800, 500);
-    resize(900, 550);
+    setMinimumSize(800, 600);
+    resize(950, 700);
 
     setupUI();
     setupConnections();
@@ -108,9 +109,17 @@ void StationConfigTool::setupUI()
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(10);
 
+    // 创建滚动区域包装设置面板
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+
     // 设置面板
     QGroupBox* settingsArea = createSettingsArea();
-    rightLayout->addWidget(settingsArea);
+    scrollArea->setWidget(settingsArea);
+    rightLayout->addWidget(scrollArea, 1);  // 给滚动区域更多空间
 
     // 按钮区域
     QWidget* buttonArea = createButtonArea();
