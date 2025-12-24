@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # 项目信息
 project(VisionForge
-    VERSION 1.3.2
+    VERSION 1.4.0
     DESCRIPTION "VisionForge Pro - 通用工业视觉检测平台"
     LANGUAGES CXX
 )
@@ -102,7 +102,7 @@ endif()
 
 # Qt路径
 if(NOT DEFINED CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH "F:/Qt/6.9.3/msvc2019_64" CACHE PATH "Qt安装路径")
+    set(CMAKE_PREFIX_PATH "F:/Qt/6.9.3/msvc2022_64" CACHE PATH "Qt安装路径")
 endif()
 message(STATUS "Qt路径: ${CMAKE_PREFIX_PATH}")
 
