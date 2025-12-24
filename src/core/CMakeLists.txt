@@ -12,6 +12,8 @@ set(CORE_SOURCES
     WorkStation.cpp
     PositionCameraBinding.cpp
     StationConfig.cpp
+    SceneConfig.cpp
+    SceneManager.cpp
     MultiStationManager.cpp
     PositionToolChainManager.cpp
 )
@@ -26,6 +28,8 @@ set(CORE_HEADERS
     ${CMAKE_SOURCE_DIR}/include/core/WorkStation.h
     ${CMAKE_SOURCE_DIR}/include/core/PositionCameraBinding.h
     ${CMAKE_SOURCE_DIR}/include/core/StationConfig.h
+    ${CMAKE_SOURCE_DIR}/include/core/SceneConfig.h
+    ${CMAKE_SOURCE_DIR}/include/core/SceneManager.h
     ${CMAKE_SOURCE_DIR}/include/core/MultiStationManager.h
     ${CMAKE_SOURCE_DIR}/include/core/PositionToolChainManager.h
 )

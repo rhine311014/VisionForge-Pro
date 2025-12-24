@@ -82,6 +82,17 @@ QJsonObject StationConfig::toJson() const
     commJson["plcPort"] = plcPort;
     json["communication"] = commJson;
 
+    // 场景配置
+    QJsonObject scenesJson;
+    scenesJson["count"] = sceneNum;
+    scenesJson["currentIndex"] = currentSceneIndex;
+    QJsonArray scenesArray;
+    for (const auto& scene : scenes) {
+        scenesArray.append(scene.toJson());
+    }
+    scenesJson["list"] = scenesArray;
+    json["scenes"] = scenesJson;
+
     return json;
 }
 
@@ -150,6 +161,16 @@ StationConfig StationConfig::fromJson(const QJsonObject& json)
     QJsonObject commJson = json["communication"].toObject();
     config.plcAddress = commJson["plcAddress"].toString();
     config.plcPort = commJson["plcPort"].toInt(502);
+
+    // 场景配置
+    QJsonObject scenesJson = json["scenes"].toObject();
+    config.sceneNum = scenesJson["count"].toInt(1);
+    config.currentSceneIndex = scenesJson["currentIndex"].toInt(0);
+    QJsonArray scenesArray = scenesJson["list"].toArray();
+    config.scenes.clear();
+    for (const auto& sceneVal : scenesArray) {
+        config.scenes.append(SceneConfig::fromJson(sceneVal.toObject()));
+    }
 
     return config;
 }
@@ -306,6 +327,117 @@ PositionBindingList StationConfig::getObjectPositions() const
         }
     }
     return objects;
+}
+
+// ========== 场景管理 ==========
+
+bool StationConfig::addScene(const SceneConfig& scene)
+{
+    // 检查是否已存在
+    for (const auto& existing : scenes) {
+        if (existing.sceneId == scene.sceneId) {
+            return false;
+        }
+    }
+
+    scenes.append(scene);
+    sceneNum = scenes.size();
+    return true;
+}
+
+bool StationConfig::removeScene(const QString& sceneId)
+{
+    for (int i = 0; i < scenes.size(); ++i) {
+        if (scenes[i].sceneId == sceneId) {
+            scenes.removeAt(i);
+            sceneNum = scenes.size();
+
+            // 调整当前场景索引
+            if (currentSceneIndex >= sceneNum) {
+                currentSceneIndex = qMax(0, sceneNum - 1);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+bool StationConfig::updateScene(const SceneConfig& scene)
+{
+    for (auto& existing : scenes) {
+        if (existing.sceneId == scene.sceneId) {
+            existing = scene;
+            return true;
+        }
+    }
+    return false;
+}
+
+SceneConfig* StationConfig::getScene(const QString& sceneId)
+{
+    for (auto& scene : scenes) {
+        if (scene.sceneId == sceneId) {
+            return &scene;
+        }
+    }
+    return nullptr;
+}
+
+const SceneConfig* StationConfig::getScene(const QString& sceneId) const
+{
+    for (const auto& scene : scenes) {
+        if (scene.sceneId == sceneId) {
+            return &scene;
+        }
+    }
+    return nullptr;
+}
+
+SceneConfig* StationConfig::getSceneByIndex(int index)
+{
+    if (index >= 0 && index < scenes.size()) {
+        return &scenes[index];
+    }
+    return nullptr;
+}
+
+const SceneConfig* StationConfig::getSceneByIndex(int index) const
+{
+    if (index >= 0 && index < scenes.size()) {
+        return &scenes[index];
+    }
+    return nullptr;
+}
+
+SceneConfig* StationConfig::getCurrentScene()
+{
+    return getSceneByIndex(currentSceneIndex);
+}
+
+const SceneConfig* StationConfig::getCurrentScene() const
+{
+    return getSceneByIndex(currentSceneIndex);
+}
+
+bool StationConfig::switchToScene(int sceneIndex)
+{
+    if (sceneIndex >= 0 && sceneIndex < scenes.size()) {
+        if (scenes[sceneIndex].enabled) {
+            currentSceneIndex = sceneIndex;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool StationConfig::switchToScene(const QString& sceneId)
+{
+    for (int i = 0; i < scenes.size(); ++i) {
+        if (scenes[i].sceneId == sceneId) {
+            return switchToScene(i);
+        }
+    }
+    return false;
 }
 
 // ========== 布局辅助 ==========

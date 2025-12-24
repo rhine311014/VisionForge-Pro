@@ -9,6 +9,7 @@
 #define VISIONFORGE_CORE_STATION_CONFIG_H
 
 #include "core/PositionCameraBinding.h"
+#include "core/SceneConfig.h"
 #include "platform/PlatformTypes.h"
 #include <QString>
 #include <QVector>
@@ -61,6 +62,11 @@ struct StationConfig {
     // ========== 位置配置 ==========
     int positionNum = 2;        ///< 位置数量 (1-8)
     PositionBindingList positionBindings; ///< 位置-相机绑定列表
+
+    // ========== 场景配置 ==========
+    int sceneNum = 1;           ///< 场景数量 (1-8)
+    SceneConfigList scenes;     ///< 场景配置列表
+    int currentSceneIndex = 0;  ///< 当前激活的场景索引
 
     // ========== 功能模式配置 ==========
     /**
@@ -180,6 +186,48 @@ struct StationConfig {
      * @brief 获取所有对象位置
      */
     PositionBindingList getObjectPositions() const;
+
+    // ========== 场景管理 ==========
+
+    /**
+     * @brief 添加场景配置
+     */
+    bool addScene(const SceneConfig& scene);
+
+    /**
+     * @brief 移除场景配置
+     */
+    bool removeScene(const QString& sceneId);
+
+    /**
+     * @brief 更新场景配置
+     */
+    bool updateScene(const SceneConfig& scene);
+
+    /**
+     * @brief 获取场景配置
+     */
+    SceneConfig* getScene(const QString& sceneId);
+    const SceneConfig* getScene(const QString& sceneId) const;
+
+    /**
+     * @brief 根据索引获取场景配置
+     */
+    SceneConfig* getSceneByIndex(int index);
+    const SceneConfig* getSceneByIndex(int index) const;
+
+    /**
+     * @brief 获取当前激活的场景
+     */
+    SceneConfig* getCurrentScene();
+    const SceneConfig* getCurrentScene() const;
+
+    /**
+     * @brief 切换到指定场景
+     * @return 是否切换成功
+     */
+    bool switchToScene(int sceneIndex);
+    bool switchToScene(const QString& sceneId);
 
     // ========== 布局辅助 ==========
 

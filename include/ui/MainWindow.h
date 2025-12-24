@@ -23,6 +23,7 @@
 #include "ui/StatisticsPanel.h"
 #include "ui/UIModeManager.h"
 #include "ui/StationSwitchBar.h"
+#include "ui/SceneSwitchBar.h"
 #include "ui/MultiCameraView.h"
 #include "hal/SimulatedCamera.h"
 #include "hal/ICamera.h"
@@ -34,6 +35,7 @@
 #include <QDockWidget>
 #include <QLabel>
 #include <QTimer>
+#include <QStackedWidget>
 #include <memory>
 
 namespace VisionForge {
@@ -158,6 +160,10 @@ private slots:
     void onToggleMultiCameraView();
     void onMultiViewSelected(int index, const QString& positionId);
 
+    // 场景切换
+    void onSceneSelected(int index);
+    void onSceneSwitchRequested();
+
 private:
     void createMenus();
     void createToolBars();
@@ -274,8 +280,9 @@ private:
 
     // 多工位相关组件
     StationSwitchBar* stationSwitchBar_;
+    SceneSwitchBar* sceneSwitchBar_;    // 场景切换栏
     MultiCameraView* multiCameraView_;
-    QWidget* centralContainer_;         // 中央容器（切换单视图/多视图）
+    QStackedWidget* centralStack_;      // 中央堆叠容器（切换单视图/多视图）
     bool isMultiViewMode_;              // 是否多视图模式
 
     // 系统设置动作

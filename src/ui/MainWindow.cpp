@@ -30,6 +30,7 @@
 
 #include "ui/PLCConfigDialog.h"
 #include "ui/CameraConfigDialog.h"
+#include "ui/CameraSetupDialog.h"
 #include "ui/RecipeEditorDialog.h"
 #include "ui/CameraCalibDialog.h"
 #include "ui/NinePointCalibDialog.h"
@@ -77,6 +78,8 @@
 #include "ui/CalibrationWizard.h"
 #include "core/MultiStationManager.h"
 #include "core/PositionToolChainManager.h"
+#include "core/SceneManager.h"
+#include "ui/SceneSwitchBar.h"
 // 基础设施
 #include "base/PermissionManager.h"
 #include "base/SystemMonitor.h"
@@ -141,8 +144,9 @@ MainWindow::MainWindow(QWidget* parent)
     , recipeManagerWidget_(nullptr)
     , statisticsPanel_(nullptr)
     , stationSwitchBar_(nullptr)
+    , sceneSwitchBar_(nullptr)
     , multiCameraView_(nullptr)
-    , centralContainer_(nullptr)
+    , centralStack_(nullptr)
     , isMultiViewMode_(false)
     , camera_(nullptr)
     , isContinuousGrabbing_(false)
@@ -156,6 +160,10 @@ MainWindow::MainWindow(QWidget* parent)
     setStyleSheet("QMainWindow { padding: 0px; margin: 0px; } "
                   "QMainWindow::separator { width: 0px; height: 0px; }");
 
+    // 创建中央堆叠容器（用于切换单视图/多视图）
+    centralStack_ = new QStackedWidget(this);
+    centralStack_->setContentsMargins(0, 0, 0, 0);
+
     // 创建中央图像查看器
 #ifdef USE_HALCON
     imageViewer_ = new HalconImageViewer(this);
@@ -163,8 +171,11 @@ MainWindow::MainWindow(QWidget* parent)
     imageViewer_ = new ImageViewer(this);
 #endif
 
-    // 设置中央窗口，确保没有边距
-    setCentralWidget(imageViewer_);
+    // 将图像查看器添加到堆叠容器
+    centralStack_->addWidget(imageViewer_);
+
+    // 设置堆叠容器为中央窗口
+    setCentralWidget(centralStack_);
 
     // 移除所有可能的边距
     centralWidget()->setContentsMargins(0, 0, 0, 0);
@@ -220,9 +231,27 @@ MainWindow::MainWindow(QWidget* parent)
     connect(stationSwitchBar_, &StationSwitchBar::showAllStations,
             this, &MainWindow::onShowAllStations);
 
-    // 创建多相机视图（但默认不显示）
+    // 创建场景切换栏
+    sceneSwitchBar_ = new SceneSwitchBar(this);
+
+    // 创建工具栏包装器来承载场景切换栏
+    QToolBar* sceneToolBar = new QToolBar(tr("场景切换"), this);
+    sceneToolBar->setObjectName("sceneToolBar");
+    sceneToolBar->addWidget(sceneSwitchBar_);
+    sceneToolBar->setVisible(true);  // 默认显示
+    addToolBar(Qt::TopToolBarArea, sceneToolBar);
+
+    // 连接场景切换信号
+    connect(sceneSwitchBar_, &SceneSwitchBar::sceneSelected,
+            this, &MainWindow::onSceneSelected);
+    connect(sceneSwitchBar_, &SceneSwitchBar::previousSceneRequested,
+            this, &MainWindow::onSceneSwitchRequested);
+    connect(sceneSwitchBar_, &SceneSwitchBar::nextSceneRequested,
+            this, &MainWindow::onSceneSwitchRequested);
+
+    // 创建多相机视图并添加到堆叠容器
     multiCameraView_ = new MultiCameraView(this);
-    multiCameraView_->setVisible(false);
+    centralStack_->addWidget(multiCameraView_);
 
     // 连接多相机视图信号
     connect(multiCameraView_, &MultiCameraView::viewSelected,
@@ -247,13 +276,16 @@ MainWindow::MainWindow(QWidget* parent)
             // 设置多相机视图
             multiCameraView_->setStation(currentStation);
 
+            // 刷新场景切换栏
+            if (sceneSwitchBar_) {
+                sceneSwitchBar_->refreshScenes(currentStation);
+            }
+
             // 如果位置数量大于1，默认显示多相机视图
             if (currentStation->positionNum > 1) {
-                // 切换到多相机视图模式
+                // 切换到多相机视图模式（使用堆叠容器切换）
                 isMultiViewMode_ = true;
-                imageViewer_->setVisible(false);
-                multiCameraView_->setVisible(true);
-                setCentralWidget(multiCameraView_);
+                centralStack_->setCurrentWidget(multiCameraView_);
 
                 // 设置当前位置为第一个位置，并初始化工具链
                 if (!currentStation->positionBindings.isEmpty()) {
@@ -338,9 +370,15 @@ void MainWindow::onOpenImage()
     }
 
     currentImage_ = std::make_shared<Base::ImageData>(mat);
-    imageViewer_->setImage(currentImage_);
 
-    statusLabel_->setText(QString("已加载图像: %1").arg(fileName));
+    // 安全检查：确保 imageViewer_ 存在
+    if (imageViewer_) {
+        imageViewer_->setImage(currentImage_);
+    }
+
+    if (statusLabel_) {
+        statusLabel_->setText(QString("已加载图像: %1").arg(fileName));
+    }
     updateActions();
     updateStatusBar();
 
@@ -378,8 +416,10 @@ void MainWindow::onOpenImageFolder()
     currentImageIndex_ = 0;
     loadImageAtIndex(currentImageIndex_);
 
-    statusLabel_->setText(QString("已加载图片文件夹: %1 (%2张图片)")
-        .arg(folderPath).arg(imageSequence_.size()));
+    if (statusLabel_) {
+        statusLabel_->setText(QString("已加载图片文件夹: %1 (%2张图片)")
+            .arg(folderPath).arg(imageSequence_.size()));
+    }
     updateImageSequenceActions();
 
     LOG_INFO(QString("加载图片文件夹: %1, 共%2张图片")
@@ -521,14 +561,33 @@ void MainWindow::loadImageAtIndex(int index)
     }
 
     currentImage_ = std::make_shared<Base::ImageData>(mat);
-    imageViewer_->setImage(currentImage_);
+
+    // 根据当前模式显示图像
+    if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+        // 多视图模式：更新当前选中的视图
+        int selectedView = multiCameraView_->selectedView();
+        if (selectedView >= 0) {
+            multiCameraView_->updateImage(selectedView, currentImage_);
+        }
+        // 同时更新隐藏的单图像查看器
+        if (imageViewer_) {
+            imageViewer_->setImage(currentImage_);
+        }
+    } else {
+        // 单视图模式
+        if (imageViewer_) {
+            imageViewer_->setImage(currentImage_);
+        }
+    }
 
     // 更新状态栏显示当前图片信息
     QFileInfo fileInfo(filePath);
-    statusLabel_->setText(QString("图片 %1/%2: %3")
-        .arg(index + 1)
-        .arg(imageSequence_.size())
-        .arg(fileInfo.fileName()));
+    if (statusLabel_) {
+        statusLabel_->setText(QString("图片 %1/%2: %3")
+            .arg(index + 1)
+            .arg(imageSequence_.size())
+            .arg(fileInfo.fileName()));
+    }
     updateActions();
     updateStatusBar();
 }
@@ -539,9 +598,9 @@ void MainWindow::updateImageSequenceActions()
     bool canGoPrev = hasSequence && currentImageIndex_ > 0;
     bool canGoNext = hasSequence && currentImageIndex_ < imageSequence_.size() - 1;
 
-    previousImageAction_->setEnabled(canGoPrev);
-    nextImageAction_->setEnabled(canGoNext);
-    runAllImagesAction_->setEnabled(hasSequence);
+    if (previousImageAction_) previousImageAction_->setEnabled(canGoPrev);
+    if (nextImageAction_) nextImageAction_->setEnabled(canGoNext);
+    if (runAllImagesAction_) runAllImagesAction_->setEnabled(hasSequence);
 }
 
 void MainWindow::onSaveImage()
@@ -639,6 +698,17 @@ void MainWindow::onRemoveTool()
 
     if (ret == QMessageBox::Yes) {
         toolChainPanel_->removeTool(tool);
+
+        // 同步到PositionToolChainManager (多工位模式)
+        // 注意：removeTool会删除工具，所以这里需要在删除前从Manager中移除
+#ifdef USE_HALCON
+        if (isMultiViewMode_) {
+            auto& toolChainManager = Core::PositionToolChainManager::instance();
+            // 标记当前工具链已修改（工具已从面板移除）
+            toolChainManager.markCurrentAsModified();
+        }
+#endif
+
         delete tool;
 
         statusLabel_->setText("已删除工具");
@@ -660,36 +730,50 @@ void MainWindow::onRunSingle()
 
     Algorithm::ToolResult result;
     if (tool->process(currentImage_, result)) {
+        // 更新当前图像
         if (result.outputImage) {
             currentImage_ = result.outputImage;
-            imageViewer_->setImage(currentImage_);
+        }
 
-            // 处理displayObjects - XLD轮廓显示
-#ifdef USE_HALCON
-            if (!result.displayObjects.isEmpty() &&
-                result.displayObjects.contains("match_contours")) {
-                QVariant objVariant = result.displayObjects["match_contours"];
-                if (objVariant.canConvert<Algorithm::HalconObjectPtr>()) {
-                    Algorithm::HalconObjectPtr objPtr =
-                        objVariant.value<Algorithm::HalconObjectPtr>();
-
-                    if (objPtr && objPtr->type() == Algorithm::HalconObjectWrapper::XLD_Contour) {
-                        Algorithm::XLDContourPtr xldPtr =
-                            qSharedPointerCast<Algorithm::XLDContourWrapper>(objPtr);
-
-                        QList<HXLDCont> contours;
-                        contours.append(xldPtr->contours());
-                        imageViewer_->setXLDContours(contours);
-                    }
-                }
-            } else {
-                // 清除之前的XLD显示
-                imageViewer_->clearXLDContours();
+        // 根据当前模式显示图像
+        if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+            // 多视图模式：更新当前选中的视图
+            int selectedView = multiCameraView_->selectedView();
+            if (selectedView >= 0) {
+                multiCameraView_->updateImage(selectedView, currentImage_);
             }
+            // 同时更新隐藏的单图像查看器
+            imageViewer_->setImage(currentImage_);
+        } else {
+            // 单视图模式
+            imageViewer_->setImage(currentImage_);
+        }
+
+        // 处理displayObjects - XLD轮廓显示
+#ifdef USE_HALCON
+        if (!result.displayObjects.isEmpty() &&
+            result.displayObjects.contains("match_contours")) {
+            QVariant objVariant = result.displayObjects["match_contours"];
+            if (objVariant.canConvert<Algorithm::HalconObjectPtr>()) {
+                Algorithm::HalconObjectPtr objPtr =
+                    objVariant.value<Algorithm::HalconObjectPtr>();
+
+                if (objPtr && objPtr->type() == Algorithm::HalconObjectWrapper::XLD_Contour) {
+                    Algorithm::XLDContourPtr xldPtr =
+                        qSharedPointerCast<Algorithm::XLDContourWrapper>(objPtr);
+
+                    QList<HXLDCont> contours;
+                    contours.append(xldPtr->contours());
+                    imageViewer_->setXLDContours(contours);
+                }
+            }
+        } else {
+            // 清除之前的XLD显示
+            imageViewer_->clearXLDContours();
+        }
 #endif
 
-            statusLabel_->setText(QString("工具 \"%1\" 处理完成").arg(tool->displayName()));
-        }
+        statusLabel_->setText(QString("工具 \"%1\" 处理完成").arg(tool->displayName()));
     } else {
         QMessageBox::warning(this, "处理失败", result.errorMessage);
     }
@@ -1909,21 +1993,22 @@ void MainWindow::connectSignals()
 void MainWindow::updateActions()
 {
     bool hasImage = (currentImage_ != nullptr);
-    bool hasTool = (toolChainPanel_->getCurrentTool() != nullptr);
+    bool hasTool = (toolChainPanel_ && toolChainPanel_->getCurrentTool() != nullptr);
 
-    saveImageAction_->setEnabled(hasImage);
-
-    runSingleAction_->setEnabled(hasImage && hasTool);
-    runAllAction_->setEnabled(hasImage);
-    removeToolAction_->setEnabled(hasTool);
+    if (saveImageAction_) saveImageAction_->setEnabled(hasImage);
+    if (runSingleAction_) runSingleAction_->setEnabled(hasImage && hasTool);
+    if (runAllAction_) runAllAction_->setEnabled(hasImage);
+    if (removeToolAction_) removeToolAction_->setEnabled(hasTool);
 
     // 帧有效和实时显示始终可用
-    frameValidAction_->setEnabled(true);
-    liveDisplayAction_->setEnabled(true);
+    if (frameValidAction_) frameValidAction_->setEnabled(true);
+    if (liveDisplayAction_) liveDisplayAction_->setEnabled(true);
 }
 
 void MainWindow::updateStatusBar()
 {
+    if (!imageInfoLabel_) return;
+
     if (currentImage_) {
         imageInfoLabel_->setText(QString("图像: %1x%2, %3通道")
             .arg(currentImage_->width())
@@ -2012,10 +2097,10 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
 
     // 根据当前模式显示图像
     if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
-        // 多视图模式：实时采集时更新所有视图位置（因为共享同一相机）
-        int viewCount = multiCameraView_->viewerCount();
-        for (int i = 0; i < viewCount; ++i) {
-            multiCameraView_->updateImage(i, currentImage_);
+        // 多视图模式：只更新当前选中的视图位置（每个位置有独立的工具链）
+        int selectedView = multiCameraView_->selectedView();
+        if (selectedView >= 0) {
+            multiCameraView_->updateImage(selectedView, currentImage_);
         }
 
         // 同时更新隐藏的单图像查看器（用于其他功能）
@@ -2136,6 +2221,15 @@ void MainWindow::showAddToolDialog()
         VisionTool* tool = factory.createTool(selectedName);
         if (tool) {
             toolChainPanel_->addTool(tool);
+
+            // 同步到PositionToolChainManager (多工位模式)
+#ifdef USE_HALCON
+            if (isMultiViewMode_) {
+                auto& toolChainManager = Core::PositionToolChainManager::instance();
+                toolChainManager.addTool(tool);
+            }
+#endif
+
             statusLabel_->setText(QString("已添加工具: %1").arg(selectedName));
             updateActions();
         } else {
@@ -2774,85 +2868,49 @@ void MainWindow::showCameraConfigOnStartup()
     }
 
     // 弹出消息框提示用户
-    QMessageBox::information(this, tr("相机配置"), reason);
+    QMessageBox::information(this, tr("相机设置"), reason);
 
-    // 打开相机配置对话框
-    CameraConfigDialog dialog(this);
+    // 打开相机设置对话框（用于选择相机设备）
+    CameraSetupDialog setupDialog(this);
 
-    // 如果当前有相机（模拟相机或其他），传递给对话框
-    if (camera_) {
-        dialog.setCamera(camera_.get());
-    }
+    if (setupDialog.exec() == QDialog::Accepted) {
+        // 用户保存了配置，尝试重新连接相机
+        if (setupDialog.isSaveAndExit()) {
+            // 尝试自动连接已保存的相机配置
+            if (tryAutoConnectCamera()) {
+                if (camera_) {
+                    QString modelName = camera_->deviceName();
+                    statusLabel_->setText(tr("已连接相机: %1").arg(modelName));
+                    LOG_INFO(QString("启动时配置相机成功: %1").arg(modelName));
 
-    if (dialog.exec() == QDialog::Accepted) {
-        // 获取用户选择的相机
-        HAL::ICamera* newCamera = dialog.takeSelectedCamera();
+                    // 更新工具参数面板的相机指针
+                    if (toolParameterPanel_) {
+                        toolParameterPanel_->setCamera(camera_.get());
+                    }
 
-        if (newCamera && newCamera->isOpen()) {
-            // 停止当前相机
-            if (camera_) {
-                if (isContinuousGrabbing_) {
-                    continuousTimer_->stop();
-                    isContinuousGrabbing_ = false;
-                }
-                camera_->stopGrabbing();
-                camera_->close();
-            }
-
-            // 使用新相机
-            camera_.reset(newCamera);
-
-            // 更新工具参数面板的相机指针
-            if (toolParameterPanel_) {
-                toolParameterPanel_->setCamera(camera_.get());
-            }
-
-            // 获取相机信息并保存配置
-            QString modelName = QString::fromStdString(camera_->getModelName());
-            QString serial = QString::fromStdString(camera_->getSerialNumber());
-
-            // 获取相机类型
-            int camType = static_cast<int>(HAL::CameraFactory::Simulated);  // 默认模拟相机
-#ifdef USE_HIKVISION_MVS
-            if (dynamic_cast<HAL::HikvisionCamera*>(camera_.get())) {
-                camType = static_cast<int>(HAL::CameraFactory::Hikvision);
-            }
-#endif
-
-            // 保存相机配置
-            config.setValue("Camera/Type", camType);
-            config.setValue("Camera/SerialNumber", serial);
-            config.setValue("Camera/ModelName", modelName);
-
-            // 保存显示设置
-            HAL::ICamera::Config cameraConfig = camera_->getConfig();
-            config.setValue("Camera/RotationAngle", cameraConfig.rotationAngle);
-            config.setValue("Camera/FlipHorizontal", cameraConfig.flipHorizontal);
-            config.setValue("Camera/FlipVertical", cameraConfig.flipVertical);
-
-            statusLabel_->setText(tr("已连接相机: %1").arg(modelName));
-            LOG_INFO(QString("启动时配置相机成功: %1 (%2)").arg(modelName).arg(serial));
-
-            // 如果实时显示已启用，开始连续采集
-            if (isLiveDisplay_ && liveDisplayAction_ && liveDisplayAction_->isChecked()) {
-                if (!isContinuousGrabbing_) {
-                    QTimer::singleShot(500, this, [this]() {
-                        if (camera_ && camera_->isOpen() && isLiveDisplay_) {
-                            isContinuousGrabbing_ = true;
-                            continuousTimer_->start(150);
-                            LOG_INFO("启动时配置相机后，自动开始实时显示");
+                    // 如果实时显示已启用，开始连续采集
+                    if (isLiveDisplay_ && liveDisplayAction_ && liveDisplayAction_->isChecked()) {
+                        if (!isContinuousGrabbing_) {
+                            QTimer::singleShot(500, this, [this]() {
+                                if (camera_ && camera_->isOpen() && isLiveDisplay_) {
+                                    isContinuousGrabbing_ = true;
+                                    continuousTimer_->start(150);
+                                    LOG_INFO("启动时配置相机后，自动开始实时显示");
+                                }
+                            });
                         }
-                    });
+                    }
                 }
-            }
-        } else {
-            // 用户选择了相机但打开失败，继续使用模拟相机
-            statusLabel_->setText(tr("相机连接失败，使用模拟相机"));
-            LOG_WARNING("启动时相机配置失败，继续使用模拟相机");
-            if (newCamera) {
-                delete newCamera;
+            } else {
+                // 连接失败，继续使用模拟相机
+                statusLabel_->setText(tr("相机连接失败，使用模拟相机"));
+                LOG_WARNING("启动时相机配置失败，继续使用模拟相机");
             }
         }
+    } else if (setupDialog.isSkipped()) {
+        // 用户跳过了配置，继续使用模拟相机
+        statusLabel_->setText(tr("使用模拟相机"));
+        LOG_INFO("用户跳过相机配置，使用模拟相机");
     } else {
         // 用户取消了配置，继续使用模拟相机
         statusLabel_->setText(tr("使用模拟相机"));
@@ -2873,6 +2931,12 @@ void MainWindow::onStationSelected(int index)
         if (station && multiCameraView_) {
             multiCameraView_->setStation(station);
         }
+
+        // 刷新场景切换栏
+        if (sceneSwitchBar_ && station) {
+            sceneSwitchBar_->refreshScenes(station);
+        }
+
         statusLabel_->setText(QString("切换到工位: %1").arg(station ? station->name : ""));
         LOG_INFO(QString("切换到工位索引 %1").arg(index));
     }
@@ -2925,10 +2989,8 @@ void MainWindow::onToggleMultiCameraView()
     isMultiViewMode_ = !isMultiViewMode_;
 
     if (isMultiViewMode_) {
-        // 切换到多相机视图
-        imageViewer_->setVisible(false);
-        multiCameraView_->setVisible(true);
-        setCentralWidget(multiCameraView_);
+        // 切换到多相机视图（使用堆叠容器）
+        centralStack_->setCurrentWidget(multiCameraView_);
 
         // 显示工位切换栏
         stationSwitchBar_->setVisible(true);
@@ -2943,10 +3005,8 @@ void MainWindow::onToggleMultiCameraView()
 
         statusLabel_->setText("多相机视图模式");
     } else {
-        // 切换回单相机视图
-        multiCameraView_->setVisible(false);
-        imageViewer_->setVisible(true);
-        setCentralWidget(imageViewer_);
+        // 切换回单相机视图（使用堆叠容器）
+        centralStack_->setCurrentWidget(imageViewer_);
 
         // 隐藏工位切换栏
         stationSwitchBar_->setVisible(false);
@@ -2967,6 +3027,16 @@ void MainWindow::onMultiViewSelected(int index, const QString& positionId)
     auto& toolChainManager = Core::PositionToolChainManager::instance();
 
     QString stationId = stationManager.currentStationId();
+
+    // 先保存当前工具链面板的工具到PositionToolChainManager
+    // 避免切换位置时丢失当前位置的工具
+    if (toolChainPanel_) {
+        QList<Algorithm::VisionTool*> currentPanelTools = toolChainPanel_->getTools();
+        toolChainManager.setCurrentTools(currentPanelTools);
+
+        // 保存到文件（持久化）
+        toolChainManager.saveCurrentToolChain();
+    }
 
     // 切换到选中位置的工具链
     if (toolChainManager.setCurrentPosition(stationId, positionId)) {
@@ -2995,6 +3065,85 @@ void MainWindow::onMultiViewSelected(int index, const QString& positionId)
 #else
     Q_UNUSED(index);
     Q_UNUSED(positionId);
+#endif
+}
+
+void MainWindow::onSceneSelected(int index)
+{
+#ifdef USE_HALCON
+    // 获取当前工位
+    auto& stationManager = Core::MultiStationManager::instance();
+    auto* station = stationManager.currentStation();
+
+    if (!station) {
+        LOG_WARNING("onSceneSelected: 没有当前工位");
+        return;
+    }
+
+    // 检查场景索引有效性
+    if (index < 0 || index >= station->scenes.size()) {
+        LOG_WARNING(QString("onSceneSelected: 场景索引无效 %1").arg(index));
+        return;
+    }
+
+    // 切换场景
+    if (station->switchToScene(index)) {
+        const Core::SceneConfig* scene = station->getCurrentScene();
+        QString sceneName = scene ? scene->sceneName : QString("场景%1").arg(index + 1);
+        statusLabel_->setText(QString("切换到场景: %1").arg(sceneName));
+        LOG_INFO(QString("切换到场景索引 %1: %2").arg(index).arg(sceneName));
+
+        // 更新场景切换栏
+        if (sceneSwitchBar_) {
+            sceneSwitchBar_->setCurrentScene(index);
+        }
+    } else {
+        LOG_ERROR(QString("场景切换失败: 索引 %1").arg(index));
+        statusLabel_->setText(QString("场景切换失败"));
+    }
+#else
+    Q_UNUSED(index);
+#endif
+}
+
+void MainWindow::onSceneSwitchRequested()
+{
+#ifdef USE_HALCON
+    // 获取当前工位
+    auto& stationManager = Core::MultiStationManager::instance();
+    auto* station = stationManager.currentStation();
+
+    if (!station) {
+        LOG_WARNING("onSceneSwitchRequested: 没有当前工位");
+        return;
+    }
+
+    int sceneCount = station->scenes.size();
+    if (sceneCount <= 1) {
+        statusLabel_->setText("只有一个场景，无法切换");
+        return;
+    }
+
+    // 获取当前索引
+    int currentIndex = station->currentSceneIndex;
+
+    // 切换到下一个场景（循环）
+    int nextIndex = (currentIndex + 1) % sceneCount;
+
+    if (station->switchToScene(nextIndex)) {
+        const Core::SceneConfig* scene = station->getCurrentScene();
+        QString sceneName = scene ? scene->sceneName : QString("场景%1").arg(nextIndex + 1);
+        statusLabel_->setText(QString("切换到场景: %1").arg(sceneName));
+        LOG_INFO(QString("切换到场景: %1").arg(sceneName));
+
+        // 更新场景切换栏
+        if (sceneSwitchBar_) {
+            sceneSwitchBar_->setCurrentScene(nextIndex);
+        }
+    } else {
+        LOG_ERROR(QString("场景切换失败: 索引 %1").arg(nextIndex));
+        statusLabel_->setText(QString("场景切换失败"));
+    }
 #endif
 }
 

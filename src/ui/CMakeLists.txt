@@ -63,6 +63,8 @@ set(UI_SOURCES
     StationConfigTool.cpp
     # 相机设置对话框
     CameraSetupDialog.cpp
+    # 场景切换栏
+    SceneSwitchBar.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -149,6 +151,8 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/StationConfigTool.h
     # 相机设置对话框头文件
     ${CMAKE_SOURCE_DIR}/include/ui/CameraSetupDialog.h
+    # 场景切换栏头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/SceneSwitchBar.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件

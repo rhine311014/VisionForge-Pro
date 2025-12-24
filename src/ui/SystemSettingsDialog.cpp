@@ -414,120 +414,142 @@ void SystemSettingsDialog::loadSettings()
 {
     LOG_DEBUG("loadSettings: 开始");
 
-    // 加载GPU设置
-    LOG_DEBUG("loadSettings: 获取GPUAccelerator实例");
-    Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-    LOG_DEBUG("loadSettings: 获取加速模式");
-    selectedMode_ = gpu.getAccelMode();
+    try {
+        // 加载GPU设置
+        LOG_DEBUG("loadSettings: 获取GPUAccelerator实例");
+        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
+        LOG_DEBUG("loadSettings: 获取加速模式");
+        selectedMode_ = gpu.getAccelMode();
 
-    // 安全检查：确保accelModeGroup_已创建
-    LOG_DEBUG("loadSettings: 设置加速模式按钮");
-    if (accelModeGroup_) {
-        QAbstractButton* button = accelModeGroup_->button(static_cast<int>(selectedMode_));
-        if (button) {
-            button->setChecked(true);
+        // 安全检查：确保accelModeGroup_已创建
+        LOG_DEBUG("loadSettings: 设置加速模式按钮");
+        if (accelModeGroup_) {
+            QAbstractButton* button = accelModeGroup_->button(static_cast<int>(selectedMode_));
+            if (button) {
+                button->setChecked(true);
+            }
         }
+
+        LOG_DEBUG("loadSettings: 更新GPU状态显示");
+        updateGPUStatusDisplay();
+
+        // 加载平台设置
+        LOG_DEBUG("loadSettings: 加载平台设置");
+        loadPlatformSettings();
+
+        LOG_DEBUG("loadSettings: 完成");
+
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("loadSettings: 异常: %1").arg(e.what()));
+    } catch (...) {
+        LOG_ERROR("loadSettings: 未知异常");
     }
-
-    LOG_DEBUG("loadSettings: 更新GPU状态显示");
-    updateGPUStatusDisplay();
-
-    // 加载平台设置
-    LOG_DEBUG("loadSettings: 加载平台设置");
-    loadPlatformSettings();
-
-    LOG_DEBUG("loadSettings: 完成");
 }
 
 void SystemSettingsDialog::loadPlatformSettings()
 {
     LOG_DEBUG("loadPlatformSettings: 开始");
 
-    // 安全检查：确保所有必要控件已创建
-    if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
-        !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
-        !dRangeSpin_ || !dPulseSpin_ || !xDirectionCombo_ || !yDirectionCombo_ ||
-        !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
-        !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
-        !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
-        LOG_WARNING("loadPlatformSettings: 控件未完全初始化，跳过");
-        return;
-    }
-
-    LOG_DEBUG("loadPlatformSettings: 获取PlatformConfigManager实例");
-    Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
-    LOG_DEBUG("loadPlatformSettings: 获取当前配置");
-    const Platform::PlatformConfig& config = mgr.currentConfig();
-    LOG_DEBUG("loadPlatformSettings: 配置获取成功");
-
-    // 阻止信号，避免重复触发槽函数
-    platformTypeCombo_->blockSignals(true);
-
-    // 设置平台类型
-    selectedPlatformType_ = config.type;
-    int typeIndex = platformTypeCombo_->findData(static_cast<int>(config.type));
-    if (typeIndex >= 0) {
-        platformTypeCombo_->setCurrentIndex(typeIndex);
-    }
-
-    platformTypeCombo_->blockSignals(false);
-
-    // 基本参数
-    cameraNumSpin_->setValue(config.cameraNum);
-    positionNumSpin_->setValue(config.positionNum);
-
-    // 轴参数
-    xRangeSpin_->setValue(config.xRange);
-    xPulseSpin_->setValue(config.xPulsePerMM);
-    yRangeSpin_->setValue(config.yRange);
-    yPulseSpin_->setValue(config.yPulsePerMM);
-    dRangeSpin_->setValue(config.dRange);
-    dPulseSpin_->setValue(config.dPulsePerDegree);
-
-    // 根据平台类型加载详细配置
-    const Platform::PlatformInfo* info = config.getPlatformInfo();
-    if (info) {
-        if (auto xydInfo = dynamic_cast<const Platform::PlatformXYDInfo*>(info)) {
-            xDirectionCombo_->setCurrentIndex(
-                xydInfo->xDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-            yDirectionCombo_->setCurrentIndex(
-                xydInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-            dDirectionCombo_->setCurrentIndex(
-                xydInfo->dDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-            dDriveTypeCombo_->setCurrentIndex(static_cast<int>(xydInfo->dDriveType));
-            rotationLengthSpin_->setValue(xydInfo->rotationLength);
+    try {
+        // 安全检查：确保所有必要控件已创建
+        if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
+            !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
+            !dRangeSpin_ || !dPulseSpin_ || !xDirectionCombo_ || !yDirectionCombo_ ||
+            !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
+            !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
+            !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
+            LOG_WARNING("loadPlatformSettings: 控件未完全初始化，跳过");
+            return;
         }
-        else if (auto x1x2yInfo = dynamic_cast<const Platform::PlatformX1X2YInfo*>(info)) {
-            xDirectionCombo_->setCurrentIndex(
-                x1x2yInfo->x1Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
-            if (x2DirectionCombo_) {
-                x2DirectionCombo_->setCurrentIndex(
-                    x1x2yInfo->x2Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
+
+        LOG_DEBUG("loadPlatformSettings: 获取PlatformConfigManager实例");
+        Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
+        LOG_DEBUG("loadPlatformSettings: 获取当前配置");
+        const Platform::PlatformConfig& config = mgr.currentConfig();
+        LOG_DEBUG("loadPlatformSettings: 配置获取成功");
+
+        // 阻止信号，避免重复触发槽函数
+        platformTypeCombo_->blockSignals(true);
+
+        // 设置平台类型
+        selectedPlatformType_ = config.type;
+        int typeIndex = platformTypeCombo_->findData(static_cast<int>(config.type));
+        if (typeIndex >= 0) {
+            platformTypeCombo_->setCurrentIndex(typeIndex);
+        }
+
+        platformTypeCombo_->blockSignals(false);
+
+        // 基本参数
+        cameraNumSpin_->setValue(config.cameraNum);
+        positionNumSpin_->setValue(config.positionNum);
+
+        // 轴参数
+        xRangeSpin_->setValue(config.xRange);
+        xPulseSpin_->setValue(config.xPulsePerMM);
+        yRangeSpin_->setValue(config.yRange);
+        yPulseSpin_->setValue(config.yPulsePerMM);
+        dRangeSpin_->setValue(config.dRange);
+        dPulseSpin_->setValue(config.dPulsePerDegree);
+
+        // 根据平台类型加载详细配置
+        const Platform::PlatformInfo* info = config.getPlatformInfo();
+        if (info) {
+            if (auto xydInfo = dynamic_cast<const Platform::PlatformXYDInfo*>(info)) {
+                xDirectionCombo_->setCurrentIndex(
+                    xydInfo->xDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
+                yDirectionCombo_->setCurrentIndex(
+                    xydInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
+                dDirectionCombo_->setCurrentIndex(
+                    xydInfo->dDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
+                dDriveTypeCombo_->setCurrentIndex(static_cast<int>(xydInfo->dDriveType));
+                rotationLengthSpin_->setValue(xydInfo->rotationLength);
             }
-            yDirectionCombo_->setCurrentIndex(
-                x1x2yInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
+            else if (auto x1x2yInfo = dynamic_cast<const Platform::PlatformX1X2YInfo*>(info)) {
+                xDirectionCombo_->setCurrentIndex(
+                    x1x2yInfo->x1Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
+                if (x2DirectionCombo_) {
+                    x2DirectionCombo_->setCurrentIndex(
+                        x1x2yInfo->x2Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
+                }
+                yDirectionCombo_->setCurrentIndex(
+                    x1x2yInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
+            }
         }
+
+        // 相机平台配置 - 添加安全检查
+        try {
+            int camTypeIndex = cameraPlatformTypeCombo_->findData(
+                static_cast<int>(config.cameraPlatform.getCamPlatformType()));
+            if (camTypeIndex >= 0) {
+                cameraPlatformTypeCombo_->setCurrentIndex(camTypeIndex);
+            }
+
+            // 相机方向 - 检查相机数量
+            if (config.cameraNum >= 1) {
+                cam1XDirectionCombo_->setCurrentIndex(
+                    config.cameraPlatform.getCamDirectionX(0) == Platform::AxisDirectionType::Positive ? 0 : 1);
+                cam1YDirectionCombo_->setCurrentIndex(
+                    config.cameraPlatform.getCamDirectionY(0) == Platform::AxisDirectionType::Positive ? 0 : 1);
+            }
+            if (config.cameraNum >= 2) {
+                cam2XDirectionCombo_->setCurrentIndex(
+                    config.cameraPlatform.getCamDirectionX(1) == Platform::AxisDirectionType::Positive ? 0 : 1);
+                cam2YDirectionCombo_->setCurrentIndex(
+                    config.cameraPlatform.getCamDirectionY(1) == Platform::AxisDirectionType::Positive ? 0 : 1);
+            }
+        } catch (const std::exception& e) {
+            LOG_WARNING(QString("loadPlatformSettings: 加载相机配置失败: %1").arg(e.what()));
+        }
+
+        // 更新轴可见性
+        updateAxisVisibility();
+
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("loadPlatformSettings: 异常: %1").arg(e.what()));
+    } catch (...) {
+        LOG_ERROR("loadPlatformSettings: 未知异常");
     }
-
-    // 相机平台配置
-    int camTypeIndex = cameraPlatformTypeCombo_->findData(
-        static_cast<int>(config.cameraPlatform.getCamPlatformType()));
-    if (camTypeIndex >= 0) {
-        cameraPlatformTypeCombo_->setCurrentIndex(camTypeIndex);
-    }
-
-    // 相机方向
-    cam1XDirectionCombo_->setCurrentIndex(
-        config.cameraPlatform.getCamDirectionX(0) == Platform::AxisDirectionType::Positive ? 0 : 1);
-    cam1YDirectionCombo_->setCurrentIndex(
-        config.cameraPlatform.getCamDirectionY(0) == Platform::AxisDirectionType::Positive ? 0 : 1);
-    cam2XDirectionCombo_->setCurrentIndex(
-        config.cameraPlatform.getCamDirectionX(1) == Platform::AxisDirectionType::Positive ? 0 : 1);
-    cam2YDirectionCombo_->setCurrentIndex(
-        config.cameraPlatform.getCamDirectionY(1) == Platform::AxisDirectionType::Positive ? 0 : 1);
-
-    // 更新轴可见性
-    updateAxisVisibility();
 }
 
 void SystemSettingsDialog::applySettings()
