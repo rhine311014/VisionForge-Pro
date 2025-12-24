@@ -14,10 +14,6 @@
 #include <opencv2/cudaimgproc.hpp>
 #endif
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 namespace VisionForge {
 namespace Base {
 
@@ -167,147 +163,52 @@ static int cudaErrorHandler(int /*status*/, const char* /*func_name*/,
     return 0;
 }
 
-#ifdef _WIN32
-// SEH包装的DLL检查（纯C风格，不使用C++对象）
-static int checkSingleDll(const char* dllName)
-{
-    __try {
-        HMODULE hModule = LoadLibraryExA(dllName, NULL, LOAD_LIBRARY_AS_DATAFILE);
-        if (hModule == NULL) {
-            return 0;  // DLL不存在
-        }
-        FreeLibrary(hModule);
-        return 1;  // DLL存在
-    }
-    __except(EXCEPTION_EXECUTE_HANDLER) {
-        return -1;  // 发生异常
-    }
-}
-
-// 检查必要的CUDA和cuDNN DLL是否存在
-static bool checkCudaDllsAvailable(QString& missingDll)
-{
-    // 必要的CUDA运行时DLL列表
-    const char* requiredDlls[] = {
-        "cudart64_12.dll",      // CUDA Runtime
-        "nppig64_12.dll",       // NPP Image Processing
-        "nppc64_12.dll",        // NPP Core
-        nullptr
-    };
-
-    // 检查必要的DLL
-    for (int i = 0; requiredDlls[i] != nullptr; ++i) {
-        int result = checkSingleDll(requiredDlls[i]);
-        if (result == 0) {
-            missingDll = QString::fromLatin1(requiredDlls[i]);
-            return false;
-        } else if (result < 0) {
-            missingDll = QString("检测%1时发生异常").arg(requiredDlls[i]);
-            return false;
-        }
-    }
-
-    // 可选的cuDNN检查（不影响返回值）
-    const char* optionalDlls[] = {
-        "cudnn64_9.dll",        // cuDNN 9.x
-        "cudnn64_8.dll",        // cuDNN 8.x (备选)
-        nullptr
-    };
-
-    bool cudnnFound = false;
-    for (int i = 0; optionalDlls[i] != nullptr; ++i) {
-        int result = checkSingleDll(optionalDlls[i]);
-        if (result == 1) {
-            cudnnFound = true;
-            break;
-        }
-    }
-
-    if (!cudnnFound) {
-        LOG_WARNING("cuDNN未找到，部分深度学习功能可能不可用");
-    }
-
-    return true;
-}
-#endif
-
 void GPUAccelerator::detectDevices()
 {
 #ifdef USE_CUDA
-    // 首先检查OpenCV是否编译了CUDA支持
+    // 方法1: 直接尝试调用CUDA函数，捕获异常来判断是否支持
+    // 这是最可靠的方法，因为cv::getBuildInformation()格式可能不一致
     try {
-        std::string buildInfo = cv::getBuildInformation();
-        // 检查是否包含CUDA支持的标志
-        bool hasCudaSupport = false;
-        if (buildInfo.find("NVIDIA CUDA") != std::string::npos) {
-            // 进一步检查是否真的启用了（不是NO）
-            size_t cudaPos = buildInfo.find("NVIDIA CUDA:");
-            if (cudaPos != std::string::npos) {
-                std::string afterCuda = buildInfo.substr(cudaPos, 100);
-                if (afterCuda.find("YES") != std::string::npos) {
-                    hasCudaSupport = true;
-                }
-            }
-        }
+        // 先设置自定义错误处理器
+        g_cudaErrorOccurred = false;
+        g_cudaErrorMessage.clear();
+        cv::ErrorCallback oldHandler = cv::redirectError(cudaErrorHandler);
 
-        if (!hasCudaSupport) {
-            cudaAvailable_ = false;
-            deviceCount_ = 0;
-            LOG_INFO("OpenCV未编译CUDA支持，GPU加速不可用");
-            return;
-        }
-    } catch (...) {
-        cudaAvailable_ = false;
-        deviceCount_ = 0;
-        LOG_WARNING("检查OpenCV CUDA支持时发生异常");
-        return;
-    }
+        // 尝试获取CUDA设备数量 - 如果OpenCV没有CUDA支持会抛出异常
+        int testCount = cv::cuda::getCudaEnabledDeviceCount();
 
-#ifdef _WIN32
-    // 检查必要的CUDA DLL是否存在
-    QString missingDll;
-    if (!checkCudaDllsAvailable(missingDll)) {
-        cudaAvailable_ = false;
-        deviceCount_ = 0;
-        LOG_WARNING(QString("CUDA DLL检查失败，缺少: %1").arg(missingDll));
-        LOG_INFO("请确保CUDA运行时DLL在系统PATH中或程序目录下");
-        return;
-    }
-#endif
-
-    // 重置错误状态
-    g_cudaErrorOccurred = false;
-    g_cudaErrorMessage.clear();
-
-    // 设置自定义错误处理器，避免OpenCV调用terminate
-    cv::ErrorCallback oldHandler = cv::redirectError(cudaErrorHandler);
-
-    try {
-        deviceCount_ = cv::cuda::getCudaEnabledDeviceCount();
+        // 恢复错误处理器
+        cv::redirectError(oldHandler);
 
         // 检查是否发生了错误
         if (g_cudaErrorOccurred) {
             cudaAvailable_ = false;
             deviceCount_ = 0;
-            LOG_WARNING(QString("CUDA检测失败: %1").arg(QString::fromStdString(g_cudaErrorMessage)));
-            cv::redirectError(oldHandler);
+            LOG_INFO(QString("OpenCV CUDA检测失败: %1").arg(QString::fromStdString(g_cudaErrorMessage)));
             return;
         }
 
-        if (deviceCount_ > 0) {
-            cudaAvailable_ = true;
-            LOG_INFO(QString("检测到 %1 个CUDA设备").arg(deviceCount_));
+        // 如果没有设备
+        if (testCount <= 0) {
+            cudaAvailable_ = false;
+            deviceCount_ = 0;
+            LOG_INFO("未检测到CUDA设备");
+            return;
+        }
 
-            // 获取每个设备的详细信息
-            for (int i = 0; i < deviceCount_; ++i) {
-                GPUDeviceInfo info;
-                info.deviceId = i;
-                info.isAvailable = true;
+        // CUDA可用，继续获取详细信息
+        deviceCount_ = testCount;
+        cudaAvailable_ = true;
+        LOG_INFO(QString("检测到 %1 个CUDA设备").arg(deviceCount_));
 
-                // 设置当前设备
+        // 获取每个设备的详细信息
+        for (int i = 0; i < deviceCount_; ++i) {
+            GPUDeviceInfo info;
+            info.deviceId = i;
+            info.isAvailable = true;
+
+            try {
                 cv::cuda::setDevice(i);
-
-                // 获取设备属性
                 cv::cuda::DeviceInfo devInfo(i);
                 info.name = QString::fromStdString(devInfo.name());
                 info.totalMemory = devInfo.totalMemory();
@@ -315,40 +216,44 @@ void GPUAccelerator::detectDevices()
                 info.computeCapability = devInfo.majorVersion() * 10 + devInfo.minorVersion();
                 info.multiProcessorCount = devInfo.multiProcessorCount();
 
-                devices_.append(info);
-
                 LOG_DEBUG(QString("  设备 %1: %2, 内存=%3MB, 计算能力=%4.%5")
                          .arg(i)
                          .arg(info.name)
                          .arg(info.totalMemory / 1024 / 1024)
                          .arg(devInfo.majorVersion())
                          .arg(devInfo.minorVersion()));
+            } catch (...) {
+                info.name = QString("GPU %1").arg(i);
+                info.isAvailable = false;
             }
 
-            // 设置默认设备为第一个
-            if (deviceCount_ > 0) {
-                setDevice(0);
-            }
-        } else {
-            cudaAvailable_ = false;
-            LOG_INFO("未检测到CUDA设备");
+            devices_.append(info);
         }
+
+        // 设置默认设备为第一个
+        if (deviceCount_ > 0) {
+            setDevice(0);
+        }
+
+        return;
+
     } catch (const cv::Exception& e) {
+        // OpenCV抛出异常，说明CUDA不支持
         cudaAvailable_ = false;
         deviceCount_ = 0;
-        LOG_WARNING(QString("CUDA检测失败: %1").arg(e.what()));
+        LOG_INFO(QString("OpenCV未编译CUDA支持: %1").arg(e.what()));
+        return;
     } catch (const std::exception& e) {
         cudaAvailable_ = false;
         deviceCount_ = 0;
-        LOG_WARNING(QString("CUDA检测异常: %1").arg(e.what()));
+        LOG_INFO(QString("CUDA检测异常: %1").arg(e.what()));
+        return;
     } catch (...) {
         cudaAvailable_ = false;
         deviceCount_ = 0;
-        LOG_WARNING("CUDA检测时发生未知异常");
+        LOG_INFO("CUDA检测时发生未知异常");
+        return;
     }
-
-    // 恢复原来的错误处理器
-    cv::redirectError(oldHandler);
 #else
     cudaAvailable_ = false;
     deviceCount_ = 0;
