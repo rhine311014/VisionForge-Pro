@@ -16,6 +16,7 @@
 #include <QGroupBox>
 #include <QComboBox>
 #include <QSpinBox>
+#include <QDoubleSpinBox>
 #include <QCheckBox>
 #include <QPushButton>
 #include <QLabel>
@@ -30,6 +31,7 @@
 #include <QFile>
 #include <QStandardItemModel>
 #include <QApplication>
+#include <QSlider>
 #include <opencv2/imgcodecs.hpp>
 
 namespace VisionForge {
@@ -217,60 +219,160 @@ void CodeReadToolDialog::createCodeTypeGroup(QVBoxLayout* layout)
 
 void CodeReadToolDialog::createROIGroup(QVBoxLayout* layout)
 {
-    QGroupBox* group = new QGroupBox(tr("ROI绘制"), this);
-    QVBoxLayout* groupLayout = new QVBoxLayout(group);
+    // ========== 定位模板ROI设置 ==========
+    QGroupBox* templateGroup = new QGroupBox(tr("定位模板ROI（绿色）"), this);
+    templateGroup->setStyleSheet("QGroupBox { font-weight: bold; color: green; }");
+    QVBoxLayout* templateLayout = new QVBoxLayout(templateGroup);
 
-    // 绘制模式选择
-    QLabel* modeLabel = new QLabel(tr("绘制模式:"), this);
-    groupLayout->addWidget(modeLabel);
+    QFormLayout* templateForm = new QFormLayout();
 
-    drawModeGroup_ = new QButtonGroup(this);
+    // 中心点X
+    templateCenterXSpin_ = new QSpinBox(this);
+    templateCenterXSpin_->setRange(0, 10000);
+    templateCenterXSpin_->setValue(500);
+    templateCenterXSpin_->setSuffix(tr(" px"));
+    connect(templateCenterXSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onTemplateROIParamChanged);
+    templateForm->addRow(tr("中心X:"), templateCenterXSpin_);
 
-    noneDrawRadio_ = new QRadioButton(tr("无（平移/缩放）"), this);
-    noneDrawRadio_->setChecked(true);
-    drawModeGroup_->addButton(noneDrawRadio_, None);
-    groupLayout->addWidget(noneDrawRadio_);
+    // 中心点Y
+    templateCenterYSpin_ = new QSpinBox(this);
+    templateCenterYSpin_->setRange(0, 10000);
+    templateCenterYSpin_->setValue(500);
+    templateCenterYSpin_->setSuffix(tr(" px"));
+    connect(templateCenterYSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onTemplateROIParamChanged);
+    templateForm->addRow(tr("中心Y:"), templateCenterYSpin_);
 
-    templateDrawRadio_ = new QRadioButton(tr("绘制定位模板ROI（绿色）"), this);
-    drawModeGroup_->addButton(templateDrawRadio_, DrawTemplate);
-    groupLayout->addWidget(templateDrawRadio_);
+    // 宽度
+    templateWidthSpin_ = new QSpinBox(this);
+    templateWidthSpin_->setRange(10, 5000);
+    templateWidthSpin_->setValue(200);
+    templateWidthSpin_->setSuffix(tr(" px"));
+    connect(templateWidthSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onTemplateROIParamChanged);
+    templateForm->addRow(tr("宽度:"), templateWidthSpin_);
 
-    codeDrawRadio_ = new QRadioButton(tr("绘制读码区域ROI（蓝色）"), this);
-    drawModeGroup_->addButton(codeDrawRadio_, DrawCodeROI);
-    groupLayout->addWidget(codeDrawRadio_);
+    // 高度
+    templateHeightSpin_ = new QSpinBox(this);
+    templateHeightSpin_->setRange(10, 5000);
+    templateHeightSpin_->setValue(200);
+    templateHeightSpin_->setSuffix(tr(" px"));
+    connect(templateHeightSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onTemplateROIParamChanged);
+    templateForm->addRow(tr("高度:"), templateHeightSpin_);
 
-    connect(drawModeGroup_, &QButtonGroup::idClicked,
-            this, &CodeReadToolDialog::onDrawModeChanged);
+    // 旋转角度
+    templateAngleSpin_ = new QDoubleSpinBox(this);
+    templateAngleSpin_->setRange(-180.0, 180.0);
+    templateAngleSpin_->setValue(0.0);
+    templateAngleSpin_->setSuffix(tr(" °"));
+    templateAngleSpin_->setSingleStep(1.0);
+    templateAngleSpin_->setDecimals(1);
+    connect(templateAngleSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onTemplateROIParamChanged);
+    templateForm->addRow(tr("角度:"), templateAngleSpin_);
 
-    groupLayout->addSpacing(10);
+    templateLayout->addLayout(templateForm);
 
-    // ROI信息显示
-    QFormLayout* roiInfoLayout = new QFormLayout();
-
-    templateROILabel_ = new QLabel(tr("未设置"), this);
+    // ROI状态和按钮
+    templateROILabel_ = new QLabel(tr("未生成"), this);
     templateROILabel_->setStyleSheet("color: green; font-weight: bold;");
-    roiInfoLayout->addRow(tr("定位模板ROI:"), templateROILabel_);
+    templateLayout->addWidget(templateROILabel_);
 
-    codeROILabel_ = new QLabel(tr("未设置"), this);
-    codeROILabel_->setStyleSheet("color: blue; font-weight: bold;");
-    roiInfoLayout->addRow(tr("读码区域ROI:"), codeROILabel_);
+    QHBoxLayout* templateBtnLayout = new QHBoxLayout();
+    generateTemplateBtn_ = new QPushButton(tr("生成/更新ROI"), this);
+    generateTemplateBtn_->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }");
+    connect(generateTemplateBtn_, &QPushButton::clicked, this, &CodeReadToolDialog::onGenerateTemplateROI);
+    templateBtnLayout->addWidget(generateTemplateBtn_);
 
-    groupLayout->addLayout(roiInfoLayout);
-
-    // 清除按钮
-    QHBoxLayout* clearLayout = new QHBoxLayout();
-
-    clearTemplateBtn_ = new QPushButton(tr("清除定位ROI"), this);
+    clearTemplateBtn_ = new QPushButton(tr("清除"), this);
     connect(clearTemplateBtn_, &QPushButton::clicked, this, &CodeReadToolDialog::onClearTemplateROI);
-    clearLayout->addWidget(clearTemplateBtn_);
+    templateBtnLayout->addWidget(clearTemplateBtn_);
 
-    clearCodeBtn_ = new QPushButton(tr("清除读码ROI"), this);
+    templateLayout->addLayout(templateBtnLayout);
+    layout->addWidget(templateGroup);
+
+    // ========== 读码区域ROI设置 ==========
+    QGroupBox* codeGroup = new QGroupBox(tr("读码区域ROI（蓝色）"), this);
+    codeGroup->setStyleSheet("QGroupBox { font-weight: bold; color: blue; }");
+    QVBoxLayout* codeLayout = new QVBoxLayout(codeGroup);
+
+    QFormLayout* codeForm = new QFormLayout();
+
+    // 中心点X
+    codeCenterXSpin_ = new QSpinBox(this);
+    codeCenterXSpin_->setRange(0, 10000);
+    codeCenterXSpin_->setValue(500);
+    codeCenterXSpin_->setSuffix(tr(" px"));
+    connect(codeCenterXSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onCodeROIParamChanged);
+    codeForm->addRow(tr("中心X:"), codeCenterXSpin_);
+
+    // 中心点Y
+    codeCenterYSpin_ = new QSpinBox(this);
+    codeCenterYSpin_->setRange(0, 10000);
+    codeCenterYSpin_->setValue(500);
+    codeCenterYSpin_->setSuffix(tr(" px"));
+    connect(codeCenterYSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onCodeROIParamChanged);
+    codeForm->addRow(tr("中心Y:"), codeCenterYSpin_);
+
+    // 宽度
+    codeWidthSpin_ = new QSpinBox(this);
+    codeWidthSpin_->setRange(10, 5000);
+    codeWidthSpin_->setValue(150);
+    codeWidthSpin_->setSuffix(tr(" px"));
+    connect(codeWidthSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onCodeROIParamChanged);
+    codeForm->addRow(tr("宽度:"), codeWidthSpin_);
+
+    // 高度
+    codeHeightSpin_ = new QSpinBox(this);
+    codeHeightSpin_->setRange(10, 5000);
+    codeHeightSpin_->setValue(150);
+    codeHeightSpin_->setSuffix(tr(" px"));
+    connect(codeHeightSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onCodeROIParamChanged);
+    codeForm->addRow(tr("高度:"), codeHeightSpin_);
+
+    // 旋转角度
+    codeAngleSpin_ = new QDoubleSpinBox(this);
+    codeAngleSpin_->setRange(-180.0, 180.0);
+    codeAngleSpin_->setValue(0.0);
+    codeAngleSpin_->setSuffix(tr(" °"));
+    codeAngleSpin_->setSingleStep(1.0);
+    codeAngleSpin_->setDecimals(1);
+    connect(codeAngleSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &CodeReadToolDialog::onCodeROIParamChanged);
+    codeForm->addRow(tr("角度:"), codeAngleSpin_);
+
+    codeLayout->addLayout(codeForm);
+
+    // ROI状态和按钮
+    codeROILabel_ = new QLabel(tr("未生成"), this);
+    codeROILabel_->setStyleSheet("color: blue; font-weight: bold;");
+    codeLayout->addWidget(codeROILabel_);
+
+    QHBoxLayout* codeBtnLayout = new QHBoxLayout();
+    generateCodeBtn_ = new QPushButton(tr("生成/更新ROI"), this);
+    generateCodeBtn_->setStyleSheet("QPushButton { background-color: #2196F3; color: white; }");
+    connect(generateCodeBtn_, &QPushButton::clicked, this, &CodeReadToolDialog::onGenerateCodeROI);
+    codeBtnLayout->addWidget(generateCodeBtn_);
+
+    clearCodeBtn_ = new QPushButton(tr("清除"), this);
     connect(clearCodeBtn_, &QPushButton::clicked, this, &CodeReadToolDialog::onClearCodeROI);
-    clearLayout->addWidget(clearCodeBtn_);
+    codeBtnLayout->addWidget(clearCodeBtn_);
 
-    groupLayout->addLayout(clearLayout);
+    codeLayout->addLayout(codeBtnLayout);
+    layout->addWidget(codeGroup);
 
-    layout->addWidget(group);
+    // 初始化旧的绘制相关变量（保持兼容）
+    drawModeGroup_ = nullptr;
+    noneDrawRadio_ = nullptr;
+    templateDrawRadio_ = nullptr;
+    codeDrawRadio_ = nullptr;
+    currentDrawMode_ = None;
 }
 
 void CodeReadToolDialog::createTrainGroup(QVBoxLayout* layout)
@@ -536,7 +638,12 @@ void CodeReadToolDialog::onDrawModeChanged(int mode)
 void CodeReadToolDialog::onClearTemplateROI()
 {
     templateROI_ = QRect();
-    updateROIDisplay();
+
+    // 清除旋转ROI
+    if (templateRotatedROI_) {
+        imageViewer_->removeROI(templateRotatedROI_);
+        templateRotatedROI_.reset();
+    }
 
     // 从ImageViewer中移除绿色ROI
     auto rois = imageViewer_->getROIs();
@@ -546,6 +653,7 @@ void CodeReadToolDialog::onClearTemplateROI()
         }
     }
 
+    updateROIDisplay();
     isTrained_ = false;
     trainStatusLabel_->setText(tr("状态: 未训练"));
     trainStatusLabel_->setStyleSheet("color: black; font-weight: bold;");
@@ -555,7 +663,12 @@ void CodeReadToolDialog::onClearTemplateROI()
 void CodeReadToolDialog::onClearCodeROI()
 {
     codeROI_ = QRect();
-    updateROIDisplay();
+
+    // 清除旋转ROI
+    if (codeRotatedROI_) {
+        imageViewer_->removeROI(codeRotatedROI_);
+        codeRotatedROI_.reset();
+    }
 
     // 从ImageViewer中移除蓝色ROI
     auto rois = imageViewer_->getROIs();
@@ -565,6 +678,7 @@ void CodeReadToolDialog::onClearCodeROI()
         }
     }
 
+    updateROIDisplay();
     isTrained_ = false;
     trainStatusLabel_->setText(tr("状态: 未训练"));
     trainStatusLabel_->setStyleSheet("color: black; font-weight: bold;");
@@ -767,8 +881,14 @@ void CodeReadToolDialog::onROICreated(ROIShapePtr roi)
     updateROIDisplay();
 
     // 绘制完成后自动切换回平移模式
-    noneDrawRadio_->setChecked(true);
-    onDrawModeChanged(None);
+    if (noneDrawRadio_) {
+        noneDrawRadio_->setChecked(true);
+        onDrawModeChanged(None);
+    } else {
+        // 新UI模式，直接切换到平移模式
+        imageViewer_->setInteractionMode(ImageViewer::PanMode);
+        currentDrawMode_ = None;
+    }
 }
 
 void CodeReadToolDialog::onROISelectionChanged(ROIShapePtr roi)
@@ -875,6 +995,162 @@ void CodeReadToolDialog::onCameraGrabClicked()
     } else {
         QMessageBox::warning(this, tr("警告"), tr("采集图像失败"));
     }
+}
+
+// ========== 粗定位ROI参数调整槽函数 ==========
+
+void CodeReadToolDialog::onTemplateROIParamChanged()
+{
+    // 参数变化时自动更新ROI显示
+    if (templateRotatedROI_) {
+        updateTemplateROIFromParams();
+    }
+}
+
+void CodeReadToolDialog::onCodeROIParamChanged()
+{
+    // 参数变化时自动更新ROI显示
+    if (codeRotatedROI_) {
+        updateCodeROIFromParams();
+    }
+}
+
+void CodeReadToolDialog::onGenerateTemplateROI()
+{
+    if (!currentImage_) {
+        QMessageBox::warning(this, tr("提示"), tr("请先加载图像"));
+        return;
+    }
+
+    // 如果没有设置参数，使用图像中心作为默认位置
+    if (templateCenterXSpin_->value() == 500 && templateCenterYSpin_->value() == 500) {
+        int imgW = currentImage_->width();
+        int imgH = currentImage_->height();
+        templateCenterXSpin_->blockSignals(true);
+        templateCenterYSpin_->blockSignals(true);
+        templateCenterXSpin_->setValue(imgW / 2);
+        templateCenterYSpin_->setValue(imgH / 2);
+        templateCenterXSpin_->blockSignals(false);
+        templateCenterYSpin_->blockSignals(false);
+    }
+
+    // 清除旧的ROI
+    if (templateRotatedROI_) {
+        imageViewer_->removeROI(templateRotatedROI_);
+    }
+
+    // 创建新的旋转矩形ROI
+    QPointF center(templateCenterXSpin_->value(), templateCenterYSpin_->value());
+    double width = templateWidthSpin_->value();
+    double height = templateHeightSpin_->value();
+    double angle = templateAngleSpin_->value();
+
+    templateRotatedROI_ = std::make_shared<ROIRotatedRectangle>(center, width, height, angle);
+    templateRotatedROI_->setColor(Qt::green);
+    templateRotatedROI_->setLineWidth(2);
+
+    imageViewer_->addROI(templateRotatedROI_);
+
+    // 更新templateROI_（用于训练）
+    QRect boundRect = templateRotatedROI_->boundingRect();
+    templateROI_ = boundRect;
+
+    updateROIDisplay();
+    appendLog(QString(tr("已生成定位模板ROI: 中心(%1,%2) 大小(%3x%4) 角度%5°"))
+        .arg(center.x(), 0, 'f', 0).arg(center.y(), 0, 'f', 0)
+        .arg(width, 0, 'f', 0).arg(height, 0, 'f', 0)
+        .arg(angle, 0, 'f', 1));
+}
+
+void CodeReadToolDialog::onGenerateCodeROI()
+{
+    if (!currentImage_) {
+        QMessageBox::warning(this, tr("提示"), tr("请先加载图像"));
+        return;
+    }
+
+    // 如果没有设置参数，使用图像中心作为默认位置
+    if (codeCenterXSpin_->value() == 500 && codeCenterYSpin_->value() == 500) {
+        int imgW = currentImage_->width();
+        int imgH = currentImage_->height();
+        codeCenterXSpin_->blockSignals(true);
+        codeCenterYSpin_->blockSignals(true);
+        codeCenterXSpin_->setValue(imgW / 2);
+        codeCenterYSpin_->setValue(imgH / 2);
+        codeCenterXSpin_->blockSignals(false);
+        codeCenterYSpin_->blockSignals(false);
+    }
+
+    // 清除旧的ROI
+    if (codeRotatedROI_) {
+        imageViewer_->removeROI(codeRotatedROI_);
+    }
+
+    // 创建新的旋转矩形ROI
+    QPointF center(codeCenterXSpin_->value(), codeCenterYSpin_->value());
+    double width = codeWidthSpin_->value();
+    double height = codeHeightSpin_->value();
+    double angle = codeAngleSpin_->value();
+
+    codeRotatedROI_ = std::make_shared<ROIRotatedRectangle>(center, width, height, angle);
+    codeRotatedROI_->setColor(Qt::blue);
+    codeRotatedROI_->setLineWidth(2);
+
+    imageViewer_->addROI(codeRotatedROI_);
+
+    // 更新codeROI_（用于训练）
+    QRect boundRect = codeRotatedROI_->boundingRect();
+    codeROI_ = boundRect;
+
+    updateROIDisplay();
+    appendLog(QString(tr("已生成读码区域ROI: 中心(%1,%2) 大小(%3x%4) 角度%5°"))
+        .arg(center.x(), 0, 'f', 0).arg(center.y(), 0, 'f', 0)
+        .arg(width, 0, 'f', 0).arg(height, 0, 'f', 0)
+        .arg(angle, 0, 'f', 1));
+}
+
+void CodeReadToolDialog::updateTemplateROIFromParams()
+{
+    if (!templateRotatedROI_) return;
+
+    QPointF center(templateCenterXSpin_->value(), templateCenterYSpin_->value());
+    double width = templateWidthSpin_->value();
+    double height = templateHeightSpin_->value();
+    double angle = templateAngleSpin_->value();
+
+    templateRotatedROI_->setCenter(center);
+    templateRotatedROI_->setWidth(width);
+    templateRotatedROI_->setHeight(height);
+    templateRotatedROI_->setAngle(angle);
+
+    // 更新templateROI_
+    QRect boundRect = templateRotatedROI_->boundingRect();
+    templateROI_ = boundRect;
+
+    imageViewer_->update();
+    updateROIDisplay();
+}
+
+void CodeReadToolDialog::updateCodeROIFromParams()
+{
+    if (!codeRotatedROI_) return;
+
+    QPointF center(codeCenterXSpin_->value(), codeCenterYSpin_->value());
+    double width = codeWidthSpin_->value();
+    double height = codeHeightSpin_->value();
+    double angle = codeAngleSpin_->value();
+
+    codeRotatedROI_->setCenter(center);
+    codeRotatedROI_->setWidth(width);
+    codeRotatedROI_->setHeight(height);
+    codeRotatedROI_->setAngle(angle);
+
+    // 更新codeROI_
+    QRect boundRect = codeRotatedROI_->boundingRect();
+    codeROI_ = boundRect;
+
+    imageViewer_->update();
+    updateROIDisplay();
 }
 
 } // namespace UI

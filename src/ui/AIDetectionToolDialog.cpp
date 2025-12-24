@@ -99,7 +99,11 @@ void AIDetectionToolDialog::updateUI()
     // 更新值
     modelPathEdit_->setText(tool_->modelPath());
     taskTypeCombo_->setCurrentIndex(static_cast<int>(tool_->taskType()));
-    inferenceEngineCombo_->setCurrentIndex(static_cast<int>(tool_->inferenceEngine()));
+    // 使用 findData 确保正确匹配推理引擎
+    int engineIndex = inferenceEngineCombo_->findData(static_cast<int>(tool_->inferenceEngine()));
+    if (engineIndex >= 0) {
+        inferenceEngineCombo_->setCurrentIndex(engineIndex);
+    }
     useGPUCheckBox_->setChecked(tool_->useGPU());
     confidenceThresholdSpinBox_->setValue(tool_->confidenceThreshold());
     confidenceSlider_->setValue(static_cast<int>(tool_->confidenceThreshold() * 100));
@@ -352,6 +356,8 @@ void AIDetectionToolDialog::createInferenceGroup(QVBoxLayout* layout)
     inferenceEngineCombo_->addItem("OpenCV DNN", static_cast<int>(Algorithm::AIDetectionTool::OpenCVDNN));
     inferenceEngineCombo_->addItem("ONNX Runtime", static_cast<int>(Algorithm::AIDetectionTool::ONNXRuntime));
     inferenceEngineCombo_->addItem("TensorRT", static_cast<int>(Algorithm::AIDetectionTool::TensorRT));
+    inferenceEngineCombo_->addItem("海康深度学习", static_cast<int>(Algorithm::AIDetectionTool::HikvisionDL));
+    inferenceEngineCombo_->addItem("Halcon深度学习", static_cast<int>(Algorithm::AIDetectionTool::HalconDL));
     groupLayout->addWidget(inferenceEngineCombo_, row, 1);
     row++;
 
@@ -541,19 +547,64 @@ void AIDetectionToolDialog::onLoadModelClicked()
         return;
     }
 
+    // 检查文件是否存在
+    QFileInfo fileInfo(modelPath);
+    if (!fileInfo.exists()) {
+        QMessageBox::warning(this, "加载失败",
+            QString("模型文件不存在:\n%1").arg(modelPath));
+        return;
+    }
+
+    // 检查文件格式
+    QString ext = fileInfo.suffix().toLower();
+    QStringList supportedFormats = {"onnx", "pb", "pbtxt", "caffemodel", "weights", "bin", "hdl", "hdict", "hdev", "hdm", "hdvppmodel", "model"};
+    if (!supportedFormats.contains(ext)) {
+        QMessageBox::warning(this, "加载失败",
+            QString("不支持的模型格式: .%1\n\n支持的格式:\n"
+                    "- OpenCV DNN: .onnx, .pb, .caffemodel, .weights\n"
+                    "- 海康SDK: .bin, .hdvppmodel, .model\n"
+                    "- Halcon DL: .hdl, .hdict, .hdm").arg(ext));
+        return;
+    }
+
     QString configPath = configPathEdit_->text().trimmed();
 
-    // 应用推理设置
-    tool_->setInferenceEngine(static_cast<Algorithm::AIDetectionTool::InferenceEngine>(
-        inferenceEngineCombo_->currentData().toInt()));
+    // 设置GPU加速选项
     tool_->setUseGPU(useGPUCheckBox_->isChecked());
 
+    // loadModel 会根据文件扩展名自动设置正确的推理引擎
     if (tool_->loadModel(modelPath, configPath)) {
         updateModelStatus();
+
+        // 更新下拉框以反映正确的推理引擎
+        int engineIndex = inferenceEngineCombo_->findData(static_cast<int>(tool_->inferenceEngine()));
+        if (engineIndex >= 0) {
+            inferenceEngineCombo_->blockSignals(true);
+            inferenceEngineCombo_->setCurrentIndex(engineIndex);
+            inferenceEngineCombo_->blockSignals(false);
+        }
+
         QMessageBox::information(this, "成功", "模型加载成功!");
-        LOG_INFO(QString("模型已加载: %1").arg(modelPath));
+        LOG_INFO(QString("模型已加载: %1, 推理引擎: %2").arg(modelPath).arg(inferenceEngineCombo_->currentText()));
     } else {
-        QMessageBox::warning(this, "加载失败", "无法加载模型文件，请检查路径和格式");
+        // 根据文件类型给出更具体的错误提示
+        QString errorMsg;
+        if (ext == "hdl" || ext == "hdict" || ext == "hdev" || ext == "hdm") {
+            errorMsg = QString("Halcon深度学习模型加载失败\n\n可能的原因:\n"
+                              "1. Halcon DL许可证未激活或已过期\n"
+                              "2. 模型文件损坏或格式不兼容\n"
+                              "3. Halcon版本不匹配\n\n"
+                              "请查看日志文件获取详细错误信息");
+        } else if (ext == "bin" || ext == "hdvppmodel" || ext == "model") {
+            errorMsg = "海康深度学习模型加载失败\n\n请确保已安装海康MVS SDK并正确配置";
+        } else {
+            errorMsg = QString("无法加载模型文件\n\n文件: %1\n\n请检查:\n"
+                              "1. 模型文件是否完整\n"
+                              "2. 模型格式是否正确\n"
+                              "3. 是否需要配置文件(.cfg/.prototxt)").arg(modelPath);
+        }
+        QMessageBox::warning(this, "加载失败", errorMsg);
+        LOG_ERROR(QString("模型加载失败: %1").arg(modelPath));
     }
 }
 

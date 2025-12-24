@@ -14,6 +14,10 @@
 #include <vector>
 #include <memory>
 
+#ifdef USE_HALCON
+#include <HalconCpp.h>
+#endif
+
 namespace VisionForge {
 namespace Algorithm {
 
@@ -197,6 +201,23 @@ private:
      */
     bool inferWithOpenCVDNN(const cv::Mat& input, cv::Mat& output);
 
+#ifdef USE_HALCON
+    /**
+     * @brief 使用Halcon深度学习推理
+     */
+    bool inferWithHalconDL(const cv::Mat& input, ToolResult& output);
+
+    /**
+     * @brief 加载Halcon DL模型
+     */
+    bool loadHalconDLModel(const QString& modelPath);
+
+    /**
+     * @brief 卸载Halcon DL模型
+     */
+    void unloadHalconDLModel();
+#endif
+
 private:
     // 模型参数
     QString modelPath_;
@@ -214,6 +235,12 @@ private:
 
     // OpenCV DNN网络
     cv::dnn::Net net_;
+
+#ifdef USE_HALCON
+    // Halcon DL模型 (使用指针避免头文件依赖)
+    void* halconDLModel_;  // 实际类型为 HalconCpp::HDlModel*
+    bool halconModelLoaded_;
+#endif
 
     // 结果
     std::vector<DetectionResult> detections_;

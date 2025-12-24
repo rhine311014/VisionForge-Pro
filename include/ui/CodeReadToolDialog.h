@@ -17,6 +17,7 @@ class QHBoxLayout;
 class QFormLayout;
 class QComboBox;
 class QSpinBox;
+class QDoubleSpinBox;
 class QCheckBox;
 class QPushButton;
 class QLabel;
@@ -27,6 +28,7 @@ class QTextEdit;
 class QSplitter;
 class QToolButton;
 class QFileDialog;
+class QSlider;
 
 namespace VisionForge {
 namespace UI {
@@ -100,6 +102,12 @@ private slots:
     void onROICreated(ROIShapePtr roi);
     void onROISelectionChanged(ROIShapePtr roi);
 
+    // 粗定位ROI参数调整
+    void onTemplateROIParamChanged();
+    void onCodeROIParamChanged();
+    void onGenerateTemplateROI();
+    void onGenerateCodeROI();
+
     // 其他
     void onApplyClicked();
     void onCloseClicked();
@@ -119,6 +127,8 @@ private:
     void updateImageNavigation();
     void loadImageAt(int index);
     void appendLog(const QString& message, bool isError = false);
+    void updateTemplateROIFromParams();
+    void updateCodeROIFromParams();
 
 private:
     Algorithm::CodeReadTool* tool_;
@@ -154,6 +164,24 @@ private:
     QLabel* codeROILabel_;
     QRect templateROI_;
     QRect codeROI_;
+
+    // 粗定位模板ROI参数控件
+    QSpinBox* templateCenterXSpin_;
+    QSpinBox* templateCenterYSpin_;
+    QSpinBox* templateWidthSpin_;
+    QSpinBox* templateHeightSpin_;
+    QDoubleSpinBox* templateAngleSpin_;
+    QPushButton* generateTemplateBtn_;
+    std::shared_ptr<ROIRotatedRectangle> templateRotatedROI_;
+
+    // 读码区域ROI参数控件
+    QSpinBox* codeCenterXSpin_;
+    QSpinBox* codeCenterYSpin_;
+    QSpinBox* codeWidthSpin_;
+    QSpinBox* codeHeightSpin_;
+    QDoubleSpinBox* codeAngleSpin_;
+    QPushButton* generateCodeBtn_;
+    std::shared_ptr<ROIRotatedRectangle> codeRotatedROI_;
 
     // 码制选择
     QComboBox* codeTypeCombo_;

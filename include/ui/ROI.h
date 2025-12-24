@@ -9,12 +9,19 @@
 #pragma once
 
 #include <QPoint>
+#include <QPointF>
 #include <QRect>
 #include <QPolygon>
+#include <QPolygonF>
 #include <QColor>
 #include <QString>
 #include <memory>
 #include <vector>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // 解决Halcon与STL的宏冲突
 // Halcon定义了high、low、min、max作为宏，但STL使用它们作为函数名
@@ -102,6 +109,90 @@ public:
 
 private:
     QRect rect_;
+};
+
+/**
+ * @class ROIRotatedRectangle
+ * @brief 可旋转矩形ROI
+ * @details 支持设置中心点、宽度、高度和旋转角度
+ */
+class ROIRotatedRectangle : public ROIShape {
+public:
+    ROIRotatedRectangle()
+        : ROIShape(ROIType::Rectangle), center_(0, 0), width_(100), height_(100), angle_(0) {}
+    ROIRotatedRectangle(const QPointF& center, double width, double height, double angle = 0)
+        : ROIShape(ROIType::Rectangle), center_(center), width_(width), height_(height), angle_(angle) {}
+
+    QPointF getCenter() const { return center_; }
+    void setCenter(const QPointF& center) { center_ = center; }
+    double getWidth() const { return width_; }
+    void setWidth(double width) { width_ = width; }
+    double getHeight() const { return height_; }
+    void setHeight(double height) { height_ = height; }
+    double getAngle() const { return angle_; }
+    void setAngle(double angle) { angle_ = angle; }
+
+    /**
+     * @brief 获取旋转后的四个顶点
+     */
+    QPolygonF getRotatedPolygon() const {
+        double halfW = width_ / 2.0;
+        double halfH = height_ / 2.0;
+        double rad = angle_ * M_PI / 180.0;
+        double cosA = std::cos(rad);
+        double sinA = std::sin(rad);
+
+        // 未旋转的四个角点（相对于中心）
+        QPointF corners[4] = {
+            QPointF(-halfW, -halfH),
+            QPointF(halfW, -halfH),
+            QPointF(halfW, halfH),
+            QPointF(-halfW, halfH)
+        };
+
+        QPolygonF polygon;
+        for (int i = 0; i < 4; ++i) {
+            double rx = corners[i].x() * cosA - corners[i].y() * sinA;
+            double ry = corners[i].x() * sinA + corners[i].y() * cosA;
+            polygon.append(QPointF(center_.x() + rx, center_.y() + ry));
+        }
+        return polygon;
+    }
+
+    bool contains(const QPoint& point) const override {
+        // 将点转换到矩形的局部坐标系
+        double rad = -angle_ * M_PI / 180.0;
+        double cosA = std::cos(rad);
+        double sinA = std::sin(rad);
+
+        double dx = point.x() - center_.x();
+        double dy = point.y() - center_.y();
+
+        double localX = dx * cosA - dy * sinA;
+        double localY = dx * sinA + dy * cosA;
+
+        return std::abs(localX) <= width_ / 2.0 && std::abs(localY) <= height_ / 2.0;
+    }
+
+    QRect boundingRect() const override {
+        QPolygonF poly = getRotatedPolygon();
+        return poly.boundingRect().toRect();
+    }
+
+    void translate(const QPoint& offset) override {
+        center_ += QPointF(offset);
+    }
+
+    /**
+     * @brief 是否为旋转矩形
+     */
+    bool isRotated() const { return true; }
+
+private:
+    QPointF center_;
+    double width_;
+    double height_;
+    double angle_;  // 旋转角度（度）
 };
 
 /**

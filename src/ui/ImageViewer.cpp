@@ -573,11 +573,38 @@ void ImageViewer::drawROI(QPainter& painter, const ROIShapePtr& roi)
 
     switch (roi->getType()) {
     case ROIType::Rectangle: {
-        auto rect = std::dynamic_pointer_cast<ROIRectangle>(roi);
-        QRect imageRect = rect->getRect();
-        QPoint topLeft = imageToWidget(imageRect.topLeft());
-        QPoint bottomRight = imageToWidget(imageRect.bottomRight());
-        painter.drawRect(QRect(topLeft, bottomRight));
+        // 首先尝试转换为旋转矩形
+        auto rotatedRect = std::dynamic_pointer_cast<ROIRotatedRectangle>(roi);
+        if (rotatedRect) {
+            // 绘制旋转矩形
+            QPolygonF imagePolygon = rotatedRect->getRotatedPolygon();
+            QPolygonF widgetPolygon;
+            for (int i = 0; i < imagePolygon.size(); ++i) {
+                QPoint imgPt(static_cast<int>(imagePolygon[i].x()),
+                            static_cast<int>(imagePolygon[i].y()));
+                widgetPolygon.append(imageToWidget(imgPt));
+            }
+            painter.drawPolygon(widgetPolygon);
+
+            // 绘制中心点十字
+            QPointF center = rotatedRect->getCenter();
+            QPoint widgetCenter = imageToWidget(QPoint(static_cast<int>(center.x()),
+                                                       static_cast<int>(center.y())));
+            int crossSize = 8;
+            painter.drawLine(widgetCenter.x() - crossSize, widgetCenter.y(),
+                           widgetCenter.x() + crossSize, widgetCenter.y());
+            painter.drawLine(widgetCenter.x(), widgetCenter.y() - crossSize,
+                           widgetCenter.x(), widgetCenter.y() + crossSize);
+        } else {
+            // 普通矩形
+            auto rect = std::dynamic_pointer_cast<ROIRectangle>(roi);
+            if (rect) {
+                QRect imageRect = rect->getRect();
+                QPoint topLeft = imageToWidget(imageRect.topLeft());
+                QPoint bottomRight = imageToWidget(imageRect.bottomRight());
+                painter.drawRect(QRect(topLeft, bottomRight));
+            }
+        }
         break;
     }
     case ROIType::Circle: {
