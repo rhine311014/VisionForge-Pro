@@ -554,14 +554,20 @@ void SystemSettingsDialog::loadPlatformSettings()
 
 void SystemSettingsDialog::applySettings()
 {
-    // 应用GPU设置
-    Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-    gpu.setAccelMode(selectedMode_);
+    try {
+        // 应用GPU设置
+        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
+        gpu.setAccelMode(selectedMode_);
 
-    LOG_INFO(QString("GPU加速模式已更改为: %1")
-            .arg(Base::GPUAccelerator::getAccelModeName(selectedMode_)));
+        LOG_INFO(QString("GPU加速模式已更改为: %1")
+                .arg(Base::GPUAccelerator::getAccelModeName(selectedMode_)));
 
-    updateGPUStatusDisplay();
+        updateGPUStatusDisplay();
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("applySettings: GPU设置应用失败: %1").arg(e.what()));
+    } catch (...) {
+        LOG_ERROR("applySettings: GPU设置应用时发生未知异常");
+    }
 
     // 应用平台设置
     applyPlatformSettings();
@@ -662,54 +668,70 @@ void SystemSettingsDialog::updateGPUStatusDisplay()
         return;
     }
 
-    Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
+    try {
+        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
 
-    QString statusText;
-    if (gpu.isCudaAvailable()) {
-        int deviceCount = gpu.getDeviceCount();
-        statusText = QString("CUDA状态: 可用 (检测到 %1 个GPU设备)").arg(deviceCount);
-        gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #2e7d32;");
-    } else {
-        statusText = "CUDA状态: 不可用";
-        gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
-    }
-    gpuStatusLabel_->setText(statusText);
-
-    QString infoText;
-    if (gpu.isCudaAvailable()) {
-        QList<Base::GPUDeviceInfo> devices = gpu.getAllDevices();
-        for (const Base::GPUDeviceInfo& dev : devices) {
-            if (!infoText.isEmpty()) {
-                infoText += "\n";
-            }
-            infoText += QString("GPU %1: %2\n  内存: %3 MB, 计算能力: %4")
-                .arg(dev.deviceId)
-                .arg(dev.name)
-                .arg(dev.totalMemory / 1024 / 1024)
-                .arg(dev.computeCapability / 10.0, 0, 'f', 1);
+        QString statusText;
+        if (gpu.isCudaAvailable()) {
+            int deviceCount = gpu.getDeviceCount();
+            statusText = QString("CUDA状态: 可用 (检测到 %1 个GPU设备)").arg(deviceCount);
+            gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #2e7d32;");
+        } else {
+            statusText = "CUDA状态: 不可用";
+            gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
         }
-    } else {
-        infoText = "未检测到CUDA兼容的GPU设备。\n"
-                   "请确保已安装NVIDIA显卡和CUDA驱动。\n"
-                   "若选择\"自动\"模式，将自动使用CPU处理。";
-    }
+        gpuStatusLabel_->setText(statusText);
 
-    infoText += QString("\n\n当前模式: %1")
-        .arg(Base::GPUAccelerator::getAccelModeName(selectedMode_));
+        QString infoText;
+        if (gpu.isCudaAvailable()) {
+            QList<Base::GPUDeviceInfo> devices = gpu.getAllDevices();
+            for (const Base::GPUDeviceInfo& dev : devices) {
+                if (!infoText.isEmpty()) {
+                    infoText += "\n";
+                }
+                infoText += QString("GPU %1: %2\n  内存: %3 MB, 计算能力: %4")
+                    .arg(dev.deviceId)
+                    .arg(dev.name)
+                    .arg(dev.totalMemory / 1024 / 1024)
+                    .arg(dev.computeCapability / 10.0, 0, 'f', 1);
+            }
+        } else {
+            infoText = "未检测到CUDA兼容的GPU设备。\n"
+                       "请确保已安装NVIDIA显卡和CUDA驱动。\n"
+                       "若选择\"自动\"模式，将自动使用CPU处理。";
+        }
 
-    if (gpu.isUsingGPU()) {
-        infoText += " (实际使用: GPU)";
-    } else {
-        infoText += " (实际使用: CPU)";
-    }
+        infoText += QString("\n\n当前模式: %1")
+            .arg(Base::GPUAccelerator::getAccelModeName(selectedMode_));
 
-    gpuInfoLabel_->setText(infoText);
+        if (gpu.isUsingGPU()) {
+            infoText += " (实际使用: GPU)";
+        } else {
+            infoText += " (实际使用: CPU)";
+        }
 
-    radioCUDA_->setEnabled(gpu.isCudaAvailable());
-    if (!gpu.isCudaAvailable()) {
+        gpuInfoLabel_->setText(infoText);
+
+        radioCUDA_->setEnabled(gpu.isCudaAvailable());
+        if (!gpu.isCudaAvailable()) {
+            radioCUDA_->setText("启用CUDA GPU加速 (不可用)");
+        } else {
+            radioCUDA_->setText("启用CUDA GPU加速");
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("updateGPUStatusDisplay: 异常: %1").arg(e.what()));
+        gpuStatusLabel_->setText("CUDA状态: 检测失败");
+        gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
+        gpuInfoLabel_->setText(QString("GPU状态检测失败: %1").arg(e.what()));
+        radioCUDA_->setEnabled(false);
         radioCUDA_->setText("启用CUDA GPU加速 (不可用)");
-    } else {
-        radioCUDA_->setText("启用CUDA GPU加速");
+    } catch (...) {
+        LOG_ERROR("updateGPUStatusDisplay: 未知异常");
+        gpuStatusLabel_->setText("CUDA状态: 检测失败");
+        gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
+        gpuInfoLabel_->setText("GPU状态检测失败: 未知错误");
+        radioCUDA_->setEnabled(false);
+        radioCUDA_->setText("启用CUDA GPU加速 (不可用)");
     }
 }
 
@@ -779,13 +801,22 @@ void SystemSettingsDialog::onAxisDirectionChanged()
 
 void SystemSettingsDialog::onAccelModeChanged(int id)
 {
-    selectedMode_ = static_cast<Base::GPUAccelMode>(id);
+    try {
+        selectedMode_ = static_cast<Base::GPUAccelMode>(id);
 
-    Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-    if (selectedMode_ == Base::GPUAccelMode::CUDA && !gpu.isCudaAvailable()) {
+        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
+        if (selectedMode_ == Base::GPUAccelMode::CUDA && !gpu.isCudaAvailable()) {
+            QMessageBox::warning(this, "警告",
+                "当前系统不支持CUDA，选择此选项后将自动回退到CPU处理。\n"
+                "建议选择\"自动选择\"模式。");
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR(QString("onAccelModeChanged: 异常: %1").arg(e.what()));
         QMessageBox::warning(this, "警告",
-            "当前系统不支持CUDA，选择此选项后将自动回退到CPU处理。\n"
-            "建议选择\"自动选择\"模式。");
+            QString("GPU模式切换时发生错误: %1").arg(e.what()));
+    } catch (...) {
+        LOG_ERROR("onAccelModeChanged: 未知异常");
+        QMessageBox::warning(this, "警告", "GPU模式切换时发生未知错误");
     }
 }
 
