@@ -6,7 +6,7 @@
 #include "ui/SceneSwitchBar.h"
 #include "core/SceneManager.h"
 #include "core/StationConfig.h"
-#include <QDebug>
+#include "base/Logger.h"
 
 namespace VisionForge {
 namespace UI {
@@ -118,7 +118,7 @@ void SceneSwitchBar::refreshScenes(Core::StationConfig* stationConfig)
     isUpdating_ = false;
     updateButtonStates();
 
-    qDebug() << "[SceneSwitchBar] 刷新场景列表, 共" << sceneNames_.size() << "个场景";
+    LOG_DEBUG(QString("[SceneSwitchBar] 刷新场景列表, 共 %1 个场景").arg(sceneNames_.size()));
 }
 
 void SceneSwitchBar::setCurrentScene(int index)
@@ -155,7 +155,7 @@ void SceneSwitchBar::onSceneComboChanged(int index)
     emit sceneSelected(index);
     emit sceneSelectedById(sceneIds_[index]);
 
-    qDebug() << "[SceneSwitchBar] 场景选择变更:" << index << sceneNames_[index];
+    LOG_DEBUG(QString("[SceneSwitchBar] 场景选择变更: %1 %2").arg(index).arg(sceneNames_[index]));
 }
 
 void SceneSwitchBar::onPreviousClicked()

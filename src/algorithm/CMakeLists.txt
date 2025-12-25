@@ -5,6 +5,44 @@
 # AI深度学习子模块 (P6)
 add_subdirectory(ai)
 
+# ============================================================
+# 算法后端抽象层
+# ============================================================
+set(BACKEND_SOURCES
+    backend/OpenCVCircleDetector.cpp
+    backend/OpenCVLineDetector.cpp
+    backend/OpenCVBlobAnalyzer.cpp
+    backend/AlgorithmBackendFactory.cpp
+)
+
+set(BACKEND_HEADERS
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/ICircleDetector.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/ILineDetector.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/IBlobAnalyzer.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/OpenCVCircleDetector.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/OpenCVLineDetector.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/OpenCVBlobAnalyzer.h
+    ${CMAKE_SOURCE_DIR}/include/algorithm/backend/AlgorithmBackendFactory.h
+)
+
+# 如果启用Halcon，添加Halcon后端
+if(USE_HALCON)
+    list(APPEND BACKEND_SOURCES
+        backend/HalconCircleDetector.cpp
+        backend/HalconLineDetector.cpp
+        backend/HalconBlobAnalyzer.cpp
+    )
+    list(APPEND BACKEND_HEADERS
+        ${CMAKE_SOURCE_DIR}/include/algorithm/backend/HalconCircleDetector.h
+        ${CMAKE_SOURCE_DIR}/include/algorithm/backend/HalconLineDetector.h
+        ${CMAKE_SOURCE_DIR}/include/algorithm/backend/HalconBlobAnalyzer.h
+    )
+endif()
+
+# ============================================================
+# 主算法模块
+# ============================================================
+
 # 收集源文件
 set(ALGORITHM_SOURCES
     VisionTool.cpp
@@ -114,6 +152,8 @@ endif()
 add_library(VisionForgeAlgorithm STATIC
     ${ALGORITHM_SOURCES}
     ${ALGORITHM_HEADERS}
+    ${BACKEND_SOURCES}
+    ${BACKEND_HEADERS}
 )
 
 # 包含目录

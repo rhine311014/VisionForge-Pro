@@ -13,12 +13,16 @@
 #include <QStringList>
 #include <opencv2/opencv.hpp>
 
+// 注意：CUDA头文件仅在.cpp中包含，避免头文件污染导致的静态初始化问题
+// 当OpenCV未编译CUDA运行时支持时，包含CUDA头文件可能触发异常
 #ifdef USE_CUDA
-#include <opencv2/cudaarithm.hpp>
-#include <opencv2/cudafilters.hpp>
-#include <opencv2/cudaimgproc.hpp>
-#include <opencv2/cudawarping.hpp>
-#include <opencv2/core/cuda_stream_accessor.hpp>
+// 前向声明CUDA类型（避免包含完整头文件）
+namespace cv {
+namespace cuda {
+    class GpuMat;
+    class Stream;
+}
+}
 #endif
 
 #include <QMutex>
@@ -28,6 +32,7 @@
 #include <functional>
 #include <future>
 #include <atomic>
+#include <memory>
 
 namespace VisionForge {
 namespace Base {
@@ -374,7 +379,7 @@ public:
 
 private:
     GPUAccelerator();
-    ~GPUAccelerator() = default;
+    ~GPUAccelerator();  // 在.cpp中定义，因为需要完整的CUDA类型
 
     // 禁止拷贝
     GPUAccelerator(const GPUAccelerator&) = delete;
@@ -391,125 +396,31 @@ private:
     GPUAccelMode accelMode_;   // GPU加速模式
 
 #ifdef USE_CUDA
-    cv::cuda::Stream defaultStream_;  // 默认CUDA流
+    // 使用指针延迟初始化，避免在CUDA不可用时触发异常
+    std::unique_ptr<cv::cuda::Stream> defaultStream_;
 #endif
 };
 
 // ============================================================
-// GPU内存池
+// GPU内存池（前向声明，完整定义在.cpp中）
 // ============================================================
 
 #ifdef USE_CUDA
 
 /**
- * @brief GPU内存池
- *
- * 管理GPU内存分配，减少显存分配开销
+ * @brief GPU内存池统计信息
  */
-class GpuMemoryPool {
-public:
-    /**
-     * @brief 获取单例实例
-     */
-    static GpuMemoryPool& instance();
-
-    /**
-     * @brief 从池中分配GPU图像
-     * @param rows 行数
-     * @param cols 列数
-     * @param type OpenCV类型
-     * @return GPU图像
-     */
-    cv::cuda::GpuMat allocate(int rows, int cols, int type);
-
-    /**
-     * @brief 归还GPU图像到池中
-     * @param mat GPU图像
-     */
-    void release(cv::cuda::GpuMat& mat);
-
-    /**
-     * @brief 预分配指定规格的GPU内存
-     * @param rows 行数
-     * @param cols 列数
-     * @param type OpenCV类型
-     * @param count 预分配数量
-     */
-    void preallocate(int rows, int cols, int type, int count);
-
-    /**
-     * @brief 清空GPU内存池
-     */
-    void clear();
-
-    /**
-     * @brief 获取池中总内存使用量（字节）
-     */
-    size_t getTotalMemoryUsage() const;
-
-    /**
-     * @brief 获取池中对象数量
-     */
-    size_t getPoolSize() const;
-
-    /**
-     * @brief 统计信息
-     */
-    struct Statistics {
-        size_t totalAllocations;    ///< 总分配次数
-        size_t cacheHits;           ///< 缓存命中
-        size_t cacheMisses;         ///< 缓存未命中
-        double hitRate;             ///< 命中率
-        size_t poolSize;            ///< 池大小
-        size_t memoryUsage;         ///< 内存使用（字节）
-    };
-
-    /**
-     * @brief 获取统计信息
-     */
-    Statistics getStatistics() const;
-
-    /**
-     * @brief 重置统计
-     */
-    void resetStatistics();
-
-    /**
-     * @brief 设置最大池大小
-     */
-    void setMaxPoolSize(size_t maxSize) { maxPoolSize_ = maxSize; }
-
-private:
-    GpuMemoryPool();
-    ~GpuMemoryPool();
-
-    GpuMemoryPool(const GpuMemoryPool&) = delete;
-    GpuMemoryPool& operator=(const GpuMemoryPool&) = delete;
-
-    struct PoolKey {
-        int rows;
-        int cols;
-        int type;
-
-        bool operator<(const PoolKey& other) const {
-            if (rows != other.rows) return rows < other.rows;
-            if (cols != other.cols) return cols < other.cols;
-            return type < other.type;
-        }
-
-        size_t getMemorySize() const;
-    };
-
-private:
-    std::map<PoolKey, std::vector<cv::cuda::GpuMat>> pool_;
-    mutable QMutex mutex_;
-    size_t maxPoolSize_;
-
-    // 统计
-    mutable std::atomic<size_t> totalAllocations_{0};
-    mutable std::atomic<size_t> cacheHits_{0};
-    mutable std::atomic<size_t> cacheMisses_{0};
+struct GpuMemoryPoolStatistics {
+    size_t totalAllocations;    ///< 总分配次数
+    size_t cacheHits;           ///< 缓存命中
+    size_t cacheMisses;         ///< 缓存未命中
+    double hitRate;             ///< 命中率
+    size_t poolSize;            ///< 池大小
+    size_t memoryUsage;         ///< 内存使用（字节）
 };
+
+// 前向声明：完整实现在.cpp中，避免头文件包含CUDA类型
+class GpuMemoryPool;
 
 #endif // USE_CUDA
 

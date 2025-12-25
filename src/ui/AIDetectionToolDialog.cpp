@@ -347,6 +347,7 @@ void AIDetectionToolDialog::createInferenceGroup(QVBoxLayout* layout)
     taskTypeCombo_->addItem("图像分类", static_cast<int>(Algorithm::AIDetectionTool::Classification));
     taskTypeCombo_->addItem("缺陷检测", static_cast<int>(Algorithm::AIDetectionTool::DefectDetection));
     taskTypeCombo_->addItem("语义分割", static_cast<int>(Algorithm::AIDetectionTool::Segmentation));
+    taskTypeCombo_->addItem("文字识别(OCR)", static_cast<int>(Algorithm::AIDetectionTool::OCR));
     groupLayout->addWidget(taskTypeCombo_, row, 1);
     row++;
 
@@ -557,13 +558,13 @@ void AIDetectionToolDialog::onLoadModelClicked()
 
     // 检查文件格式
     QString ext = fileInfo.suffix().toLower();
-    QStringList supportedFormats = {"onnx", "pb", "pbtxt", "caffemodel", "weights", "bin", "hdl", "hdict", "hdev", "hdm", "hdvppmodel", "model"};
+    QStringList supportedFormats = {"onnx", "pb", "pbtxt", "caffemodel", "weights", "bin", "hdl", "hdict", "hdev", "hdm", "hdvppmodel", "model", "dltp"};
     if (!supportedFormats.contains(ext)) {
         QMessageBox::warning(this, "加载失败",
             QString("不支持的模型格式: .%1\n\n支持的格式:\n"
                     "- OpenCV DNN: .onnx, .pb, .caffemodel, .weights\n"
                     "- 海康SDK: .bin, .hdvppmodel, .model\n"
-                    "- Halcon DL: .hdl, .hdict, .hdm").arg(ext));
+                    "- Halcon DL: .hdl, .hdict, .hdm, .dltp").arg(ext));
         return;
     }
 
@@ -589,7 +590,13 @@ void AIDetectionToolDialog::onLoadModelClicked()
     } else {
         // 根据文件类型给出更具体的错误提示
         QString errorMsg;
-        if (ext == "hdl" || ext == "hdict" || ext == "hdev" || ext == "hdm") {
+        if (ext == "dltp") {
+            errorMsg = QString("Deep Learning Tool项目文件加载失败\n\n可能的原因:\n"
+                              "1. .dltp同名目录中未找到.hdl模型文件\n"
+                              "2. 请确保已在Deep Learning Tool中完成训练\n"
+                              "3. 或直接选择训练目录中的.hdl文件\n\n"
+                              "请查看日志文件获取详细错误信息");
+        } else if (ext == "hdl" || ext == "hdict" || ext == "hdev" || ext == "hdm") {
             errorMsg = QString("Halcon深度学习模型加载失败\n\n可能的原因:\n"
                               "1. Halcon DL许可证未激活或已过期\n"
                               "2. 模型文件损坏或格式不兼容\n"
@@ -620,8 +627,17 @@ void AIDetectionToolDialog::onUnloadModelClicked()
 void AIDetectionToolDialog::onTaskTypeChanged(int index)
 {
     if (!tool_) return;
-    tool_->setTaskType(static_cast<Algorithm::AIDetectionTool::TaskType>(
-        taskTypeCombo_->itemData(index).toInt()));
+
+    auto newTaskType = static_cast<Algorithm::AIDetectionTool::TaskType>(
+        taskTypeCombo_->itemData(index).toInt());
+
+    tool_->setTaskType(newTaskType);
+
+    // OCR任务现在支持两种模型：
+    // 1. Deep OCR模型 (.dltp) - 优先使用
+    // 2. 普通DL文字检测模型 (.hdl) - 作为备选
+    // 因此不需要强制重新加载模型
+
     emit parameterChanged();
     previewHelper_->requestPreview();
 }

@@ -42,6 +42,22 @@ struct DetectionResult {
 };
 
 /**
+ * @brief OCR识别结果
+ */
+struct OCRResult {
+    QString text;               // 识别文本
+    float confidence;           // 置信度
+    QRectF boundingBox;         // 文字区域边界框
+    double angle;               // 文字角度
+
+    OCRResult()
+        : confidence(0), angle(0) {}
+
+    OCRResult(const QString& txt, float conf, const QRectF& box, double ang = 0)
+        : text(txt), confidence(conf), boundingBox(box), angle(ang) {}
+};
+
+/**
  * @brief AI检测工具
  *
  * 支持多种深度学习任务：
@@ -60,7 +76,8 @@ public:
         ObjectDetection,    // 目标检测
         Classification,     // 图像分类
         DefectDetection,    // 缺陷检测
-        Segmentation        // 语义分割
+        Segmentation,       // 语义分割
+        OCR                 // 文字识别 (OCR/Deep OCR)
     };
     Q_ENUM(TaskType)
 
@@ -170,6 +187,16 @@ public:
      */
     int detectionCount() const { return static_cast<int>(detections_.size()); }
 
+    /**
+     * @brief 获取OCR识别结果列表
+     */
+    const std::vector<OCRResult>& ocrResults() const { return ocrResults_; }
+
+    /**
+     * @brief 获取OCR识别数量
+     */
+    int ocrResultCount() const { return static_cast<int>(ocrResults_.size()); }
+
 private:
     /**
      * @brief 预处理图像
@@ -208,9 +235,19 @@ private:
     bool inferWithHalconDL(const cv::Mat& input, ToolResult& output);
 
     /**
+     * @brief 使用Halcon Deep OCR推理
+     */
+    bool inferWithHalconDeepOCR(const cv::Mat& input, ToolResult& output);
+
+    /**
      * @brief 加载Halcon DL模型
      */
     bool loadHalconDLModel(const QString& modelPath);
+
+    /**
+     * @brief 加载Halcon Deep OCR模型
+     */
+    bool loadHalconDeepOCRModel(const QString& modelPath);
 
     /**
      * @brief 卸载Halcon DL模型
@@ -240,10 +277,15 @@ private:
     // Halcon DL模型 (使用指针避免头文件依赖)
     void* halconDLModel_;  // 实际类型为 HalconCpp::HDlModel*
     bool halconModelLoaded_;
+
+    // Halcon Deep OCR句柄
+    void* halconDeepOCRHandle_;  // 实际类型为 HalconCpp::HDeepOcr* 或 HTuple (句柄)
+    bool halconDeepOCRLoaded_;
 #endif
 
     // 结果
     std::vector<DetectionResult> detections_;
+    std::vector<OCRResult> ocrResults_;
 };
 
 } // namespace Algorithm

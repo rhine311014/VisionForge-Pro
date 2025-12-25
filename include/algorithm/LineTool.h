@@ -9,6 +9,8 @@
 #pragma once
 
 #include "algorithm/VisionTool.h"
+#include "algorithm/backend/ILineDetector.h"
+#include "algorithm/backend/AlgorithmBackendFactory.h"
 #include <vector>
 #include <QPointF>
 #include <QLineF>
@@ -18,6 +20,7 @@ namespace Algorithm {
 
 /**
  * @brief 检测到的线特征
+ * @note 为保持向后兼容，保留此结构体
  */
 struct LineResult {
     int id;                     // 线ID
@@ -187,31 +190,19 @@ public:
 
 private:
     /**
-     * @brief 使用OpenCV概率霍夫变换
-     */
-    bool processWithHoughLinesP(const cv::Mat& input, ToolResult& output);
-
-    /**
-     * @brief 使用OpenCV标准霍夫变换
-     */
-    bool processWithHoughLines(const cv::Mat& input, ToolResult& output);
-
-    /**
-     * @brief 使用OpenCV轮廓拟合
-     */
-    bool processWithContourFit(const cv::Mat& input, ToolResult& output);
-
-#ifdef USE_HALCON
-    /**
-     * @brief 使用Halcon边缘拟合
-     */
-    bool processWithHalconEdgeFit(const cv::Mat& input, ToolResult& output);
-#endif
-
-    /**
      * @brief 绘制检测结果
      */
     cv::Mat drawResults(const cv::Mat& input) const;
+
+    /**
+     * @brief 确保检测器已创建
+     */
+    void ensureDetector();
+
+    /**
+     * @brief 转换为后端参数
+     */
+    Backend::LineDetectParams toBackendParams() const;
 
 private:
     BackendType backend_;           // 后端类型
@@ -232,6 +223,9 @@ private:
     double cannyThreshold2_;        // Canny高阈值
 
     std::vector<LineResult> lines_; // 检测结果
+
+    // 后端检测器（无需 #ifdef）
+    Backend::ILineDetectorPtr detector_;
 };
 
 } // namespace Algorithm

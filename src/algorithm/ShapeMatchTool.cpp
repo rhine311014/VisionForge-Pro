@@ -543,26 +543,38 @@ bool ShapeMatchTool::process(const Base::ImageData::Ptr& input, ToolResult& outp
 HImage ShapeMatchTool::imageDataToHImage(const Base::ImageData::Ptr& image)
 {
     const cv::Mat& mat = image->mat();
+    int width = mat.cols;
+    int height = mat.rows;
+    int channels = mat.channels();
 
     HImage hImg;
 
-    if (mat.channels() == 1) {
-        // 灰度图
-        hImg.GenImage1(L"byte", mat.cols, mat.rows, (void*)mat.data);
+    if (channels == 1) {
+        // 灰度图 - GenImage1 会进行内部拷贝
+        hImg.GenImage1(L"byte", width, height, (void*)mat.data);
     }
-    else if (mat.channels() == 3) {
-        // BGR转RGB
-        cv::Mat rgb;
-        cv::cvtColor(mat, rgb, cv::COLOR_BGR2RGB);
-
-        // 分离通道
-        std::vector<cv::Mat> channels(3);
-        cv::split(rgb, channels);
-
-        hImg.GenImage3(L"byte", mat.cols, mat.rows,
-                      (void*)channels[0].data,
-                      (void*)channels[1].data,
-                      (void*)channels[2].data);
+    else if (channels == 3) {
+        // 零拷贝优化：使用 GenImageInterleaved 直接接受 BGR 交织数据
+        // 避免了 cvtColor (BGR→RGB) 和 split (交织→平面) 两次拷贝
+        hImg.GenImageInterleaved(
+            (void*)mat.data,    // 直接使用原始数据指针
+            L"bgr",             // BGR格式（OpenCV默认）
+            width, height,
+            0,                  // 对齐参数
+            L"byte",            // 像素类型
+            width * 3,          // 每行字节数
+            0);                 // 起始偏移
+    }
+    else if (channels == 4) {
+        // BGRA图像支持
+        hImg.GenImageInterleaved(
+            (void*)mat.data,
+            L"bgrx",            // BGRA格式（x表示忽略Alpha）
+            width, height,
+            0,
+            L"byte",
+            width * 4,
+            0);
     }
     else {
         throw HException("不支持的图像通道数");

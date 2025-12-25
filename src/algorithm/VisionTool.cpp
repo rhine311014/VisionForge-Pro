@@ -8,6 +8,22 @@
 namespace VisionForge {
 namespace Algorithm {
 
+// 静态成员初始化
+VisionTool::DialogCreator VisionTool::dialogCreator_ = nullptr;
+
+void VisionTool::setDialogCreator(DialogCreator creator)
+{
+    dialogCreator_ = creator;
+}
+
+QDialog* VisionTool::createConfigDialog(QWidget* parent, const Base::ImageData::Ptr& image)
+{
+    if (dialogCreator_) {
+        return dialogCreator_(this, parent, image);
+    }
+    return nullptr;
+}
+
 VisionTool::VisionTool(QObject* parent)
     : QObject(parent)
     , enabled_(true)

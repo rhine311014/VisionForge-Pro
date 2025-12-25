@@ -1,9 +1,11 @@
 /**
  * @file LineTool.cpp
  * @brief 线检测工具实现
+ * @details 使用抽象后端接口，无需 #ifdef USE_HALCON
  */
 
 #include "algorithm/LineTool.h"
+#include "algorithm/backend/OpenCVLineDetector.h"
 #include "base/Logger.h"
 #include "base/ImageMemoryPool.h"
 #include <opencv2/imgproc.hpp>
@@ -11,11 +13,6 @@
 #include <QJsonArray>
 #include <algorithm>
 #include <cmath>
-
-#ifdef USE_HALCON
-#include <HalconCpp.h>
-using namespace HalconCpp;
-#endif
 
 namespace VisionForge {
 namespace Algorithm {
@@ -59,47 +56,42 @@ bool LineTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         gray = src.clone();
     }
 
-    bool success = false;
     lines_.clear();
 
-    // 根据后端和方法选择处理方式
-#ifdef USE_HALCON
-    if (backend_ == Halcon || (backend_ == Auto && method_ == EdgeFit)) {
-        success = processWithHalconEdgeFit(gray, output);
-        if (success) {
-            output.setValue("backend", "Halcon");
-        }
-    }
-#endif
+    // 确保检测器已创建
+    ensureDetector();
 
-    if (!success) {
-        switch (method_) {
-        case HoughLinesP:
-            success = processWithHoughLinesP(gray, output);
-            break;
-        case HoughLines:
-            success = processWithHoughLines(gray, output);
-            break;
-        case ContourFit:
-            success = processWithContourFit(gray, output);
-            break;
-        default:
-            success = processWithHoughLinesP(gray, output);
-            break;
-        }
-        if (success) {
-            output.setValue("backend", "OpenCV");
-        }
-    }
+    // 使用抽象接口进行检测（无需 #ifdef）
+    std::vector<Backend::LineDetectResult> backendResults;
+    QString errorMsg;
+    bool success = detector_->detect(gray, toBackendParams(), backendResults, errorMsg);
 
     if (success) {
+        // 转换后端结果到本地格式
+        lines_.reserve(backendResults.size());
+        for (const auto& br : backendResults) {
+            LineResult lr;
+            lr.id = br.id;
+            lr.startPoint = br.startPoint;
+            lr.endPoint = br.endPoint;
+            lr.angle = br.angle;
+            lr.length = br.length;
+            lr.score = br.score;
+            lr.a = br.a;
+            lr.b = br.b;
+            lr.c = br.c;
+            lines_.push_back(lr);
+        }
+
         // 限制数量
         if (maxCount_ > 0 && lines_.size() > static_cast<size_t>(maxCount_)) {
             lines_.resize(maxCount_);
         }
 
+        output.success = true;
         output.executionTime = timer.elapsed();
         output.setValue("lineCount", static_cast<int>(lines_.size()));
+        output.setValue("backend", detector_->backendName());
 
         // 记录每条线的信息
         QJsonArray lineArray;
@@ -128,276 +120,54 @@ bool LineTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         setDebugImage(output.outputImage);
         setStatusText(QString("检测到 %1 条线").arg(lines_.size()));
 
-        LOG_DEBUG(QString("线检测完成，检测到 %1 条线，耗时: %2ms")
+        LOG_DEBUG(QString("线检测完成，检测到 %1 条线，耗时: %2ms，后端: %3")
                  .arg(lines_.size())
-                 .arg(output.executionTime));
+                 .arg(output.executionTime)
+                 .arg(detector_->backendName()));
+    } else {
+        output.success = false;
+        output.errorMessage = errorMsg;
     }
 
     return success;
 }
 
-bool LineTool::processWithHoughLinesP(const cv::Mat& input, ToolResult& output)
+void LineTool::ensureDetector()
 {
-    try {
-        // Canny边缘检测
-        cv::Mat edges;
-        cv::Canny(input, edges, cannyThreshold1_, cannyThreshold2_);
-
-        // 概率霍夫变换
-        std::vector<cv::Vec4i> houghLines;
-        double thetaRad = theta_ * M_PI / 180.0;
-        cv::HoughLinesP(edges, houghLines, rho_, thetaRad, threshold_,
-                       minLength_, maxGap_);
-
-        // 转换结果
-        lines_.reserve(houghLines.size());
-        for (size_t i = 0; i < houghLines.size(); ++i) {
-            QPointF start(houghLines[i][0], houghLines[i][1]);
-            QPointF end(houghLines[i][2], houghLines[i][3]);
-
-            LineResult result(static_cast<int>(i + 1), start, end, 1.0);
-            lines_.push_back(result);
+    if (!detector_) {
+        Backend::BackendType backendType = Backend::BackendType::Auto;
+        switch (backend_) {
+            case Auto:   backendType = Backend::BackendType::Auto; break;
+            case OpenCV: backendType = Backend::BackendType::OpenCV; break;
+            case Halcon: backendType = Backend::BackendType::Halcon; break;
         }
-
-        // 按长度排序（降序）
-        std::sort(lines_.begin(), lines_.end(),
-                 [](const LineResult& a, const LineResult& b) {
-                     return a.length > b.length;
-                 });
-
-        output.success = true;
-        return true;
-
-    } catch (const cv::Exception& e) {
-        output.success = false;
-        output.errorMessage = QString("概率霍夫线检测失败: %1").arg(e.what());
-        LOG_ERROR(output.errorMessage);
-        return false;
+        detector_ = Backend::AlgorithmBackendFactory::instance().createLineDetector(backendType);
     }
 }
 
-bool LineTool::processWithHoughLines(const cv::Mat& input, ToolResult& output)
+Backend::LineDetectParams LineTool::toBackendParams() const
 {
-    try {
-        // Canny边缘检测
-        cv::Mat edges;
-        cv::Canny(input, edges, cannyThreshold1_, cannyThreshold2_);
+    Backend::LineDetectParams params;
 
-        // 标准霍夫变换
-        std::vector<cv::Vec2f> houghLines;
-        double thetaRad = theta_ * M_PI / 180.0;
-        cv::HoughLines(edges, houghLines, rho_, thetaRad, threshold_);
-
-        // 图像边界
-        double xMin = 0, yMin = 0;
-        double xMax = input.cols - 1;
-        double yMax = input.rows - 1;
-
-        // 转换结果（标准霍夫返回的是极坐标形式，需要转换为端点）
-        int lineId = 0;
-        for (const auto& line : houghLines) {
-            float rhoVal = line[0];
-            float thetaVal = line[1];
-
-            double cosTheta = std::cos(thetaVal);
-            double sinTheta = std::sin(thetaVal);
-            double x0 = cosTheta * rhoVal;
-            double y0 = sinTheta * rhoVal;
-
-            // 计算线段的两个端点（延伸到图像边界）
-            double lineLen = std::max(input.cols, input.rows) * 2;
-            double x1 = x0 - lineLen * sinTheta;
-            double y1 = y0 + lineLen * cosTheta;
-            double x2 = x0 + lineLen * sinTheta;
-            double y2 = y0 - lineLen * cosTheta;
-
-            // 使用Liang-Barsky算法裁剪到图像边界
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            double tMin = 0.0, tMax = 1.0;
-
-            // 定义裁剪边界的p和q值
-            double p[4] = {-dx, dx, -dy, dy};
-            double q[4] = {x1 - xMin, xMax - x1, y1 - yMin, yMax - y1};
-
-            bool valid = true;
-            for (int i = 0; i < 4; ++i) {
-                if (std::abs(p[i]) < 1e-10) {
-                    // 线段平行于裁剪边界
-                    if (q[i] < 0) {
-                        valid = false;
-                        break;
-                    }
-                } else {
-                    double t = q[i] / p[i];
-                    if (p[i] < 0) {
-                        tMin = std::max(tMin, t);
-                    } else {
-                        tMax = std::min(tMax, t);
-                    }
-                }
-            }
-
-            if (!valid || tMin > tMax) {
-                // 线段完全在图像外
-                continue;
-            }
-
-            // 计算裁剪后的端点
-            QPointF start(x1 + tMin * dx, y1 + tMin * dy);
-            QPointF end(x1 + tMax * dx, y1 + tMax * dy);
-
-            LineResult result(++lineId, start, end, 1.0);
-            result.angle = thetaVal * 180.0 / M_PI;
-
-            // 过滤短线
-            if (result.length < minLength_) continue;
-
-            lines_.push_back(result);
-
-            if (lineId >= maxCount_) break;
-        }
-
-        output.success = true;
-        return true;
-
-    } catch (const cv::Exception& e) {
-        output.success = false;
-        output.errorMessage = QString("标准霍夫线检测失败: %1").arg(e.what());
-        LOG_ERROR(output.errorMessage);
-        return false;
+    // 设置方法名称
+    switch (method_) {
+        case HoughLinesP: params.method = "HoughLinesP"; break;
+        case HoughLines:  params.method = "HoughLines"; break;
+        case ContourFit:  params.method = "ContourFit"; break;
+        case EdgeFit:     params.method = "EdgeFit"; break;
     }
+
+    params.minLength = minLength_;
+    params.maxGap = maxGap_;
+    params.maxCount = maxCount_;
+    params.rho = rho_;
+    params.theta = theta_;
+    params.threshold = threshold_;
+    params.cannyThreshold1 = cannyThreshold1_;
+    params.cannyThreshold2 = cannyThreshold2_;
+
+    return params;
 }
-
-bool LineTool::processWithContourFit(const cv::Mat& input, ToolResult& output)
-{
-    try {
-        // Canny边缘检测
-        cv::Mat edges;
-        cv::Canny(input, edges, cannyThreshold1_, cannyThreshold2_);
-
-        // 查找轮廓
-        std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(edges, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-
-        int lineId = 0;
-        for (const auto& contour : contours) {
-            if (contour.size() < 2) continue;
-
-            // 拟合直线
-            cv::Vec4f fitLine;
-            cv::fitLine(contour, fitLine, cv::DIST_L2, 0, 0.01, 0.01);
-
-            // 方向向量
-            double vx = fitLine[0];
-            double vy = fitLine[1];
-            // 线上的点
-            double x0 = fitLine[2];
-            double y0 = fitLine[3];
-
-            // 计算轮廓的范围
-            cv::Rect boundRect = cv::boundingRect(contour);
-
-            // 计算线段端点
-            double t1 = -1000, t2 = 1000;
-            for (const auto& pt : contour) {
-                double t = (pt.x - x0) * vx + (pt.y - y0) * vy;
-                t1 = std::max(t1, t);
-                t2 = std::min(t2, t);
-            }
-
-            QPointF start(x0 + t2 * vx, y0 + t2 * vy);
-            QPointF end(x0 + t1 * vx, y0 + t1 * vy);
-
-            LineResult result(++lineId, start, end, 1.0);
-
-            // 过滤短线
-            if (result.length < minLength_) continue;
-
-            lines_.push_back(result);
-        }
-
-        // 按长度排序（降序）
-        std::sort(lines_.begin(), lines_.end(),
-                 [](const LineResult& a, const LineResult& b) {
-                     return a.length > b.length;
-                 });
-
-        output.success = true;
-        return true;
-
-    } catch (const cv::Exception& e) {
-        output.success = false;
-        output.errorMessage = QString("轮廓拟合线检测失败: %1").arg(e.what());
-        LOG_ERROR(output.errorMessage);
-        return false;
-    }
-}
-
-#ifdef USE_HALCON
-bool LineTool::processWithHalconEdgeFit(const cv::Mat& input, ToolResult& output)
-{
-    try {
-        // 创建Halcon图像
-        HImage hImage;
-        hImage.GenImage1("byte", input.cols, input.rows, (void*)input.data);
-
-        // 边缘检测获取亚像素轮廓
-        HXLDCont edges = hImage.EdgesSubPix("canny", 1.0,
-                                            cannyThreshold1_ / 5, cannyThreshold2_ / 5);
-
-        // 分割轮廓
-        HXLDCont segContours = edges.SegmentContoursXld("lines", 5, 4, 2);
-
-        // 选择线段轮廓
-        HTuple attribName("cont_approx");
-        HTuple attribMin(1);  // 线段
-        HTuple attribMax(1);
-        HXLDCont lineContours = segContours.SelectContoursXld(attribName, attribMin, attribMax, 0, 0);
-
-        // 获取轮廓数量
-        Hlong count = lineContours.CountObj();
-
-        int lineId = 0;
-        for (Hlong i = 1; i <= count; ++i) {
-            HXLDCont singleContour = lineContours.SelectObj(i);
-
-            // 获取轮廓的起点和终点
-            HTuple rowBegin, colBegin, rowEnd, colEnd;
-            singleContour.GetContourXld(&rowBegin, &colBegin);
-
-            if (rowBegin.Length() < 2) continue;
-
-            // 取轮廓首尾点作为线段端点
-            int lastIdx = rowBegin.Length() - 1;
-            QPointF start(colBegin[0].D(), rowBegin[0].D());
-            QPointF end(colBegin[lastIdx].D(), rowBegin[lastIdx].D());
-
-            LineResult result(++lineId, start, end, 1.0);
-
-            // 过滤短线
-            if (result.length < minLength_) continue;
-
-            lines_.push_back(result);
-        }
-
-        // 按长度排序（降序）
-        std::sort(lines_.begin(), lines_.end(),
-                 [](const LineResult& a, const LineResult& b) {
-                     return a.length > b.length;
-                 });
-
-        output.success = true;
-        return true;
-
-    } catch (const HException& e) {
-        output.success = false;
-        output.errorMessage = QString("Halcon线检测失败: %1").arg(e.ErrorMessage().Text());
-        LOG_ERROR(output.errorMessage);
-        return false;
-    }
-}
-#endif
 
 cv::Mat LineTool::drawResults(const cv::Mat& input) const
 {
@@ -466,6 +236,7 @@ void LineTool::setBackend(BackendType backend)
 {
     if (backend_ != backend) {
         backend_ = backend;
+        detector_.reset();  // 重置检测器，下次 process() 时重新创建
         emit paramChanged();
     }
 }

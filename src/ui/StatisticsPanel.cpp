@@ -37,8 +37,8 @@ StatisticsPanel::StatisticsPanel(QWidget* parent)
 void StatisticsPanel::setupUI()
 {
     mainLayout_ = new QVBoxLayout(this);
-    mainLayout_->setSpacing(10);
-    mainLayout_->setContentsMargins(10, 10, 10, 10);
+    mainLayout_->setSpacing(20);
+    mainLayout_->setContentsMargins(20, 20, 20, 20);
 
     // 创建各个统计组
     createControlsGroup();
@@ -54,10 +54,14 @@ void StatisticsPanel::setupUI()
 void StatisticsPanel::createControlsGroup()
 {
     controlsGroup_ = new QGroupBox(tr("统计控制"), this);
+    controlsGroup_->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; }");
     QHBoxLayout* layout = new QHBoxLayout(controlsGroup_);
+    layout->setSpacing(16);
+    layout->setContentsMargins(16, 20, 16, 16);
 
     // 时间范围选择
     QLabel* rangeLabel = new QLabel(tr("时间范围:"), this);
+    rangeLabel->setStyleSheet("font-size: 13px;");
     timeRangeCombo_ = new QComboBox(this);
     timeRangeCombo_->addItem(tr("全部"), -1);
     timeRangeCombo_->addItem(tr("最近1小时"), 1);
@@ -93,30 +97,43 @@ void StatisticsPanel::createControlsGroup()
 void StatisticsPanel::createRunStatisticsGroup()
 {
     runStatsGroup_ = new QGroupBox(tr("运行统计"), this);
+    runStatsGroup_->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; }");
     QGridLayout* layout = new QGridLayout(runStatsGroup_);
+    layout->setSpacing(16);
+    layout->setContentsMargins(16, 24, 16, 16);
+    layout->setVerticalSpacing(14);
+    layout->setHorizontalSpacing(24);
 
     // 总运行次数
-    layout->addWidget(new QLabel(tr("总运行次数:"), this), 0, 0);
+    QLabel* totalRunsTextLabel = new QLabel(tr("总运行次数:"), this);
+    totalRunsTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(totalRunsTextLabel, 0, 0);
     totalRunsLabel_ = new QLabel("0", this);
-    totalRunsLabel_->setStyleSheet("font-weight: bold; font-size: 14px;");
+    totalRunsLabel_->setStyleSheet("font-weight: bold; font-size: 18px;");
     layout->addWidget(totalRunsLabel_, 0, 1);
 
     // OK次数
-    layout->addWidget(new QLabel(tr("OK次数:"), this), 0, 2);
+    QLabel* okTextLabel = new QLabel(tr("OK次数:"), this);
+    okTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(okTextLabel, 0, 2);
     okCountLabel_ = new QLabel("0", this);
-    okCountLabel_->setStyleSheet("font-weight: bold; color: #4CAF50;");
+    okCountLabel_->setStyleSheet("font-weight: bold; font-size: 18px; color: #4CAF50;");
     layout->addWidget(okCountLabel_, 0, 3);
 
     // NG次数
-    layout->addWidget(new QLabel(tr("NG次数:"), this), 0, 4);
+    QLabel* ngTextLabel = new QLabel(tr("NG次数:"), this);
+    ngTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(ngTextLabel, 0, 4);
     ngCountLabel_ = new QLabel("0", this);
-    ngCountLabel_->setStyleSheet("font-weight: bold; color: #F44336;");
+    ngCountLabel_->setStyleSheet("font-weight: bold; font-size: 18px; color: #F44336;");
     layout->addWidget(ngCountLabel_, 0, 5);
 
     // 良品率
-    layout->addWidget(new QLabel(tr("良品率:"), this), 1, 0);
+    QLabel* okRateTextLabel = new QLabel(tr("良品率:"), this);
+    okRateTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(okRateTextLabel, 1, 0);
     okRateLabel_ = new QLabel("0.00%", this);
-    okRateLabel_->setStyleSheet("font-weight: bold; font-size: 16px; color: #2196F3;");
+    okRateLabel_->setStyleSheet("font-weight: bold; font-size: 22px; color: #2196F3;");
     layout->addWidget(okRateLabel_, 1, 1);
 
     // 良品率进度条
@@ -124,9 +141,10 @@ void StatisticsPanel::createRunStatisticsGroup()
     okRateBar_->setRange(0, 100);
     okRateBar_->setValue(0);
     okRateBar_->setFormat("%v%");
+    okRateBar_->setMinimumHeight(28);
     okRateBar_->setStyleSheet(
-        "QProgressBar { border: 1px solid #ccc; border-radius: 5px; text-align: center; }"
-        "QProgressBar::chunk { background-color: #4CAF50; border-radius: 4px; }"
+        "QProgressBar { border: 1px solid #ccc; border-radius: 6px; text-align: center; font-size: 14px; }"
+        "QProgressBar::chunk { background-color: #4CAF50; border-radius: 5px; }"
     );
     layout->addWidget(okRateBar_, 1, 2, 1, 4);
 
@@ -136,29 +154,43 @@ void StatisticsPanel::createRunStatisticsGroup()
 void StatisticsPanel::createTimeStatisticsGroup()
 {
     timeStatsGroup_ = new QGroupBox(tr("执行时间统计"), this);
+    timeStatsGroup_->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; }");
     QGridLayout* layout = new QGridLayout(timeStatsGroup_);
+    layout->setSpacing(16);
+    layout->setContentsMargins(16, 24, 16, 16);
+    layout->setVerticalSpacing(14);
+    layout->setHorizontalSpacing(24);
 
     // 最短时间
-    layout->addWidget(new QLabel(tr("最短时间:"), this), 0, 0);
+    QLabel* minTimeTextLabel = new QLabel(tr("最短时间:"), this);
+    minTimeTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(minTimeTextLabel, 0, 0);
     minTimeLabel_ = new QLabel("--", this);
-    minTimeLabel_->setStyleSheet("font-weight: bold; color: #4CAF50;");
+    minTimeLabel_->setStyleSheet("font-weight: bold; font-size: 16px; color: #4CAF50;");
     layout->addWidget(minTimeLabel_, 0, 1);
 
     // 最长时间
-    layout->addWidget(new QLabel(tr("最长时间:"), this), 0, 2);
+    QLabel* maxTimeTextLabel = new QLabel(tr("最长时间:"), this);
+    maxTimeTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(maxTimeTextLabel, 0, 2);
     maxTimeLabel_ = new QLabel("--", this);
-    maxTimeLabel_->setStyleSheet("font-weight: bold; color: #FF9800;");
+    maxTimeLabel_->setStyleSheet("font-weight: bold; font-size: 16px; color: #FF9800;");
     layout->addWidget(maxTimeLabel_, 0, 3);
 
     // 平均时间
-    layout->addWidget(new QLabel(tr("平均时间:"), this), 1, 0);
+    QLabel* avgTimeTextLabel = new QLabel(tr("平均时间:"), this);
+    avgTimeTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(avgTimeTextLabel, 1, 0);
     avgTimeLabel_ = new QLabel("--", this);
-    avgTimeLabel_->setStyleSheet("font-weight: bold; color: #2196F3;");
+    avgTimeLabel_->setStyleSheet("font-weight: bold; font-size: 16px; color: #2196F3;");
     layout->addWidget(avgTimeLabel_, 1, 1);
 
     // 总时间
-    layout->addWidget(new QLabel(tr("累计时间:"), this), 1, 2);
+    QLabel* totalTimeTextLabel = new QLabel(tr("累计时间:"), this);
+    totalTimeTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(totalTimeTextLabel, 1, 2);
     totalTimeLabel_ = new QLabel("--", this);
+    totalTimeLabel_->setStyleSheet("font-size: 16px;");
     layout->addWidget(totalTimeLabel_, 1, 3);
 
     mainLayout_->addWidget(timeStatsGroup_);
@@ -167,36 +199,51 @@ void StatisticsPanel::createTimeStatisticsGroup()
 void StatisticsPanel::createLogStatisticsGroup()
 {
     logStatsGroup_ = new QGroupBox(tr("日志统计"), this);
+    logStatsGroup_->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; }");
     QGridLayout* layout = new QGridLayout(logStatsGroup_);
+    layout->setSpacing(16);
+    layout->setContentsMargins(16, 24, 16, 16);
+    layout->setVerticalSpacing(14);
+    layout->setHorizontalSpacing(24);
 
     // Debug
-    layout->addWidget(new QLabel(tr("调试:"), this), 0, 0);
+    QLabel* debugTextLabel = new QLabel(tr("调试:"), this);
+    debugTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(debugTextLabel, 0, 0);
     debugCountLabel_ = new QLabel("0", this);
-    debugCountLabel_->setStyleSheet("color: #9E9E9E;");
+    debugCountLabel_->setStyleSheet("font-size: 16px; color: #9E9E9E;");
     layout->addWidget(debugCountLabel_, 0, 1);
 
     // Info
-    layout->addWidget(new QLabel(tr("信息:"), this), 0, 2);
+    QLabel* infoTextLabel = new QLabel(tr("信息:"), this);
+    infoTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(infoTextLabel, 0, 2);
     infoCountLabel_ = new QLabel("0", this);
-    infoCountLabel_->setStyleSheet("color: #2196F3;");
+    infoCountLabel_->setStyleSheet("font-size: 16px; color: #2196F3;");
     layout->addWidget(infoCountLabel_, 0, 3);
 
     // Warning
-    layout->addWidget(new QLabel(tr("警告:"), this), 0, 4);
+    QLabel* warningTextLabel = new QLabel(tr("警告:"), this);
+    warningTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(warningTextLabel, 0, 4);
     warningCountLabel_ = new QLabel("0", this);
-    warningCountLabel_->setStyleSheet("color: #FF9800;");
+    warningCountLabel_->setStyleSheet("font-size: 16px; color: #FF9800;");
     layout->addWidget(warningCountLabel_, 0, 5);
 
     // Error
-    layout->addWidget(new QLabel(tr("错误:"), this), 1, 0);
+    QLabel* errorTextLabel = new QLabel(tr("错误:"), this);
+    errorTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(errorTextLabel, 1, 0);
     errorCountLabel_ = new QLabel("0", this);
-    errorCountLabel_->setStyleSheet("color: #F44336;");
+    errorCountLabel_->setStyleSheet("font-size: 16px; color: #F44336;");
     layout->addWidget(errorCountLabel_, 1, 1);
 
     // Critical
-    layout->addWidget(new QLabel(tr("严重:"), this), 1, 2);
+    QLabel* criticalTextLabel = new QLabel(tr("严重:"), this);
+    criticalTextLabel->setStyleSheet("font-size: 13px;");
+    layout->addWidget(criticalTextLabel, 1, 2);
     criticalCountLabel_ = new QLabel("0", this);
-    criticalCountLabel_->setStyleSheet("color: #B71C1C; font-weight: bold;");
+    criticalCountLabel_->setStyleSheet("font-size: 16px; color: #B71C1C; font-weight: bold;");
     layout->addWidget(criticalCountLabel_, 1, 3);
 
     mainLayout_->addWidget(logStatsGroup_);
@@ -205,7 +252,10 @@ void StatisticsPanel::createLogStatisticsGroup()
 void StatisticsPanel::createRecentRunsTable()
 {
     recentRunsGroup_ = new QGroupBox(tr("最近运行记录"), this);
+    recentRunsGroup_->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; }");
     QVBoxLayout* layout = new QVBoxLayout(recentRunsGroup_);
+    layout->setSpacing(12);
+    layout->setContentsMargins(16, 24, 16, 16);
 
     recentRunsTable_ = new QTableWidget(this);
     recentRunsTable_->setColumnCount(5);
@@ -220,7 +270,9 @@ void StatisticsPanel::createRecentRunsTable()
     recentRunsTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     recentRunsTable_->horizontalHeader()->setStretchLastSection(true);
     recentRunsTable_->verticalHeader()->setVisible(false);
-    recentRunsTable_->setMaximumHeight(200);
+    recentRunsTable_->setMaximumHeight(250);
+    recentRunsTable_->setStyleSheet("QTableWidget { font-size: 13px; } QHeaderView::section { font-size: 13px; font-weight: bold; padding: 6px; }");
+    recentRunsTable_->verticalHeader()->setDefaultSectionSize(32);
 
     layout->addWidget(recentRunsTable_);
     mainLayout_->addWidget(recentRunsGroup_);

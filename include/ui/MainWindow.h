@@ -28,6 +28,7 @@
 #include "hal/SimulatedCamera.h"
 #include "hal/ICamera.h"
 #include "algorithm/VisionTool.h"
+#include "core/VisionEngine.h"
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QToolBar>
@@ -163,6 +164,15 @@ private slots:
     // 场景切换
     void onSceneSelected(int index);
     void onSceneSwitchRequested();
+
+    // VisionEngine 信号响应
+    void onEngineImageUpdated(Base::ImageData::Ptr image);
+    void onEngineLiveFrame(Base::ImageData::Ptr image);
+    void onEngineProcessCompleted(const Core::ProcessResult& result);
+    void onEngineCameraStatusChanged(bool connected);
+    void onEngineImageSequenceChanged(int count, int currentIndex);
+    void onEngineError(const QString& message);
+    void onEngineStatusMessage(const QString& message);
 
 private:
     void createMenus();
@@ -302,24 +312,16 @@ private:
     QLabel* cpuLabel_;           // CPU使用率
     QLabel* memoryLabel_;        // 内存使用率
 
-    // 相机 - 使用unique_ptr管理生命周期，避免内存泄漏
-    std::unique_ptr<HAL::ICamera> camera_;
-    QTimer* continuousTimer_;
-    bool isContinuousGrabbing_;
+    // VisionEngine 引用（单例）
+    Core::VisionEngine& engine_;
+
+    // UI状态
     bool isFrameValid_;           // 帧有效状态
     bool isLiveDisplay_;          // 实时显示状态
 
-    // 当前图像
-    Base::ImageData::Ptr currentImage_;
-
-    // 图片序列
-    QStringList imageSequence_;       // 图片路径列表
-    int currentImageIndex_;           // 当前图片索引
-
     // 私有辅助方法
-    void loadImageAtIndex(int index);         // 加载指定索引的图片
+    void connectEngineSignals();              // 连接VisionEngine信号
     void updateImageSequenceActions();        // 更新图片序列相关动作状态
-    void applyImageTransform(Base::ImageData::Ptr& image);  // 应用图像变换（旋转、镜像）
     bool tryAutoConnectCamera();              // 尝试自动连接已保存的相机
     void showCameraConfigOnStartup();         // 启动时显示相机配置对话框
 };

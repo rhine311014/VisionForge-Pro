@@ -93,5 +93,13 @@ set_target_properties(VisionForgeBase PROPERTIES
     AUTOMOC ON
 )
 
+# 为GPUAccelerator.cpp启用异步异常处理（/EHa），以便捕获OpenCV CUDA的SEH异常
+if(MSVC)
+    set_source_files_properties(GPUAccelerator.cpp PROPERTIES
+        COMPILE_FLAGS "/EHa"
+    )
+    message(STATUS "  VisionForgeBase: GPUAccelerator.cpp 使用 /EHa 异常处理")
+endif()
+
 # 输出信息
 message(STATUS "基础设施层 (VisionForgeBase) 配置完成")

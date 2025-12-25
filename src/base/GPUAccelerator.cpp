@@ -8,11 +8,40 @@
 #include "base/Logger.h"
 #include <QDebug>
 
+// 完整的CUDA头文件仅在.cpp中包含，避免头文件污染
 #ifdef USE_CUDA
 #include <opencv2/core/cuda.hpp>
+#include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
+#include <opencv2/cudawarping.hpp>
 #endif
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+// ============================================================
+// SEH保护的CUDA检测函数（必须在命名空间外，不使用C++对象）
+// ============================================================
+#if defined(USE_CUDA) && defined(_WIN32)
+
+// 全局变量存储检测结果
+static int g_sehCudaDeviceCount = -1;
+static bool g_sehCudaCheckDone = false;
+
+// SEH保护的CUDA设备数量检测（纯C风格）
+static int sehSafeCudaGetDeviceCount()
+{
+    __try {
+        return cv::cuda::getCudaEnabledDeviceCount();
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER) {
+        return -1;  // 发生SEH异常
+    }
+}
+
+#endif // USE_CUDA && _WIN32
 
 namespace VisionForge {
 namespace Base {
@@ -24,8 +53,11 @@ GPUAccelerator::GPUAccelerator()
     , currentDevice_(-1)
     , accelMode_(GPUAccelMode::Auto)
 {
+    LOG_DEBUG("GPUAccelerator构造: 开始");
     try {
+        LOG_DEBUG("GPUAccelerator构造: 调用detectDevices");
         detectDevices();
+        LOG_DEBUG("GPUAccelerator构造: detectDevices完成");
     } catch (const std::exception& e) {
         LOG_ERROR(QString("GPUAccelerator构造: detectDevices异常: %1").arg(e.what()));
         cudaAvailable_ = false;
@@ -37,18 +69,27 @@ GPUAccelerator::GPUAccelerator()
     }
 
     try {
+        LOG_DEBUG("GPUAccelerator构造: 调用loadSettings");
         loadSettings();
+        LOG_DEBUG("GPUAccelerator构造: loadSettings完成");
     } catch (const std::exception& e) {
         LOG_ERROR(QString("GPUAccelerator构造: loadSettings异常: %1").arg(e.what()));
     } catch (...) {
         LOG_ERROR("GPUAccelerator构造: loadSettings未知异常");
     }
+    LOG_DEBUG("GPUAccelerator构造: 完成");
 }
 
 GPUAccelerator& GPUAccelerator::instance()
 {
     static GPUAccelerator instance;
     return instance;
+}
+
+GPUAccelerator::~GPUAccelerator()
+{
+    // unique_ptr 会自动清理 defaultStream_
+    // 析构函数必须在.cpp中定义，因为需要完整的cv::cuda::Stream类型
 }
 
 bool GPUAccelerator::isCudaAvailable() const
@@ -165,30 +206,81 @@ static int cudaErrorHandler(int /*status*/, const char* /*func_name*/,
 
 void GPUAccelerator::detectDevices()
 {
+    LOG_DEBUG("detectDevices: 开始");
 #ifdef USE_CUDA
-    // 方法1: 直接尝试调用CUDA函数，捕获异常来判断是否支持
-    // 这是最可靠的方法，因为cv::getBuildInformation()格式可能不一致
-    try {
-        // 先设置自定义错误处理器
-        g_cudaErrorOccurred = false;
-        g_cudaErrorMessage.clear();
-        cv::ErrorCallback oldHandler = cv::redirectError(cudaErrorHandler);
+#ifdef _WIN32
+    LOG_DEBUG("detectDevices: 调用SEH保护函数");
+    // 使用SEH保护的函数检测CUDA设备数量
+    // 这可以捕获OpenCV抛出的任何类型的异常
+    int testCount = sehSafeCudaGetDeviceCount();
+    LOG_DEBUG(QString("detectDevices: SEH函数返回 %1").arg(testCount));
 
-        // 尝试获取CUDA设备数量 - 如果OpenCV没有CUDA支持会抛出异常
-        int testCount = cv::cuda::getCudaEnabledDeviceCount();
+    if (testCount < 0) {
+        // SEH异常发生，OpenCV没有真正的CUDA支持
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+        LOG_INFO("OpenCV CUDA运行时不可用（SEH异常）");
+        return;
+    }
 
-        // 恢复错误处理器
-        cv::redirectError(oldHandler);
+    if (testCount == 0) {
+        cudaAvailable_ = false;
+        deviceCount_ = 0;
+        LOG_INFO("未检测到CUDA设备");
+        return;
+    }
 
-        // 检查是否发生了错误
-        if (g_cudaErrorOccurred) {
-            cudaAvailable_ = false;
-            deviceCount_ = 0;
-            LOG_INFO(QString("OpenCV CUDA检测失败: %1").arg(QString::fromStdString(g_cudaErrorMessage)));
-            return;
+    // CUDA可用，继续获取详细信息
+    deviceCount_ = testCount;
+    cudaAvailable_ = true;
+    LOG_INFO(QString("检测到 %1 个CUDA设备").arg(deviceCount_));
+
+    // 获取设备详细信息（使用try-catch保护）
+    for (int i = 0; i < deviceCount_; ++i) {
+        GPUDeviceInfo info;
+        info.deviceId = i;
+        info.isAvailable = true;
+
+        try {
+            cv::cuda::setDevice(i);
+            cv::cuda::DeviceInfo devInfo(i);
+            info.name = QString::fromStdString(devInfo.name());
+            info.totalMemory = devInfo.totalMemory();
+            info.freeMemory = devInfo.freeMemory();
+            info.computeCapability = devInfo.majorVersion() * 10 + devInfo.minorVersion();
+            info.multiProcessorCount = devInfo.multiProcessorCount();
+
+            LOG_DEBUG(QString("  设备 %1: %2, 内存=%3MB, 计算能力=%4.%5")
+                     .arg(i)
+                     .arg(info.name)
+                     .arg(info.totalMemory / 1024 / 1024)
+                     .arg(devInfo.majorVersion())
+                     .arg(devInfo.minorVersion()));
+        } catch (...) {
+            info.name = QString("GPU %1").arg(i);
+            info.isAvailable = false;
         }
 
-        // 如果没有设备
+        devices_.append(info);
+    }
+
+    // 设置默认设备为第一个
+    if (deviceCount_ > 0) {
+        setDevice(0);
+        // CUDA可用时才初始化默认流
+        try {
+            defaultStream_ = std::make_unique<cv::cuda::Stream>();
+            LOG_DEBUG("CUDA默认流已初始化");
+        } catch (...) {
+            LOG_WARNING("CUDA默认流初始化失败");
+        }
+    }
+
+#else
+    // 非Windows平台，使用标准try-catch
+    try {
+        int testCount = cv::cuda::getCudaEnabledDeviceCount();
+
         if (testCount <= 0) {
             cudaAvailable_ = false;
             deviceCount_ = 0;
@@ -196,12 +288,10 @@ void GPUAccelerator::detectDevices()
             return;
         }
 
-        // CUDA可用，继续获取详细信息
         deviceCount_ = testCount;
         cudaAvailable_ = true;
         LOG_INFO(QString("检测到 %1 个CUDA设备").arg(deviceCount_));
 
-        // 获取每个设备的详细信息
         for (int i = 0; i < deviceCount_; ++i) {
             GPUDeviceInfo info;
             info.deviceId = i;
@@ -215,13 +305,6 @@ void GPUAccelerator::detectDevices()
                 info.freeMemory = devInfo.freeMemory();
                 info.computeCapability = devInfo.majorVersion() * 10 + devInfo.minorVersion();
                 info.multiProcessorCount = devInfo.multiProcessorCount();
-
-                LOG_DEBUG(QString("  设备 %1: %2, 内存=%3MB, 计算能力=%4.%5")
-                         .arg(i)
-                         .arg(info.name)
-                         .arg(info.totalMemory / 1024 / 1024)
-                         .arg(devInfo.majorVersion())
-                         .arg(devInfo.minorVersion()));
             } catch (...) {
                 info.name = QString("GPU %1").arg(i);
                 info.isAvailable = false;
@@ -230,18 +313,21 @@ void GPUAccelerator::detectDevices()
             devices_.append(info);
         }
 
-        // 设置默认设备为第一个
         if (deviceCount_ > 0) {
             setDevice(0);
+            // CUDA可用时才初始化默认流
+            try {
+                defaultStream_ = std::make_unique<cv::cuda::Stream>();
+                LOG_DEBUG("CUDA默认流已初始化");
+            } catch (...) {
+                LOG_WARNING("CUDA默认流初始化失败");
+            }
         }
 
-        return;
-
     } catch (const cv::Exception& e) {
-        // OpenCV抛出异常，说明CUDA不支持
         cudaAvailable_ = false;
         deviceCount_ = 0;
-        LOG_INFO(QString("OpenCV未编译CUDA支持: %1").arg(e.what()));
+        LOG_INFO(QString("CUDA检测异常: %1").arg(e.what()));
         return;
     } catch (const std::exception& e) {
         cudaAvailable_ = false;
@@ -254,11 +340,12 @@ void GPUAccelerator::detectDevices()
         LOG_INFO("CUDA检测时发生未知异常");
         return;
     }
+#endif // _WIN32
 #else
     cudaAvailable_ = false;
     deviceCount_ = 0;
     LOG_INFO("未编译CUDA支持");
-#endif
+#endif // USE_CUDA
 }
 
 void GPUAccelerator::setAccelMode(GPUAccelMode mode)
@@ -355,6 +442,104 @@ void GPUAccelerator::loadSettings()
 }
 
 #ifdef USE_CUDA
+
+// ============================================================
+// GpuMemoryPool 完整类定义（从头文件移到.cpp以避免CUDA类型污染）
+// ============================================================
+
+/**
+ * @brief GPU内存池
+ *
+ * 管理GPU内存分配，减少显存分配开销
+ */
+class GpuMemoryPool {
+public:
+    /**
+     * @brief 获取单例实例
+     */
+    static GpuMemoryPool& instance();
+
+    /**
+     * @brief 从池中分配GPU图像
+     */
+    cv::cuda::GpuMat allocate(int rows, int cols, int type);
+
+    /**
+     * @brief 归还GPU图像到池中
+     */
+    void release(cv::cuda::GpuMat& mat);
+
+    /**
+     * @brief 预分配指定规格的GPU内存
+     */
+    void preallocate(int rows, int cols, int type, int count);
+
+    /**
+     * @brief 清空GPU内存池
+     */
+    void clear();
+
+    /**
+     * @brief 获取池中总内存使用量（字节）
+     */
+    size_t getTotalMemoryUsage() const;
+
+    /**
+     * @brief 获取池中对象数量
+     */
+    size_t getPoolSize() const;
+
+    /**
+     * @brief 统计信息（使用头文件中定义的GpuMemoryPoolStatistics）
+     */
+    using Statistics = GpuMemoryPoolStatistics;
+
+    /**
+     * @brief 获取统计信息
+     */
+    Statistics getStatistics() const;
+
+    /**
+     * @brief 重置统计
+     */
+    void resetStatistics();
+
+    /**
+     * @brief 设置最大池大小
+     */
+    void setMaxPoolSize(size_t maxSize) { maxPoolSize_ = maxSize; }
+
+private:
+    GpuMemoryPool();
+    ~GpuMemoryPool();
+
+    GpuMemoryPool(const GpuMemoryPool&) = delete;
+    GpuMemoryPool& operator=(const GpuMemoryPool&) = delete;
+
+    struct PoolKey {
+        int rows;
+        int cols;
+        int type;
+
+        bool operator<(const PoolKey& other) const {
+            if (rows != other.rows) return rows < other.rows;
+            if (cols != other.cols) return cols < other.cols;
+            return type < other.type;
+        }
+
+        size_t getMemorySize() const;
+    };
+
+private:
+    std::map<PoolKey, std::vector<cv::cuda::GpuMat>> pool_;
+    mutable QMutex mutex_;
+    size_t maxPoolSize_;
+
+    // 统计
+    mutable std::atomic<size_t> totalAllocations_{0};
+    mutable std::atomic<size_t> cacheHits_{0};
+    mutable std::atomic<size_t> cacheMisses_{0};
+};
 
 // ========== GPU加速图像处理实现 ==========
 
@@ -581,7 +766,11 @@ void GPUAccelerator::absdiff(const cv::cuda::GpuMat& src1,
 
 cv::cuda::Stream& GPUAccelerator::getDefaultStream()
 {
-    return defaultStream_;
+    if (!defaultStream_) {
+        // 如果流未初始化，创建一个临时的
+        defaultStream_ = std::make_unique<cv::cuda::Stream>();
+    }
+    return *defaultStream_;
 }
 
 void GPUAccelerator::uploadAsync(const cv::Mat& cpuImage,

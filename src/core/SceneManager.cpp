@@ -6,7 +6,7 @@
 #include "core/SceneManager.h"
 #include "core/StationConfig.h"
 #include "core/SceneConfig.h"
-#include <QDebug>
+#include "base/Logger.h"
 #include <QFile>
 
 namespace VisionForge {
@@ -41,7 +41,7 @@ bool SceneManager::initialize(StationConfig* stationConfig)
         defaultScene.sceneIndex = 0;
         defaultScene.enabled = true;
         stationConfig_->addScene(defaultScene);
-        qDebug() << "[SceneManager] 创建默认场景";
+        LOG_DEBUG("[SceneManager] 创建默认场景");
     }
 
     // 确保当前场景索引有效
@@ -54,13 +54,13 @@ bool SceneManager::initialize(StationConfig* stationConfig)
     const SceneConfig* currentScene = getCurrentScene();
     if (currentScene) {
         if (!loadSceneResources(currentScene)) {
-            qWarning() << "[SceneManager] 加载初始场景资源失败:" << lastError_;
+            LOG_WARNING(QString("[SceneManager] 加载初始场景资源失败: %1").arg(lastError_));
         }
     }
 
     isInitialized_ = true;
-    qDebug() << "[SceneManager] 初始化完成, 场景数:" << getSceneCount()
-             << ", 当前场景:" << currentSceneIndex_;
+    LOG_DEBUG(QString("[SceneManager] 初始化完成, 场景数: %1, 当前场景: %2")
+              .arg(getSceneCount()).arg(currentSceneIndex_));
 
     return true;
 }
@@ -127,7 +127,7 @@ bool SceneManager::switchToScene(int sceneIndex)
 
     // 如果是同一个场景，不需要切换
     if (sceneIndex == currentSceneIndex_) {
-        qDebug() << "[SceneManager] 目标场景与当前场景相同，跳过切换";
+        LOG_DEBUG("[SceneManager] 目标场景与当前场景相同，跳过切换");
         return true;
     }
 
@@ -165,8 +165,8 @@ bool SceneManager::switchToScene(int sceneIndex)
     // 发送场景已切换信号
     emit sceneChanged(sceneIndex, targetScene->sceneName);
 
-    qDebug() << "[SceneManager] 场景切换成功:" << oldIndex << "->" << sceneIndex
-             << "(" << targetScene->sceneName << ")";
+    LOG_DEBUG(QString("[SceneManager] 场景切换成功: %1 -> %2 (%3)")
+              .arg(oldIndex).arg(sceneIndex).arg(targetScene->sceneName));
 
     return true;
 }
@@ -245,15 +245,15 @@ bool SceneManager::loadSceneResources(const SceneConfig* scene)
         return false;
     }
 
-    qDebug() << "[SceneManager] 加载场景资源:" << scene->sceneName;
+    LOG_DEBUG(QString("[SceneManager] 加载场景资源: %1").arg(scene->sceneName));
 
     // 检查检测模型文件
     if (!scene->detectionModelPath.isEmpty()) {
         if (!QFile::exists(scene->detectionModelPath)) {
-            qWarning() << "[SceneManager] 检测模型文件不存在:" << scene->detectionModelPath;
+            LOG_WARNING(QString("[SceneManager] 检测模型文件不存在: %1").arg(scene->detectionModelPath));
             // 不作为错误处理，继续加载
         } else {
-            qDebug() << "[SceneManager] 检测模型:" << scene->detectionModelPath;
+            LOG_DEBUG(QString("[SceneManager] 检测模型: %1").arg(scene->detectionModelPath));
             // TODO: 加载AI检测模型
         }
     }
@@ -261,9 +261,9 @@ bool SceneManager::loadSceneResources(const SceneConfig* scene)
     // 检查模板图像文件
     if (!scene->templateImagePath.isEmpty()) {
         if (!QFile::exists(scene->templateImagePath)) {
-            qWarning() << "[SceneManager] 模板图像文件不存在:" << scene->templateImagePath;
+            LOG_WARNING(QString("[SceneManager] 模板图像文件不存在: %1").arg(scene->templateImagePath));
         } else {
-            qDebug() << "[SceneManager] 模板图像:" << scene->templateImagePath;
+            LOG_DEBUG(QString("[SceneManager] 模板图像: %1").arg(scene->templateImagePath));
             // TODO: 加载模板匹配图像
         }
     }
@@ -271,9 +271,9 @@ bool SceneManager::loadSceneResources(const SceneConfig* scene)
     // 检查工具链配置文件
     if (!scene->toolChainFile.isEmpty()) {
         if (!QFile::exists(scene->toolChainFile)) {
-            qWarning() << "[SceneManager] 工具链配置文件不存在:" << scene->toolChainFile;
+            LOG_WARNING(QString("[SceneManager] 工具链配置文件不存在: %1").arg(scene->toolChainFile));
         } else {
-            qDebug() << "[SceneManager] 工具链配置:" << scene->toolChainFile;
+            LOG_DEBUG(QString("[SceneManager] 工具链配置: %1").arg(scene->toolChainFile));
             // TODO: 加载工具链配置
         }
     }
@@ -283,7 +283,7 @@ bool SceneManager::loadSceneResources(const SceneConfig* scene)
 
 void SceneManager::unloadCurrentSceneResources()
 {
-    qDebug() << "[SceneManager] 卸载当前场景资源";
+    LOG_DEBUG("[SceneManager] 卸载当前场景资源");
 
     // TODO: 释放当前场景的资源
     // - 卸载AI模型
@@ -295,9 +295,10 @@ void SceneManager::applySceneParameters(const SceneConfig* scene)
 {
     if (!scene) return;
 
-    qDebug() << "[SceneManager] 应用场景参数:" << scene->sceneName
-             << ", 置信度阈值:" << scene->confidenceThreshold
-             << ", NMS阈值:" << scene->nmsThreshold;
+    LOG_DEBUG(QString("[SceneManager] 应用场景参数: %1, 置信度阈值: %2, NMS阈值: %3")
+              .arg(scene->sceneName)
+              .arg(scene->confidenceThreshold)
+              .arg(scene->nmsThreshold));
 
     // TODO: 将场景参数应用到检测工具
     // - 更新AIDetectionTool的阈值参数
@@ -308,7 +309,7 @@ void SceneManager::applySceneParameters(const SceneConfig* scene)
 void SceneManager::setError(const QString& error)
 {
     lastError_ = error;
-    qWarning() << "[SceneManager] 错误:" << error;
+    LOG_WARNING(QString("[SceneManager] 错误: %1").arg(error));
 }
 
 } // namespace Core

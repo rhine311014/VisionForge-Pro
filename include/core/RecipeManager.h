@@ -9,6 +9,7 @@
 #pragma once
 
 #include "core/Recipe.h"
+#include "core/ModelPreloader.h"
 #include <QObject>
 #include <QMap>
 #include <QDir>
@@ -256,6 +257,27 @@ signals:
      */
     void recipeListChanged();
 
+    /**
+     * @brief 模型预加载开始信号
+     * @param totalCount 需要预加载的模型数量
+     */
+    void modelPreloadStarted(int totalCount);
+
+    /**
+     * @brief 模型预加载进度信号
+     * @param current 当前完成数
+     * @param total 总数
+     * @param modelName 当前模型名称
+     */
+    void modelPreloadProgress(int current, int total, const QString& modelName);
+
+    /**
+     * @brief 模型预加载完成信号
+     * @param successCount 成功数量
+     * @param failureCount 失败数量
+     */
+    void modelPreloadFinished(int successCount, int failureCount);
+
 private:
     RecipeManager();
     ~RecipeManager();
@@ -267,12 +289,20 @@ private:
     void addToRecentRecipes(const QString& name);
     QString generateFilePath(const QString& name) const;
 
+    /**
+     * @brief 预加载当前配方的模型
+     * @param parallel 是否并行加载（默认true）
+     * @return 需要预加载的模型数量
+     */
+    int preloadCurrentRecipeModels(bool parallel = true);
+
 private:
     QString recipeDirectory_;               ///< 方案库目录
     QMap<QString, Recipe*> recipes_;        ///< 方案映射（名称->方案）
     Recipe* currentRecipe_;                 ///< 当前方案
     QStringList recentRecipes_;             ///< 最近使用的方案
     int maxRecentRecipes_;                  ///< 最近使用数量限制
+    ModelPreloader* preloader_;             ///< 模型预加载器
 };
 
 } // namespace Core

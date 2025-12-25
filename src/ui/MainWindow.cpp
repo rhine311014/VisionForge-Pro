@@ -36,32 +36,8 @@
 #include "ui/NinePointCalibDialog.h"
 #include "ui/QRCalibDialog.h"
 #include "ui/SystemSettingsDialog.h"
-// 工具对话框 - 预处理
-#include "ui/GrayToolDialog.h"
-#include "ui/BlurToolDialog.h"
-#include "ui/ThresholdToolDialog.h"
-#include "ui/ColorConvertToolDialog.h"
-#include "ui/EdgeToolDialog.h"
-#include "ui/MorphologyToolDialog.h"
-// 工具对话框 - 检测
-#include "ui/TemplateMatchToolDialog.h"
-#include "ui/CircleToolDialog.h"
-#include "ui/LineToolDialog.h"
-#include "ui/FindEdgeToolDialog.h"
-#include "ui/BlobToolDialog.h"
-#include "ui/AIDetectionToolDialog.h"
-// 工具对话框 - 测量和判定
-#include "ui/MeasureDistanceToolDialog.h"
-#include "ui/MeasureAngleToolDialog.h"
-#include "ui/MeasureAreaToolDialog.h"
-#include "ui/CalcCenterToolDialog.h"
-#include "ui/CalcOrientationToolDialog.h"
-#include "ui/RangeJudgeToolDialog.h"
-#include "ui/LogicOperationToolDialog.h"
-#include "ui/SaveImageToolDialog.h"
-// 工具对话框 - ROI和PLC
-#include "ui/ROIToolDialog.h"
-#include "ui/PLCOutputToolDialog.h"
+// 工具对话框工厂
+#include "ui/ToolDialogFactory.h"
 // 系统对话框
 #include "ui/LoginDialog.h"
 #include "ui/StatisticsPanel.h"
@@ -148,12 +124,13 @@ MainWindow::MainWindow(QWidget* parent)
     , multiCameraView_(nullptr)
     , centralStack_(nullptr)
     , isMultiViewMode_(false)
-    , camera_(nullptr)
-    , isContinuousGrabbing_(false)
+    , engine_(Core::VisionEngine::instance())
     , isFrameValid_(true)
     , isLiveDisplay_(true)
-    , currentImageIndex_(-1)
 {
+    // 初始化工具对话框工厂（设置 VisionTool 的对话框创建器回调）
+    ToolDialogFactory::instance();
+
     setWindowTitle("VisionForge Pro - 机器视觉检测平台");
 
     // 设置主窗口样式，移除所有内边距和边距
@@ -198,15 +175,14 @@ MainWindow::MainWindow(QWidget* parent)
     // 连接信号
     connectSignals();
 
+    // 连接VisionEngine信号
+    connectEngineSignals();
+
     // 创建模拟相机作为默认相机（备用）
     // 注意：不传递parent，让unique_ptr完全管理生命周期，避免双重删除
     HAL::SimulatedCamera* simCamera = new HAL::SimulatedCamera(nullptr);
     simCamera->useTestPattern(0);  // 使用渐变测试图案
-    camera_.reset(simCamera);
-
-    // 连续采集定时器
-    continuousTimer_ = new QTimer(this);
-    connect(continuousTimer_, &QTimer::timeout, this, &MainWindow::onContinuousTimer);
+    engine_.setCamera(std::unique_ptr<HAL::ICamera>(simCamera));
 
     // 初始化配方管理器（扫描目录并加载上次使用的配方）
     Core::RecipeManager::instance().initialize();
@@ -327,9 +303,8 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::~MainWindow()
 {
-    if (camera_) {
-        camera_->close();
-    }
+    // 停止连续采集
+    engine_.stopLiveGrab();
 
     // 清理工具链中的工具
     QList<Algorithm::VisionTool*> tools = toolChainPanel_->getTools();
@@ -350,39 +325,13 @@ void MainWindow::onOpenImage()
         return;
     }
 
-    // 使用Qt读取文件（支持中文路径），然后用OpenCV解码
-    QFile file(fileName);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, "错误", "无法打开图像文件");
-        return;
+    // 使用VisionEngine加载图像
+    if (engine_.loadImage(fileName)) {
+        updateActions();
+        updateStatusBar();
+    } else {
+        QMessageBox::warning(this, "错误", "无法加载图像文件");
     }
-
-    QByteArray fileData = file.readAll();
-    file.close();
-
-    // 使用OpenCV解码图像数据
-    std::vector<uchar> buffer(fileData.begin(), fileData.end());
-    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
-
-    if (mat.empty()) {
-        QMessageBox::warning(this, "错误", "无法解码图像文件");
-        return;
-    }
-
-    currentImage_ = std::make_shared<Base::ImageData>(mat);
-
-    // 安全检查：确保 imageViewer_ 存在
-    if (imageViewer_) {
-        imageViewer_->setImage(currentImage_);
-    }
-
-    if (statusLabel_) {
-        statusLabel_->setText(QString("已加载图像: %1").arg(fileName));
-    }
-    updateActions();
-    updateStatusBar();
-
-    LOG_INFO(QString("加载图像: %1").arg(fileName));
 }
 
 void MainWindow::onOpenImageFolder()
@@ -395,62 +344,35 @@ void MainWindow::onOpenImageFolder()
         return;
     }
 
-    // 获取文件夹中的所有图片文件
-    QDir dir(folderPath);
-    QStringList filters;
-    filters << "*.png" << "*.jpg" << "*.jpeg" << "*.bmp" << "*.tiff" << "*.tif";
-    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
+    // 使用VisionEngine加载图片文件夹
+    int count = engine_.loadImageFolder(folderPath);
 
-    if (files.isEmpty()) {
+    if (count == 0) {
         QMessageBox::information(this, "提示", "所选文件夹中没有找到图片文件");
-        return;
     }
-
-    // 构建完整路径列表
-    imageSequence_.clear();
-    for (const QString& file : files) {
-        imageSequence_.append(dir.absoluteFilePath(file));
-    }
-
-    // 加载第一张图片
-    currentImageIndex_ = 0;
-    loadImageAtIndex(currentImageIndex_);
-
-    if (statusLabel_) {
-        statusLabel_->setText(QString("已加载图片文件夹: %1 (%2张图片)")
-            .arg(folderPath).arg(imageSequence_.size()));
-    }
-    updateImageSequenceActions();
-
-    LOG_INFO(QString("加载图片文件夹: %1, 共%2张图片")
-        .arg(folderPath).arg(imageSequence_.size()));
+    // 状态更新由VisionEngine的信号处理
 }
 
 void MainWindow::onPreviousImage()
 {
-    if (imageSequence_.isEmpty() || currentImageIndex_ <= 0) {
-        return;
-    }
-
-    currentImageIndex_--;
-    loadImageAtIndex(currentImageIndex_);
-    updateImageSequenceActions();
+    // 使用VisionEngine切换到上一张图片
+    engine_.previousImage();
+    // 状态更新由VisionEngine的信号处理
 }
 
 void MainWindow::onNextImage()
 {
-    if (imageSequence_.isEmpty() || currentImageIndex_ >= imageSequence_.size() - 1) {
-        return;
-    }
-
-    currentImageIndex_++;
-    loadImageAtIndex(currentImageIndex_);
-    updateImageSequenceActions();
+    // 使用VisionEngine切换到下一张图片
+    engine_.nextImage();
+    // 状态更新由VisionEngine的信号处理
 }
 
 void MainWindow::onRunAllImages()
 {
-    if (imageSequence_.isEmpty()) {
+    // 从VisionEngine获取图像序列
+    const QStringList& imageSequence = engine_.imageSequence();
+
+    if (imageSequence.isEmpty()) {
         QMessageBox::information(this, "提示", "请先加载图片文件夹");
         return;
     }
@@ -461,7 +383,7 @@ void MainWindow::onRunAllImages()
         return;
     }
 
-    int totalImages = imageSequence_.size();
+    int totalImages = imageSequence.size();
 
     statusLabel_->setText(QString("正在批量处理 %1 张图片...").arg(totalImages));
 
@@ -470,7 +392,7 @@ void MainWindow::onRunAllImages()
     statusLabel_->setText(QString("批量处理中: 0/%1").arg(totalImages));
 
     // 创建工作线程（使用BatchProcessWorker替代InspectionWorker）
-    auto worker = new BatchProcessWorker(imageSequence_, tools, this);
+    auto worker = new BatchProcessWorker(imageSequence, tools, this);
 
     // 连接进度信号（新增百分比参数）
     connect(worker, &BatchProcessWorker::progress, this,
@@ -531,84 +453,9 @@ void MainWindow::onRunAllImages()
     worker->start();
 }
 
-void MainWindow::loadImageAtIndex(int index)
-{
-    if (index < 0 || index >= imageSequence_.size()) {
-        return;
-    }
-
-    QString filePath = imageSequence_[index];
-
-    // 使用Qt读取文件（支持中文路径）
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, "错误",
-            QString("无法打开图像文件: %1").arg(filePath));
-        return;
-    }
-
-    QByteArray fileData = file.readAll();
-    file.close();
-
-    // 使用OpenCV解码图像数据
-    std::vector<uchar> buffer(fileData.begin(), fileData.end());
-    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
-
-    if (mat.empty()) {
-        QMessageBox::warning(this, "错误",
-            QString("无法解码图像文件: %1").arg(filePath));
-        return;
-    }
-
-    currentImage_ = std::make_shared<Base::ImageData>(mat);
-
-    // 根据当前模式显示图像
-    if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
-        // 多视图模式：更新当前选中的视图
-        int selectedView = multiCameraView_->selectedView();
-        if (selectedView >= 0) {
-            multiCameraView_->updateImage(selectedView, currentImage_);
-        }
-        // 同时更新隐藏的单图像查看器
-        if (imageViewer_) {
-            imageViewer_->setImage(currentImage_);
-        }
-    } else {
-        // 单视图模式
-        if (imageViewer_) {
-            imageViewer_->setImage(currentImage_);
-        }
-    }
-
-    // 更新状态栏显示当前图片信息
-    QFileInfo fileInfo(filePath);
-    if (statusLabel_) {
-        statusLabel_->setText(QString("图片 %1/%2: %3")
-            .arg(index + 1)
-            .arg(imageSequence_.size())
-            .arg(fileInfo.fileName()));
-    }
-    updateActions();
-    updateStatusBar();
-}
-
-void MainWindow::updateImageSequenceActions()
-{
-    bool hasSequence = !imageSequence_.isEmpty();
-    bool canGoPrev = hasSequence && currentImageIndex_ > 0;
-    bool canGoNext = hasSequence && currentImageIndex_ < imageSequence_.size() - 1;
-
-    if (previousImageAction_) previousImageAction_->setEnabled(canGoPrev);
-    if (nextImageAction_) nextImageAction_->setEnabled(canGoNext);
-    if (runAllImagesAction_) runAllImagesAction_->setEnabled(hasSequence);
-}
-
 void MainWindow::onSaveImage()
 {
-    if (!currentImage_) {
-        return;
-    }
-
+    // 使用VisionEngine保存图像
     QString fileName = QFileDialog::getSaveFileName(this,
         "保存图像", "",
         "PNG图像 (*.png);;JPEG图像 (*.jpg *.jpeg);;BMP图像 (*.bmp)");
@@ -617,12 +464,10 @@ void MainWindow::onSaveImage()
         return;
     }
 
-    if (cv::imwrite(fileName.toStdString(), currentImage_->mat())) {
-        statusLabel_->setText(QString("图像已保存: %1").arg(fileName));
-        LOG_INFO(QString("保存图像: %1").arg(fileName));
-    } else {
+    if (!engine_.saveImage(fileName)) {
         QMessageBox::warning(this, "错误", "保存图像失败");
     }
+    // 状态更新由VisionEngine的信号处理
 }
 
 void MainWindow::onExit()
@@ -719,7 +564,7 @@ void MainWindow::onRemoveTool()
 void MainWindow::onRunSingle()
 {
     Algorithm::VisionTool* tool = toolChainPanel_->getCurrentTool();
-    if (!tool || !currentImage_) {
+    if (!tool || !engine_.currentImage()) {
         return;
     }
 
@@ -729,10 +574,10 @@ void MainWindow::onRunSingle()
     }
 
     Algorithm::ToolResult result;
-    if (tool->process(currentImage_, result)) {
+    if (tool->process(engine_.currentImage(), result)) {
         // 更新当前图像
         if (result.outputImage) {
-            currentImage_ = result.outputImage;
+            engine_.setCurrentImage(result.outputImage);
         }
 
         // 根据当前模式显示图像
@@ -740,13 +585,13 @@ void MainWindow::onRunSingle()
             // 多视图模式：更新当前选中的视图
             int selectedView = multiCameraView_->selectedView();
             if (selectedView >= 0) {
-                multiCameraView_->updateImage(selectedView, currentImage_);
+                multiCameraView_->updateImage(selectedView, engine_.currentImage());
             }
             // 同时更新隐藏的单图像查看器
-            imageViewer_->setImage(currentImage_);
+            imageViewer_->setImage(engine_.currentImage());
         } else {
             // 单视图模式
-            imageViewer_->setImage(currentImage_);
+            imageViewer_->setImage(engine_.currentImage());
         }
 
         // 处理displayObjects - XLD轮廓显示
@@ -783,12 +628,12 @@ void MainWindow::onRunSingle()
 
 void MainWindow::onRunAll()
 {
-    if (!currentImage_) {
+    if (!engine_.currentImage()) {
         QMessageBox::information(this, "提示", "请先加载或采集图像");
         return;
     }
 
-    processImage(currentImage_);
+    processImage(engine_.currentImage());
 }
 
 // ========== 相机操作 ==========
@@ -799,12 +644,12 @@ void MainWindow::onFrameValidToggled(bool checked)
 
     if (checked) {
         // 帧有效：触发单帧采集
-        if (camera_ && camera_->isOpen()) {
-            bool wasGrabbing = camera_->isGrabbing();
+        if (engine_.camera() && engine_.camera()->isOpen()) {
+            bool wasGrabbing = engine_.camera()->isGrabbing();
 
             // 如果相机未在采集，先启动
             if (!wasGrabbing) {
-                if (!camera_->startGrabbing()) {
+                if (!engine_.camera()->startGrabbing()) {
                     LOG_ERROR("启动相机采集失败");
                     statusLabel_->setText("帧有效: 采集失败");
                     frameValidAction_->setChecked(false);
@@ -813,21 +658,21 @@ void MainWindow::onFrameValidToggled(bool checked)
             }
 
             // 触发采集（软触发模式）
-            if (camera_->getConfig().triggerMode == HAL::ICamera::Software) {
-                camera_->trigger();
+            if (engine_.camera()->getConfig().triggerMode == HAL::ICamera::Software) {
+                engine_.camera()->trigger();
             }
 
             // 获取图像
-            Base::ImageData::Ptr image = camera_->grabImage(1000);
+            Base::ImageData::Ptr image = engine_.camera()->grabImage(1000);
 
             // 如果之前未在连续采集，停止采集
-            if (!wasGrabbing && !isContinuousGrabbing_) {
-                camera_->stopGrabbing();
+            if (!wasGrabbing && !engine_.isLiveGrabbing()) {
+                engine_.camera()->stopGrabbing();
             }
 
             if (image) {
                 // 应用图像变换（旋转、镜像）
-                applyImageTransform(image);
+                engine_.applyImageTransform(image);
                 // 处理图像
                 processImage(image);
                 statusLabel_->setText("帧有效: 采集成功");
@@ -852,19 +697,18 @@ void MainWindow::onLiveDisplayToggled(bool checked)
 
     if (checked) {
         // 启用实时显示 - 开始连续采集
-        if (camera_ && camera_->isOpen()) {
-            if (!isContinuousGrabbing_) {
+        if (engine_.camera() && engine_.camera()->isOpen()) {
+            if (!engine_.isLiveGrabbing()) {
                 // 先启动相机采集
-                if (!camera_->isGrabbing()) {
-                    if (!camera_->startGrabbing()) {
+                if (!engine_.camera()->isGrabbing()) {
+                    if (!engine_.camera()->startGrabbing()) {
                         LOG_ERROR("启动相机采集失败");
                         statusLabel_->setText("实时显示: 启动失败");
                         liveDisplayAction_->setChecked(false);
                         return;
                     }
                 }
-                isContinuousGrabbing_ = true;
-                continuousTimer_->start(150);  // 约6-7 FPS，减轻CPU负担
+                engine_.startLiveGrab(150);  // 约6-7 FPS，减轻CPU负担
             }
         } else {
             LOG_WARNING("相机未连接或未打开，无法启用实时显示");
@@ -876,12 +720,11 @@ void MainWindow::onLiveDisplayToggled(bool checked)
         LOG_INFO("实时显示已启用");
     } else {
         // 禁用实时显示 - 停止连续采集
-        if (isContinuousGrabbing_) {
-            isContinuousGrabbing_ = false;
-            continuousTimer_->stop();
+        if (engine_.isLiveGrabbing()) {
+            engine_.stopLiveGrab();
             // 停止相机采集
-            if (camera_ && camera_->isGrabbing()) {
-                camera_->stopGrabbing();
+            if (engine_.camera() && engine_.camera()->isGrabbing()) {
+                engine_.camera()->stopGrabbing();
             }
         }
         statusLabel_->setText("实时显示: 已禁用");
@@ -902,29 +745,23 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
     if (!tool) return;
 
 #ifdef USE_HALCON
-    // 检查是否是形状匹配工具
-    Algorithm::ShapeMatchTool* shapeMatchTool =
-        dynamic_cast<Algorithm::ShapeMatchTool*>(tool);
-
-    if (shapeMatchTool) {
-        // 弹出形状匹配工具对话框
+    // 形状匹配工具需要特殊处理（连接训练信号）
+    if (Algorithm::ShapeMatchTool* shapeMatchTool =
+        dynamic_cast<Algorithm::ShapeMatchTool*>(tool)) {
         ShapeMatchToolDialog dialog(shapeMatchTool, this);
 
-        // 设置当前图像
-        if (currentImage_) {
-            dialog.setImage(currentImage_);
+        if (engine_.currentImage()) {
+            dialog.setImage(engine_.currentImage());
         }
 
         // 连接训练请求信号
         connect(&dialog, &ShapeMatchToolDialog::trainModelRequested, this, [this, shapeMatchTool]() {
-            // 获取ROI区域并训练
             std::vector<ROIShapePtr> rois = imageViewer_->getROIs();
-            if (!rois.empty() && currentImage_) {
+            if (!rois.empty() && engine_.currentImage()) {
                 ROIShapePtr roi = rois.front();
                 QRectF rect = roi->boundingRect();
 
-                // 训练模板
-                if (shapeMatchTool->trainModel(currentImage_,
+                if (shapeMatchTool->trainModel(engine_.currentImage(),
                     static_cast<int>(rect.top()),
                     static_cast<int>(rect.left()),
                     static_cast<int>(rect.bottom()),
@@ -938,7 +775,6 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
         });
 
         if (dialog.exec() == QDialog::Accepted) {
-            // 参数已应用
             statusLabel_->setText("工具参数已更新");
             updateActions();
         }
@@ -946,236 +782,26 @@ void MainWindow::onToolDoubleClicked(Algorithm::VisionTool* tool)
     }
 #endif
 
-    // ========== 预处理工具 ==========
-    // 灰度转换工具
-    if (Algorithm::GrayTool* grayTool = dynamic_cast<Algorithm::GrayTool*>(tool)) {
-        GrayToolDialog dialog(grayTool, this);
-        dialog.setPreviewImage(currentImage_);
-        connect(&dialog, &GrayToolDialog::previewRequested, this, &MainWindow::onRunSingle);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("灰度转换参数已更新");
-        }
-        return;
-    }
+    // 使用工具的 createConfigDialog 方法创建对话框
+    // 回调由 ToolDialogFactory 在初始化时设置
+    QDialog* dialog = tool->createConfigDialog(this, engine_.currentImage());
 
-    // 模糊工具
-    if (Algorithm::BlurTool* blurTool = dynamic_cast<Algorithm::BlurTool*>(tool)) {
-        BlurToolDialog dialog(blurTool, this);
-        dialog.setPreviewImage(currentImage_);
-        connect(&dialog, &BlurToolDialog::previewRequested, this, &MainWindow::onRunSingle);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("模糊参数已更新");
-        }
-        return;
-    }
+    if (dialog) {
+        // 尝试连接预览信号（如果对话框支持）
+        // 使用旧式连接语法，若信号不存在会静默失败
+        QObject::connect(dialog, SIGNAL(previewRequested()),
+                        this, SLOT(onRunSingle()));
 
-    // 二值化工具
-    if (Algorithm::ThresholdTool* thresholdTool = dynamic_cast<Algorithm::ThresholdTool*>(tool)) {
-        ThresholdToolDialog dialog(thresholdTool, this);
-        dialog.setPreviewImage(currentImage_);
-        connect(&dialog, &ThresholdToolDialog::previewRequested, this, &MainWindow::onRunSingle);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("二值化参数已更新");
+        if (dialog->exec() == QDialog::Accepted) {
+            statusLabel_->setText(QString("工具 %1 参数已更新").arg(tool->displayName()));
         }
-        return;
-    }
 
-    // 颜色转换工具
-    if (Algorithm::ColorConvertTool* colorTool = dynamic_cast<Algorithm::ColorConvertTool*>(tool)) {
-        ColorConvertToolDialog dialog(colorTool, this);
-        dialog.setPreviewImage(currentImage_);
-        connect(&dialog, &ColorConvertToolDialog::previewRequested, this, &MainWindow::onRunSingle);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("颜色转换参数已更新");
-        }
-        return;
+        delete dialog;
+    } else {
+        // 工具没有注册对话框，提示使用参数面板
+        QMessageBox::information(this, "提示",
+            QString("工具 \"%1\" 的参数可在右侧参数面板中编辑").arg(tool->displayName()));
     }
-
-    // 边缘检测工具
-    if (Algorithm::EdgeTool* edgeTool = dynamic_cast<Algorithm::EdgeTool*>(tool)) {
-        EdgeToolDialog dialog(edgeTool, this);
-        dialog.setPreviewImage(currentImage_);
-        connect(&dialog, &EdgeToolDialog::previewRequested, this, &MainWindow::onRunSingle);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("边缘检测参数已更新");
-        }
-        return;
-    }
-
-    // 形态学工具
-    if (Algorithm::MorphologyTool* morphTool = dynamic_cast<Algorithm::MorphologyTool*>(tool)) {
-        MorphologyToolDialog dialog(morphTool, this);
-        dialog.setPreviewImage(currentImage_);
-        connect(&dialog, &MorphologyToolDialog::previewRequested, this, &MainWindow::onRunSingle);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("形态学参数已更新");
-        }
-        return;
-    }
-
-    // ========== 检测工具 ==========
-    // 模板匹配工具
-    if (Algorithm::TemplateMatchTool* templateTool = dynamic_cast<Algorithm::TemplateMatchTool*>(tool)) {
-        TemplateMatchToolDialog dialog(templateTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("模板匹配参数已更新");
-        }
-        return;
-    }
-
-    // 圆检测工具
-    if (Algorithm::CircleTool* circleTool = dynamic_cast<Algorithm::CircleTool*>(tool)) {
-        CircleToolDialog dialog(circleTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("圆检测参数已更新");
-        }
-        return;
-    }
-
-    // 线检测工具
-    if (Algorithm::LineTool* lineTool = dynamic_cast<Algorithm::LineTool*>(tool)) {
-        LineToolDialog dialog(lineTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("线检测参数已更新");
-        }
-        return;
-    }
-
-    // 边缘查找工具
-    if (Algorithm::FindEdgeTool* findEdgeTool = dynamic_cast<Algorithm::FindEdgeTool*>(tool)) {
-        FindEdgeToolDialog dialog(findEdgeTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("边缘查找参数已更新");
-        }
-        return;
-    }
-
-    // Blob分析工具
-    if (Algorithm::BlobTool* blobTool = dynamic_cast<Algorithm::BlobTool*>(tool)) {
-        BlobToolDialog dialog(blobTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("Blob分析参数已更新");
-        }
-        return;
-    }
-
-    // AI检测工具
-    if (Algorithm::AIDetectionTool* aiTool = dynamic_cast<Algorithm::AIDetectionTool*>(tool)) {
-        AIDetectionToolDialog dialog(aiTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("AI检测参数已更新");
-        }
-        return;
-    }
-
-    // ========== 测量工具 ==========
-    // 距离测量工具
-    if (Algorithm::MeasureDistanceTool* distTool = dynamic_cast<Algorithm::MeasureDistanceTool*>(tool)) {
-        MeasureDistanceToolDialog dialog(distTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("距离测量参数已更新");
-        }
-        return;
-    }
-
-    // 角度测量工具
-    if (Algorithm::MeasureAngleTool* angleTool = dynamic_cast<Algorithm::MeasureAngleTool*>(tool)) {
-        MeasureAngleToolDialog dialog(angleTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("角度测量参数已更新");
-        }
-        return;
-    }
-
-    // 面积测量工具
-    if (Algorithm::MeasureAreaTool* areaTool = dynamic_cast<Algorithm::MeasureAreaTool*>(tool)) {
-        MeasureAreaToolDialog dialog(areaTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("面积测量参数已更新");
-        }
-        return;
-    }
-
-    // 中心计算工具
-    if (Algorithm::CalcCenterTool* centerTool = dynamic_cast<Algorithm::CalcCenterTool*>(tool)) {
-        CalcCenterToolDialog dialog(centerTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("中心计算参数已更新");
-        }
-        return;
-    }
-
-    // 方向计算工具
-    if (Algorithm::CalcOrientationTool* orientTool = dynamic_cast<Algorithm::CalcOrientationTool*>(tool)) {
-        CalcOrientationToolDialog dialog(orientTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("方向计算参数已更新");
-        }
-        return;
-    }
-
-    // ========== 判定工具 ==========
-    // 范围判定工具
-    if (Algorithm::RangeJudgeTool* judgeTool = dynamic_cast<Algorithm::RangeJudgeTool*>(tool)) {
-        RangeJudgeToolDialog dialog(judgeTool, this);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("范围判定参数已更新");
-        }
-        return;
-    }
-
-    // 逻辑运算工具
-    if (Algorithm::LogicOperationTool* logicTool = dynamic_cast<Algorithm::LogicOperationTool*>(tool)) {
-        LogicOperationToolDialog dialog(logicTool, this);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("逻辑运算参数已更新");
-        }
-        return;
-    }
-
-    // 图像保存工具
-    if (Algorithm::SaveImageTool* saveTool = dynamic_cast<Algorithm::SaveImageTool*>(tool)) {
-        SaveImageToolDialog dialog(saveTool, this);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("图像保存参数已更新");
-        }
-        return;
-    }
-
-    // ========== ROI和PLC工具 ==========
-    // ROI区域工具
-    if (Algorithm::ROITool* roiTool = dynamic_cast<Algorithm::ROITool*>(tool)) {
-        ROIToolDialog dialog(roiTool, this);
-        dialog.setImage(currentImage_);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("ROI区域参数已更新");
-        }
-        return;
-    }
-
-    // PLC输出工具
-    if (Algorithm::PLCOutputTool* plcTool = dynamic_cast<Algorithm::PLCOutputTool*>(tool)) {
-        PLCOutputToolDialog dialog(plcTool, this);
-        if (dialog.exec() == QDialog::Accepted) {
-            statusLabel_->setText("PLC输出参数已更新");
-        }
-        return;
-    }
-
-    // 其他工具类型，显示提示（基于OpenCV的工具参数在右侧面板编辑）
-    QMessageBox::information(this, "提示",
-        QString("工具 \"%1\" 的参数可在右侧参数面板中编辑").arg(tool->displayName()));
 }
 
 void MainWindow::onParameterChanged()
@@ -1200,66 +826,6 @@ void MainWindow::onMousePositionChanged(int x, int y, bool valid)
     }
 }
 
-// ========== 图像变换 ==========
-
-void MainWindow::applyImageTransform(Base::ImageData::Ptr& image)
-{
-    if (!image || !camera_) return;
-
-    HAL::ICamera::Config config = camera_->getConfig();
-
-    // 如果没有任何变换，直接返回
-    if (config.rotationAngle == 0 && !config.flipHorizontal && !config.flipVertical) {
-        return;
-    }
-
-    cv::Mat mat = image->mat();
-    if (mat.empty()) return;
-
-    cv::Mat result = mat.clone();
-
-    // 1. 旋转
-    if (config.rotationAngle != 0) {
-        int rotateCode = -1;
-        switch (config.rotationAngle) {
-            case 90:
-                rotateCode = cv::ROTATE_90_CLOCKWISE;
-                break;
-            case 180:
-                rotateCode = cv::ROTATE_180;
-                break;
-            case 270:
-                rotateCode = cv::ROTATE_90_COUNTERCLOCKWISE;
-                break;
-            default:
-                break;
-        }
-        if (rotateCode >= 0) {
-            cv::Mat rotated;
-            cv::rotate(result, rotated, rotateCode);
-            result = rotated;
-        }
-    }
-
-    // 2. 镜像
-    if (config.flipHorizontal && config.flipVertical) {
-        cv::Mat flipped;
-        cv::flip(result, flipped, -1);  // 同时水平和垂直翻转
-        result = flipped;
-    } else if (config.flipHorizontal) {
-        cv::Mat flipped;
-        cv::flip(result, flipped, 1);   // 水平翻转
-        result = flipped;
-    } else if (config.flipVertical) {
-        cv::Mat flipped;
-        cv::flip(result, flipped, 0);   // 垂直翻转
-        result = flipped;
-    }
-
-    // 更新ImageData
-    image = std::make_shared<Base::ImageData>(result);
-}
-
 // ========== 连续采集 ==========
 
 void MainWindow::onContinuousTimer()
@@ -1273,9 +839,8 @@ void MainWindow::onContinuousTimer()
         return;
     }
 
-    if (!camera_ || !camera_->isOpen()) {
-        continuousTimer_->stop();
-        isContinuousGrabbing_ = false;
+    if (!engine_.camera() || !engine_.camera()->isOpen()) {
+        engine_.stopLiveGrab();
         liveDisplayAction_->setChecked(false);
         consecutiveFailures = 0;
         successCount = 0;
@@ -1292,12 +857,12 @@ void MainWindow::onContinuousTimer()
     try {
         // 连续采集模式下不需要trigger，直接获取图像
         // 如果是软触发模式才需要调用trigger
-        if (camera_->getConfig().triggerMode == HAL::ICamera::Software) {
-            camera_->trigger();
+        if (engine_.camera()->getConfig().triggerMode == HAL::ICamera::Software) {
+            engine_.camera()->trigger();
         }
 
         // 使用较长超时避免超时错误，连续采集模式下相机应该持续输出帧
-        Base::ImageData::Ptr image = camera_->grabImage(1000);
+        Base::ImageData::Ptr image = engine_.camera()->grabImage(1000);
 
         if (image) {
             // 重置失败计数
@@ -1305,7 +870,7 @@ void MainWindow::onContinuousTimer()
             successCount++;
 
             // 应用图像变换（旋转、镜像）
-            applyImageTransform(image);
+            engine_.applyImageTransform(image);
 
             // 实时显示：只显示图像，不运行工具
             displayImage(image);
@@ -1321,15 +886,14 @@ void MainWindow::onContinuousTimer()
             // 如果连续失败超过30次（约30秒），尝试重启采集
             if (consecutiveFailures >= 30) {
                 LOG_WARNING("连续采集失败次数过多，尝试重启采集");
-                camera_->stopGrabbing();
+                engine_.camera()->stopGrabbing();
                 QThread::msleep(100);
-                if (camera_->startGrabbing()) {
+                if (engine_.camera()->startGrabbing()) {
                     consecutiveFailures = 0;
                     LOG_INFO("重启采集成功");
                 } else {
                     LOG_ERROR("重启采集失败，停止实时显示");
-                    continuousTimer_->stop();
-                    isContinuousGrabbing_ = false;
+                    engine_.stopLiveGrab();
                     liveDisplayAction_->setChecked(false);
                 }
             }
@@ -1796,8 +1360,8 @@ void MainWindow::createDockWindows()
     toolParameterDock_->setWidget(toolParameterPanel_);
 
     // 设置相机指针（用于工具对话框中的采集功能）
-    if (camera_) {
-        toolParameterPanel_->setCamera(camera_.get());
+    if (engine_.camera()) {
+        toolParameterPanel_->setCamera(engine_.camera());
     }
 
     addDockWidget(Qt::RightDockWidgetArea, toolParameterDock_);
@@ -1992,7 +1556,7 @@ void MainWindow::connectSignals()
 
 void MainWindow::updateActions()
 {
-    bool hasImage = (currentImage_ != nullptr);
+    bool hasImage = (engine_.currentImage() != nullptr);
     bool hasTool = (toolChainPanel_ && toolChainPanel_->getCurrentTool() != nullptr);
 
     if (saveImageAction_) saveImageAction_->setEnabled(hasImage);
@@ -2009,11 +1573,11 @@ void MainWindow::updateStatusBar()
 {
     if (!imageInfoLabel_) return;
 
-    if (currentImage_) {
+    if (engine_.currentImage()) {
         imageInfoLabel_->setText(QString("图像: %1x%2, %3通道")
-            .arg(currentImage_->width())
-            .arg(currentImage_->height())
-            .arg(currentImage_->channels()));
+            .arg(engine_.currentImage()->width())
+            .arg(engine_.currentImage()->height())
+            .arg(engine_.currentImage()->channels()));
     } else {
         imageInfoLabel_->setText("图像: --");
     }
@@ -2093,21 +1657,21 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
     }
 
     // 更新当前图像
-    currentImage_ = result;
+    engine_.setCurrentImage(result);
 
     // 根据当前模式显示图像
     if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
         // 多视图模式：只更新当前选中的视图位置（每个位置有独立的工具链）
         int selectedView = multiCameraView_->selectedView();
         if (selectedView >= 0) {
-            multiCameraView_->updateImage(selectedView, currentImage_);
+            multiCameraView_->updateImage(selectedView, engine_.currentImage());
         }
 
         // 同时更新隐藏的单图像查看器（用于其他功能）
-        imageViewer_->setImage(currentImage_);
+        imageViewer_->setImage(engine_.currentImage());
     } else {
         // 单视图模式
-        imageViewer_->setImage(currentImage_);
+        imageViewer_->setImage(engine_.currentImage());
     }
 
     // 处理displayObjects - XLD轮廓显示
@@ -2150,7 +1714,7 @@ void MainWindow::processImage(Base::ImageData::Ptr image)
 
     // 添加到历史记录
     QString description = toolChainDesc.isEmpty() ? "原始图像" : QString("处理结果 (%1)").arg(toolChainDesc);
-    historyPanel_->addRecord(currentImage_, description, toolChainDesc, totalExecutionTime);
+    historyPanel_->addRecord(engine_.currentImage(), description, toolChainDesc, totalExecutionTime);
 
     // 更新状态栏
     statusLabel_->setText(QString("处理完成 - 总耗时: %1 ms").arg(totalExecutionTime, 0, 'f', 2));
@@ -2168,23 +1732,23 @@ void MainWindow::displayImage(Base::ImageData::Ptr image)
     }
 
     // 更新当前图像
-    currentImage_ = image;
+    engine_.setCurrentImage(image);
 
     // 根据当前模式显示图像
     if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
         // 多视图模式：更新所有视图位置
         int viewCount = multiCameraView_->viewerCount();
         for (int i = 0; i < viewCount; ++i) {
-            multiCameraView_->updateImage(i, currentImage_);
+            multiCameraView_->updateImage(i, engine_.currentImage());
         }
         // 同时更新隐藏的单图像查看器
         if (imageViewer_) {
-            imageViewer_->setImage(currentImage_);
+            imageViewer_->setImage(engine_.currentImage());
         }
     } else {
         // 单视图模式
         if (imageViewer_) {
-            imageViewer_->setImage(currentImage_);
+            imageViewer_->setImage(engine_.currentImage());
         }
     }
 
@@ -2302,8 +1866,8 @@ void MainWindow::onClearROIs()
 void MainWindow::onHistoryRecordSelected(const HistoryRecord& record)
 {
     if (record.image) {
-        currentImage_ = record.image;
-        imageViewer_->setImage(currentImage_);
+        engine_.setCurrentImage(record.image);
+        imageViewer_->setImage(engine_.currentImage());
         statusLabel_->setText(QString("已加载历史记录: %1").arg(record.description));
         updateStatusBar();
     }
@@ -2322,44 +1886,39 @@ void MainWindow::onPLCConfig()
 void MainWindow::onCameraConfig()
 {
     // 保存当前连续采集状态并暂停
-    bool wasGrabbing = isContinuousGrabbing_;
-    if (isContinuousGrabbing_) {
-        continuousTimer_->stop();
-        isContinuousGrabbing_ = false;
+    bool wasGrabbing = engine_.isLiveGrabbing();
+    if (engine_.isLiveGrabbing()) {
+        engine_.stopLiveGrab();
         // 停止相机采集以释放资源给配置对话框
-        if (camera_ && camera_->isGrabbing()) {
-            camera_->stopGrabbing();
+        if (engine_.camera() && engine_.camera()->isGrabbing()) {
+            engine_.camera()->stopGrabbing();
         }
     }
 
     CameraConfigDialog dialog(this);
 
     // 如果有当前相机，传递给对话框
-    if (camera_) {
-        dialog.setCamera(camera_.get());
+    if (engine_.camera()) {
+        dialog.setCamera(engine_.camera());
     }
 
     if (dialog.exec() == QDialog::Accepted) {
         // 获取选择的相机
         HAL::ICamera* newCamera = dialog.takeCamera();
-        if (newCamera && newCamera != camera_.get()) {
-            // 关闭旧相机（unique_ptr自动管理内存）
-            if (camera_) {
-                camera_->close();
-            }
-            // 使用reset转移所有权，旧相机自动释放
-            camera_.reset(newCamera);
-            LOG_INFO(QString("相机已切换: %1").arg(camera_->deviceName()));
+        if (newCamera && newCamera != engine_.camera()) {
+            // 使用VisionEngine设置新相机（自动关闭旧相机并转移所有权）
+            engine_.setCamera(std::unique_ptr<HAL::ICamera>(newCamera));
+            LOG_INFO(QString("相机已切换: %1").arg(engine_.camera()->deviceName()));
 
             // 更新工具参数面板的相机指针
             if (toolParameterPanel_) {
-                toolParameterPanel_->setCamera(camera_.get());
+                toolParameterPanel_->setCamera(engine_.camera());
             }
         }
 
         // 保存相机显示设置到配置文件
-        if (camera_ && camera_->isOpen()) {
-            HAL::ICamera::Config cameraConfig = camera_->getConfig();
+        if (engine_.camera() && engine_.camera()->isOpen()) {
+            HAL::ICamera::Config cameraConfig = engine_.camera()->getConfig();
             Base::ConfigManager& config = Base::ConfigManager::instance();
             config.setValue("Camera/RotationAngle", cameraConfig.rotationAngle);
             config.setValue("Camera/FlipHorizontal", cameraConfig.flipHorizontal);
@@ -2375,10 +1934,9 @@ void MainWindow::onCameraConfig()
     }
 
     // 恢复连续采集状态
-    if (wasGrabbing && camera_ && camera_->isOpen() && isLiveDisplay_) {
-        if (camera_->startGrabbing()) {
-            isContinuousGrabbing_ = true;
-            continuousTimer_->start(150);
+    if (wasGrabbing && engine_.camera() && engine_.camera()->isOpen() && isLiveDisplay_) {
+        if (engine_.camera()->startGrabbing()) {
+            engine_.startLiveGrab(150);
         }
     }
 }
@@ -2461,8 +2019,8 @@ void MainWindow::onCameraCalibration()
     CameraCalibDialog dialog(this);
 
     // 设置当前图像
-    if (currentImage_) {
-        dialog.setCurrentImage(currentImage_);
+    if (engine_.currentImage()) {
+        dialog.setCurrentImage(engine_.currentImage());
     }
 
     // 连接标定完成信号
@@ -2482,8 +2040,8 @@ void MainWindow::onNinePointCalibration()
     NinePointCalibDialog dialog(this);
 
     // 设置当前图像
-    if (currentImage_) {
-        dialog.setCurrentImage(currentImage_);
+    if (engine_.currentImage()) {
+        dialog.setCurrentImage(engine_.currentImage());
     }
 
     // 连接标定完成信号
@@ -2503,8 +2061,8 @@ void MainWindow::onQRCalibration()
     QRCalibDialog dialog(this);
 
     // 设置当前图像
-    if (currentImage_) {
-        dialog.setCurrentImage(currentImage_);
+    if (engine_.currentImage()) {
+        dialog.setCurrentImage(engine_.currentImage());
     }
 
     // 连接标定完成信号
@@ -2798,18 +2356,15 @@ bool MainWindow::tryAutoConnectCamera()
         return false;
     }
 
-    // 成功连接，替换当前相机（unique_ptr自动管理内存）
-    if (camera_) {
-        camera_->close();
-    }
-    camera_.reset(newCamera);
+    // 成功连接，使用VisionEngine设置新相机（自动关闭旧相机并转移所有权）
+    engine_.setCamera(std::unique_ptr<HAL::ICamera>(newCamera));
 
     // 加载并应用显示设置（旋转、镜像）
-    HAL::ICamera::Config cameraConfig = camera_->getConfig();
+    HAL::ICamera::Config cameraConfig = engine_.camera()->getConfig();
     cameraConfig.rotationAngle = config.getValue("Camera/RotationAngle", 0).toInt();
     cameraConfig.flipHorizontal = config.getValue("Camera/FlipHorizontal", false).toBool();
     cameraConfig.flipVertical = config.getValue("Camera/FlipVertical", false).toBool();
-    camera_->setConfig(cameraConfig);
+    engine_.camera()->setConfig(cameraConfig);
     LOG_INFO(QString("加载相机显示设置: 旋转=%1°, 水平镜像=%2, 垂直镜像=%3")
         .arg(cameraConfig.rotationAngle)
         .arg(cameraConfig.flipHorizontal ? "是" : "否")
@@ -2817,11 +2372,11 @@ bool MainWindow::tryAutoConnectCamera()
 
     // 更新工具参数面板的相机指针
     if (toolParameterPanel_) {
-        toolParameterPanel_->setCamera(camera_.get());
+        toolParameterPanel_->setCamera(engine_.camera());
     }
 
     // 开始采集（必须在获取图像之前调用）
-    if (!camera_->startGrabbing()) {
+    if (!engine_.camera()->startGrabbing()) {
         LOG_ERROR("启动相机采集失败");
         statusLabel_->setText("相机采集启动失败");
         return false;
@@ -2835,13 +2390,12 @@ bool MainWindow::tryAutoConnectCamera()
 
     // 如果实时显示已启用，自动开始连续采集
     if (isLiveDisplay_ && liveDisplayAction_->isChecked()) {
-        if (!isContinuousGrabbing_) {
+        if (!engine_.isLiveGrabbing()) {
             // 等待相机稳定后再开始连续采集
             // 给相机一些时间来采集第一帧
             QTimer::singleShot(500, this, [this]() {
-                if (camera_ && camera_->isOpen() && isLiveDisplay_) {
-                    isContinuousGrabbing_ = true;
-                    continuousTimer_->start(150);  // 10 FPS
+                if (engine_.camera() && engine_.camera()->isOpen() && isLiveDisplay_) {
+                    engine_.startLiveGrab(150);  // 10 FPS
                     LOG_INFO("相机连接成功，自动开始实时显示");
                 }
             });
@@ -2878,23 +2432,22 @@ void MainWindow::showCameraConfigOnStartup()
         if (setupDialog.isSaveAndExit()) {
             // 尝试自动连接已保存的相机配置
             if (tryAutoConnectCamera()) {
-                if (camera_) {
-                    QString modelName = camera_->deviceName();
+                if (engine_.camera()) {
+                    QString modelName = engine_.camera()->deviceName();
                     statusLabel_->setText(tr("已连接相机: %1").arg(modelName));
                     LOG_INFO(QString("启动时配置相机成功: %1").arg(modelName));
 
                     // 更新工具参数面板的相机指针
                     if (toolParameterPanel_) {
-                        toolParameterPanel_->setCamera(camera_.get());
+                        toolParameterPanel_->setCamera(engine_.camera());
                     }
 
                     // 如果实时显示已启用，开始连续采集
                     if (isLiveDisplay_ && liveDisplayAction_ && liveDisplayAction_->isChecked()) {
-                        if (!isContinuousGrabbing_) {
+                        if (!engine_.isLiveGrabbing()) {
                             QTimer::singleShot(500, this, [this]() {
-                                if (camera_ && camera_->isOpen() && isLiveDisplay_) {
-                                    isContinuousGrabbing_ = true;
-                                    continuousTimer_->start(150);
+                                if (engine_.camera() && engine_.camera()->isOpen() && isLiveDisplay_) {
+                                    engine_.startLiveGrab(150);
                                     LOG_INFO("启动时配置相机后，自动开始实时显示");
                                 }
                             });
@@ -3145,6 +2698,156 @@ void MainWindow::onSceneSwitchRequested()
         statusLabel_->setText(QString("场景切换失败"));
     }
 #endif
+}
+
+// ========== VisionEngine 信号连接 ==========
+
+void MainWindow::connectEngineSignals()
+{
+    // 连接图像更新信号
+    connect(&engine_, &Core::VisionEngine::imageUpdated,
+            this, &MainWindow::onEngineImageUpdated);
+
+    // 连接连续采集帧信号
+    connect(&engine_, &Core::VisionEngine::liveFrameArrived,
+            this, &MainWindow::onEngineLiveFrame);
+
+    // 连接处理完成信号
+    connect(&engine_, &Core::VisionEngine::processCompleted,
+            this, &MainWindow::onEngineProcessCompleted);
+
+    // 连接相机状态变化信号
+    connect(&engine_, &Core::VisionEngine::cameraStatusChanged,
+            this, &MainWindow::onEngineCameraStatusChanged);
+
+    // 连接图像序列变化信号
+    connect(&engine_, &Core::VisionEngine::imageSequenceChanged,
+            this, &MainWindow::onEngineImageSequenceChanged);
+
+    // 连接错误信号
+    connect(&engine_, &Core::VisionEngine::errorOccurred,
+            this, &MainWindow::onEngineError);
+
+    // 连接状态消息信号
+    connect(&engine_, &Core::VisionEngine::statusMessage,
+            this, &MainWindow::onEngineStatusMessage);
+}
+
+void MainWindow::onEngineImageUpdated(Base::ImageData::Ptr image)
+{
+    if (!image) {
+        return;
+    }
+
+    // 根据当前模式显示图像
+    if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+        // 多视图模式：更新当前选中的视图
+        int selectedView = multiCameraView_->selectedView();
+        if (selectedView >= 0) {
+            multiCameraView_->updateImage(selectedView, image);
+        }
+        // 同时更新隐藏的单图像查看器
+        if (imageViewer_) {
+            imageViewer_->setImage(image);
+        }
+    } else {
+        // 单视图模式
+        if (imageViewer_) {
+            imageViewer_->setImage(image);
+        }
+    }
+
+    updateActions();
+    updateStatusBar();
+}
+
+void MainWindow::onEngineLiveFrame(Base::ImageData::Ptr image)
+{
+    if (!image || !isLiveDisplay_) {
+        return;
+    }
+
+    // 实时显示帧
+    if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
+        int selectedView = multiCameraView_->selectedView();
+        if (selectedView >= 0) {
+            multiCameraView_->updateImage(selectedView, image);
+        }
+    } else if (imageViewer_) {
+        imageViewer_->setImage(image);
+    }
+}
+
+void MainWindow::onEngineProcessCompleted(const Core::ProcessResult& result)
+{
+    if (result.success) {
+        // 更新结果表
+        for (const auto& toolResult : result.toolResults) {
+            if (resultTablePanel_) {
+                // 从结果数据中获取工具名称（如果有）
+                QString toolName = toolResult.data.value("toolName").toString();
+                if (toolName.isEmpty()) {
+                    toolName = "工具";
+                }
+                resultTablePanel_->addResult(toolName, toolResult);
+            }
+        }
+
+        // 更新统计
+        if (statisticsPanel_) {
+            statisticsPanel_->recordRun(result.success, result.totalTime, QString(), result.toolResults.size());
+        }
+
+        statusLabel_->setText(QString("处理完成，耗时: %.2f ms").arg(result.totalTime));
+    } else {
+        // 即使失败也记录统计
+        if (statisticsPanel_) {
+            statisticsPanel_->recordRun(result.success, result.totalTime, QString(), 0);
+        }
+        statusLabel_->setText(QString("处理失败: %1").arg(result.errorMessage));
+    }
+}
+
+void MainWindow::onEngineCameraStatusChanged(bool connected)
+{
+    if (connected) {
+        statusLabel_->setText("相机已连接");
+
+        // 更新工具参数面板的相机指针
+        if (toolParameterPanel_) {
+            toolParameterPanel_->setCamera(engine_.camera());
+        }
+    } else {
+        statusLabel_->setText("相机已断开");
+    }
+
+    updateActions();
+}
+
+void MainWindow::onEngineImageSequenceChanged(int count, int currentIndex)
+{
+    // 更新图片序列相关动作状态
+    bool hasSequence = count > 0;
+    bool canGoPrev = hasSequence && currentIndex > 0;
+    bool canGoNext = hasSequence && currentIndex < count - 1;
+
+    if (previousImageAction_) previousImageAction_->setEnabled(canGoPrev);
+    if (nextImageAction_) nextImageAction_->setEnabled(canGoNext);
+    if (runAllImagesAction_) runAllImagesAction_->setEnabled(hasSequence);
+}
+
+void MainWindow::onEngineError(const QString& message)
+{
+    LOG_ERROR(message);
+    QMessageBox::warning(this, "错误", message);
+}
+
+void MainWindow::onEngineStatusMessage(const QString& message)
+{
+    if (statusLabel_) {
+        statusLabel_->setText(message);
+    }
+    LOG_INFO(message);
 }
 
 } // namespace UI

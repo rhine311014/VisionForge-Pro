@@ -12,6 +12,9 @@
 #include <QString>
 #include <QJsonObject>
 #include <QIcon>
+#include <functional>
+
+class QDialog;
 
 namespace VisionForge {
 namespace Algorithm {
@@ -68,6 +71,22 @@ class VisionTool : public QObject {
     Q_OBJECT
 
 public:
+    /**
+     * @brief 对话框创建器类型
+     * @param tool 工具实例
+     * @param parent 父窗口
+     * @param image 当前图像
+     * @return 对话框实例（调用者负责释放）
+     */
+    using DialogCreator = std::function<QDialog*(VisionTool*, QWidget*, const Base::ImageData::Ptr&)>;
+
+    /**
+     * @brief 设置对话框创建器（由UI层调用）
+     * @param creator 创建器函数
+     * @note 应在应用程序初始化时调用一次
+     */
+    static void setDialogCreator(DialogCreator creator);
+
     /**
      * @brief 工具类型枚举
      */
@@ -129,10 +148,20 @@ public:
     virtual bool process(const Base::ImageData::Ptr& input, ToolResult& output) = 0;
 
     /**
-     * @brief 创建参数配置界面
+     * @brief 创建参数配置界面（嵌入式）
      * @return 参数配置窗口
      */
     virtual QWidget* createParamWidget() { return nullptr; }
+
+    /**
+     * @brief 创建配置对话框
+     * @param parent 父窗口
+     * @param image 当前图像（用于预览）
+     * @return 配置对话框，调用者负责释放
+     * @note 使用静态 DialogCreator 创建对话框，由 UI 层设置
+     */
+    QDialog* createConfigDialog(QWidget* parent,
+                                const Base::ImageData::Ptr& image = nullptr);
 
     /**
      * @brief 序列化参数
@@ -222,6 +251,9 @@ protected:
     QString displayName_;                   // 显示名称
     Base::ImageData::Ptr debugImage_;       // 调试图像
     QString statusText_;                    // 状态文本
+
+private:
+    static DialogCreator dialogCreator_;    // 对话框创建器（由UI层设置）
 };
 
 } // namespace Algorithm

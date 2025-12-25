@@ -1,7 +1,7 @@
 /**
  * @file CircleTool.h
  * @brief 圆检测工具
- * @details 检测图像中的圆形，支持Halcon和OpenCV双后端
+ * @details 检测图像中的圆形，通过抽象接口支持OpenCV和Halcon双后端
  * @author VisionForge Team
  * @date 2025-12-18
  */
@@ -10,6 +10,8 @@
 
 #include "algorithm/VisionTool.h"
 #include "algorithm/SubPixelEdgeTool.h"
+#include "algorithm/backend/ICircleDetector.h"
+#include "algorithm/backend/AlgorithmBackendFactory.h"
 #include <vector>
 #include <QPointF>
 
@@ -18,6 +20,7 @@ namespace Algorithm {
 
 /**
  * @brief 检测到的圆特征
+ * @note 为保持向后兼容，保留此结构体，内部使用 Backend::CircleDetectResult
  */
 struct CircleResult {
     int id;                     // 圆ID
@@ -38,6 +41,20 @@ struct CircleResult {
           isSubPixel(false), fitResidual(0)
     {
         area = M_PI * r * r;
+    }
+
+    // 从后端结果转换
+    static CircleResult fromBackendResult(const Backend::CircleDetectResult& br) {
+        CircleResult r;
+        r.id = br.id;
+        r.center = br.center;
+        r.radius = br.radius;
+        r.score = br.score;
+        r.circularity = br.circularity;
+        r.area = br.area;
+        r.isSubPixel = br.isSubPixel;
+        r.fitResidual = br.fitResidual;
+        return r;
     }
 };
 
@@ -187,31 +204,19 @@ public:
 
 private:
     /**
-     * @brief 使用OpenCV霍夫圆检测
-     */
-    bool processWithHoughCircles(const cv::Mat& input, ToolResult& output);
-
-    /**
-     * @brief 使用OpenCV轮廓拟合
-     */
-    bool processWithContourFit(const cv::Mat& input, ToolResult& output);
-
-#ifdef USE_HALCON
-    /**
-     * @brief 使用Halcon边缘拟合
-     */
-    bool processWithHalconEdgeFit(const cv::Mat& input, ToolResult& output);
-
-    /**
-     * @brief 使用Halcon Blob拟合
-     */
-    bool processWithHalconBlobFit(const cv::Mat& input, ToolResult& output);
-#endif
-
-    /**
      * @brief 绘制检测结果
      */
     cv::Mat drawResults(const cv::Mat& input) const;
+
+    /**
+     * @brief 创建或更新检测器
+     */
+    void ensureDetector();
+
+    /**
+     * @brief 将当前参数转换为后端参数
+     */
+    Backend::CircleDetectParams toBackendParams() const;
 
 private:
     BackendType backend_;           // 后端类型
@@ -237,6 +242,9 @@ private:
     SubPixelMethod subPixelMethod_; // 亚像素方法
 
     std::vector<CircleResult> circles_;  // 检测结果
+
+    // 后端检测器（通过抽象接口使用，无需 #ifdef）
+    Backend::ICircleDetectorPtr detector_;
 };
 
 } // namespace Algorithm

@@ -9,6 +9,8 @@
 #pragma once
 
 #include "algorithm/VisionTool.h"
+#include "algorithm/backend/IBlobAnalyzer.h"
+#include "algorithm/backend/AlgorithmBackendFactory.h"
 #include <vector>
 #include <QRectF>
 #include <QPointF>
@@ -239,18 +241,6 @@ public:
 
 private:
     /**
-     * @brief 使用OpenCV处理
-     */
-    bool processWithOpenCV(const cv::Mat& input, ToolResult& output);
-
-#ifdef USE_HALCON
-    /**
-     * @brief 使用Halcon处理
-     */
-    bool processWithHalcon(const cv::Mat& input, ToolResult& output);
-#endif
-
-    /**
      * @brief 应用过滤器
      */
     std::vector<BlobFeature> applyFilters(const std::vector<BlobFeature>& blobs) const;
@@ -261,14 +251,19 @@ private:
     void sortBlobs(std::vector<BlobFeature>& blobs) const;
 
     /**
-     * @brief 计算Blob特征（OpenCV）
-     */
-    BlobFeature calculateFeatures(const std::vector<cv::Point>& contour, int id) const;
-
-    /**
      * @brief 绘制结果到图像
      */
     cv::Mat drawResults(const cv::Mat& input) const;
+
+    /**
+     * @brief 确保分析器已创建
+     */
+    void ensureAnalyzer();
+
+    /**
+     * @brief 转换为后端参数
+     */
+    Backend::BlobAnalyzeParams toBackendParams() const;
 
 private:
     BackendType backend_;           // 后端类型
@@ -282,6 +277,9 @@ private:
 
     std::vector<BlobFilter> filters_;       // 过滤条件
     std::vector<BlobFeature> blobFeatures_; // 检测结果
+
+    // 后端分析器
+    Backend::IBlobAnalyzerPtr analyzer_;
 };
 
 } // namespace Algorithm

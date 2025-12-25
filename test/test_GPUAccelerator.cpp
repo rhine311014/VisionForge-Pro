@@ -54,12 +54,12 @@ private slots:
     void testArithmeticOperations();
     void testAsyncOperations();
 
-    // GpuMemoryPool测试
-    void testGpuMemoryPoolAllocate();
-    void testGpuMemoryPoolRelease();
-    void testGpuMemoryPoolPreallocate();
-    void testGpuMemoryPoolStatistics();
-    void testGpuMemoryPoolClear();
+    // GpuMemoryPool测试 - 已禁用，因为GpuMemoryPool现在是内部实现细节
+    // void testGpuMemoryPoolAllocate();
+    // void testGpuMemoryPoolRelease();
+    // void testGpuMemoryPoolPreallocate();
+    // void testGpuMemoryPoolStatistics();
+    // void testGpuMemoryPoolClear();
 #endif
 
 private:
@@ -476,8 +476,11 @@ void TestGPUAccelerator::testAsyncOperations()
     QVERIFY(TestUtils::compareImages(testGrayImage_, downloadedImage, 0.0));
 }
 
-// ========== GpuMemoryPool测试 ==========
+// ========== GpuMemoryPool测试 - 已禁用 ==========
+// GpuMemoryPool现在是内部实现细节，不再公开API
+// 这些测试已被禁用
 
+/*
 void TestGPUAccelerator::testGpuMemoryPoolAllocate()
 {
     auto& gpu = Base::GPUAccelerator::instance();
@@ -562,6 +565,7 @@ void TestGPUAccelerator::testGpuMemoryPoolClear()
     pool.clear();
     QCOMPARE(pool.getPoolSize(), (size_t)0);
 }
+*/
 
 #endif // USE_CUDA
 

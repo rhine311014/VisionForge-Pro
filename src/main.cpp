@@ -179,6 +179,8 @@ int main(int argc, char *argv[])
     // 创建主窗口
     MainWindow mainWindow;
     mainWindow.show();
+    mainWindow.raise();
+    mainWindow.activateWindow();
 
     LOG_INFO("[启动] 主窗口已显示");
 

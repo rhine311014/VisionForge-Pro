@@ -1,6 +1,7 @@
 /**
  * @file BlobTool.cpp
  * @brief Blob分析工具实现
+ * @details 使用抽象后端接口，无需 #ifdef USE_HALCON
  */
 
 #include "algorithm/BlobTool.h"
@@ -11,11 +12,6 @@
 #include <QJsonArray>
 #include <algorithm>
 #include <cmath>
-
-#ifdef USE_HALCON
-#include <HalconCpp.h>
-using namespace HalconCpp;
-#endif
 
 namespace VisionForge {
 namespace Algorithm {
@@ -60,27 +56,35 @@ bool BlobTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         gray = src.clone();
     }
 
-    bool success = false;
+    blobFeatures_.clear();
 
-#ifdef USE_HALCON
-    if (backend_ == Halcon || (backend_ == Auto)) {
-        success = processWithHalcon(gray, output);
-        if (success) {
-            output.executionTime = timer.elapsed();
-            output.setValue("backend", "Halcon");
-        }
-    }
-#endif
+    // 确保分析器已创建
+    ensureAnalyzer();
 
-    if (!success && (backend_ == OpenCV || backend_ == Auto)) {
-        success = processWithOpenCV(gray, output);
-        if (success) {
-            output.executionTime = timer.elapsed();
-            output.setValue("backend", "OpenCV");
-        }
-    }
+    // 使用抽象接口进行分析（无需 #ifdef）
+    std::vector<Backend::BlobAnalyzeResult> backendResults;
+    QString errorMsg;
+    bool success = analyzer_->analyze(gray, toBackendParams(), backendResults, errorMsg);
 
     if (success) {
+        // 转换后端结果到本地格式
+        blobFeatures_.reserve(backendResults.size());
+        for (const auto& br : backendResults) {
+            BlobFeature bf;
+            bf.id = br.id;
+            bf.area = br.area;
+            bf.perimeter = br.perimeter;
+            bf.circularity = br.circularity;
+            bf.rectangularity = br.rectangularity;
+            bf.aspectRatio = br.aspectRatio;
+            bf.orientation = br.orientation;
+            bf.center = br.center;
+            bf.boundingBox = br.boundingBox;
+            bf.equivalentDiameter = br.equivalentDiameter;
+            bf.contour = br.contour;
+            blobFeatures_.push_back(bf);
+        }
+
         // 应用过滤器
         blobFeatures_ = applyFilters(blobFeatures_);
 
@@ -92,8 +96,10 @@ bool BlobTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
             blobFeatures_.resize(maxCount_);
         }
 
-        // 设置输出结果
+        output.success = true;
+        output.executionTime = timer.elapsed();
         output.setValue("blobCount", static_cast<int>(blobFeatures_.size()));
+        output.setValue("backend", analyzer_->backendName());
 
         // 创建带标注的输出图像
         cv::Mat resultImage = drawResults(src);
@@ -124,263 +130,57 @@ bool BlobTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
         setDebugImage(output.outputImage);
         setStatusText(QString("检测到 %1 个Blob").arg(blobFeatures_.size()));
 
-        LOG_DEBUG(QString("Blob分析完成，检测到 %1 个Blob，耗时: %2ms")
+        LOG_DEBUG(QString("Blob分析完成，检测到 %1 个Blob，耗时: %2ms，后端: %3")
                  .arg(blobFeatures_.size())
-                 .arg(output.executionTime));
+                 .arg(output.executionTime)
+                 .arg(analyzer_->backendName()));
+    } else {
+        output.success = false;
+        output.errorMessage = errorMsg;
     }
 
     return success;
 }
 
-bool BlobTool::processWithOpenCV(const cv::Mat& input, ToolResult& output)
+void BlobTool::ensureAnalyzer()
 {
-    try {
-        cv::Mat binary;
-
-        // 二值化处理
-        if (autoThreshold_) {
-            cv::threshold(input, binary, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-        } else {
-            cv::threshold(input, binary, threshold_, 255, cv::THRESH_BINARY);
+    if (!analyzer_) {
+        Backend::BackendType backendType = Backend::BackendType::Auto;
+        switch (backend_) {
+            case Auto:   backendType = Backend::BackendType::Auto; break;
+            case OpenCV: backendType = Backend::BackendType::OpenCV; break;
+            case Halcon: backendType = Backend::BackendType::Halcon; break;
         }
-
-        // 根据极性处理
-        if (polarity_ == Dark) {
-            cv::bitwise_not(binary, binary);
-        }
-
-        // 查找轮廓
-        std::vector<std::vector<cv::Point>> contours;
-        std::vector<cv::Vec4i> hierarchy;
-
-        int connType = (connectivity_ == Connect8) ? cv::RETR_EXTERNAL : cv::RETR_EXTERNAL;
-        cv::findContours(binary, contours, hierarchy, connType, cv::CHAIN_APPROX_SIMPLE);
-
-        // 计算每个Blob的特征
-        blobFeatures_.clear();
-        blobFeatures_.reserve(contours.size());
-
-        for (size_t i = 0; i < contours.size(); ++i) {
-            if (contours[i].size() < 3) continue;  // 至少需要3个点
-
-            BlobFeature feature = calculateFeatures(contours[i], static_cast<int>(i + 1));
-            blobFeatures_.push_back(feature);
-        }
-
-        output.success = true;
-        return true;
-
-    } catch (const cv::Exception& e) {
-        output.success = false;
-        output.errorMessage = QString("OpenCV Blob分析失败: %1").arg(e.what());
-        LOG_ERROR(output.errorMessage);
-        return false;
+        analyzer_ = Backend::AlgorithmBackendFactory::instance().createBlobAnalyzer(backendType);
     }
 }
 
-#ifdef USE_HALCON
-bool BlobTool::processWithHalcon(const cv::Mat& input, ToolResult& output)
+Backend::BlobAnalyzeParams BlobTool::toBackendParams() const
 {
-    try {
-        // 创建Halcon图像
-        HImage hImage;
-        hImage.GenImage1("byte", input.cols, input.rows, (void*)input.data);
+    Backend::BlobAnalyzeParams params;
 
-        // 二值化
-        HRegion region;
-        if (autoThreshold_) {
-            // 自动阈值
-            HTuple usedThreshold;
-            region = hImage.BinaryThreshold("max_separability", polarity_ == Light ? "light" : "dark", &usedThreshold);
-        } else {
-            // 固定阈值
-            if (polarity_ == Light) {
-                region = hImage.Threshold(threshold_, 255);
-            } else {
-                region = hImage.Threshold(0, threshold_);
-            }
-        }
+    params.connectivity = (connectivity_ == Connect8) ? 8 : 4;
+    params.detectLight = (polarity_ == Light);
+    params.autoThreshold = autoThreshold_;
+    params.threshold = threshold_;
 
-        // 连通域分析
-        HRegion connectedRegions = region.Connection();
-
-        // 获取区域数量
-        Hlong count = connectedRegions.CountObj();
-
-        blobFeatures_.clear();
-        blobFeatures_.reserve(count);
-
-        for (Hlong i = 1; i <= count; ++i) {
-            HRegion singleRegion = connectedRegions.SelectObj(i);
-
-            BlobFeature feature;
-            feature.id = static_cast<int>(i);
-
-            // 计算面积和质心 - 使用返回值形式
-            HTuple row, col;
-            HTuple area = singleRegion.AreaCenter(&row, &col);
-            feature.area = area.D();
-            feature.center = QPointF(col.D(), row.D());
-
-            // 计算周长 - 使用返回值形式
-            HTuple contlength = singleRegion.Contlength();
-            feature.perimeter = contlength.D();
-
-            // 计算圆度 - 使用返回值形式
-            HTuple circularity = singleRegion.Circularity();
-            feature.circularity = circularity.D();
-
-            // 计算矩形度 - 使用返回值形式
-            HTuple rectang = singleRegion.Rectangularity();
-            feature.rectangularity = rectang.D();
-
-            // 计算外接矩形
-            HTuple row1, col1, row2, col2;
-            singleRegion.SmallestRectangle1(&row1, &col1, &row2, &col2);
-            feature.boundingBox = QRectF(col1.D(), row1.D(),
-                                        col2.D() - col1.D(), row2.D() - row1.D());
-
-            // 计算最小外接矩形
-            HTuple minRow, minCol, minPhi, minLen1, minLen2;
-            singleRegion.SmallestRectangle2(&minRow, &minCol, &minPhi, &minLen1, &minLen2);
-            feature.minBoundingWidth = minLen1.D() * 2;
-            feature.minBoundingHeight = minLen2.D() * 2;
-            feature.minBoundingArea = feature.minBoundingWidth * feature.minBoundingHeight;
-            feature.minBoundingAngle = minPhi.D() * 180.0 / M_PI;
-
-            // 计算方向
-            feature.orientation = feature.minBoundingAngle;
-
-            // 长宽比
-            if (feature.minBoundingHeight > 0) {
-                feature.aspectRatio = feature.minBoundingWidth / feature.minBoundingHeight;
-            }
-
-            // 凸度 - 使用返回值形式
-            HTuple convex = singleRegion.Convexity();
-            feature.convexity = convex.D();
-
-            // 紧凑度 - 使用返回值形式
-            HTuple compact = singleRegion.Compactness();
-            feature.compactness = compact.D();
-
-            // 等效圆直径
-            feature.equivalentDiameter = std::sqrt(4.0 * feature.area / M_PI);
-
-            // 椭圆拟合 - 使用返回值形式
-            HTuple rb, phi;
-            HTuple ra = singleRegion.EllipticAxis(&rb, &phi);
-            feature.majorAxis = ra.D() * 2;
-            feature.minorAxis = rb.D() * 2;
-            feature.elongation = (feature.minorAxis > 0) ? feature.majorAxis / feature.minorAxis : 0;
-
-            blobFeatures_.push_back(feature);
-        }
-
-        output.success = true;
-        return true;
-
-    } catch (const HException& e) {
-        output.success = false;
-        output.errorMessage = QString("Halcon Blob分析失败: %1").arg(e.ErrorMessage().Text());
-        LOG_ERROR(output.errorMessage);
-        return false;
-    }
-}
-#endif
-
-BlobFeature BlobTool::calculateFeatures(const std::vector<cv::Point>& contour, int id) const
-{
-    BlobFeature feature;
-    feature.id = id;
-    feature.contour = contour;
-
-    // 面积
-    feature.area = cv::contourArea(contour);
-
-    // 周长
-    feature.perimeter = cv::arcLength(contour, true);
-
-    // 圆度
-    if (feature.perimeter > 0) {
-        feature.circularity = 4.0 * M_PI * feature.area / (feature.perimeter * feature.perimeter);
-    }
-
-    // 外接矩形
-    cv::Rect boundRect = cv::boundingRect(contour);
-    feature.boundingBox = QRectF(boundRect.x, boundRect.y, boundRect.width, boundRect.height);
-
-    // 矩形度
-    double boundingArea = boundRect.width * boundRect.height;
-    if (boundingArea > 0) {
-        feature.rectangularity = feature.area / boundingArea;
-    }
-
-    // 最小外接矩形
-    if (contour.size() >= 5) {
-        cv::RotatedRect minRect = cv::minAreaRect(contour);
-        feature.minBoundingWidth = std::max(minRect.size.width, minRect.size.height);
-        feature.minBoundingHeight = std::min(minRect.size.width, minRect.size.height);
-        feature.minBoundingArea = minRect.size.width * minRect.size.height;
-        feature.minBoundingAngle = minRect.angle;
-
-        // 方向
-        feature.orientation = minRect.angle;
-
-        // 质心（使用矩计算更精确）
-        cv::Moments m = cv::moments(contour);
-        if (m.m00 > 0) {
-            feature.center = QPointF(m.m10 / m.m00, m.m01 / m.m00);
-        } else {
-            feature.center = QPointF(minRect.center.x, minRect.center.y);
-        }
-    } else {
-        // 点数不足，使用简单方法
-        cv::Moments m = cv::moments(contour);
-        if (m.m00 > 0) {
-            feature.center = QPointF(m.m10 / m.m00, m.m01 / m.m00);
-        }
-        feature.minBoundingWidth = boundRect.width;
-        feature.minBoundingHeight = boundRect.height;
-        feature.minBoundingArea = boundingArea;
-    }
-
-    // 长宽比
-    if (feature.minBoundingHeight > 0) {
-        feature.aspectRatio = feature.minBoundingWidth / feature.minBoundingHeight;
-    }
-
-    // 凸包和凸度
-    std::vector<cv::Point> hull;
-    cv::convexHull(contour, hull);
-    double hullArea = cv::contourArea(hull);
-    if (hullArea > 0) {
-        feature.convexity = feature.area / hullArea;
-    }
-
-    // 等效圆直径
-    feature.equivalentDiameter = std::sqrt(4.0 * feature.area / M_PI);
-
-    // 椭圆拟合（需要至少5个点）
-    if (contour.size() >= 5) {
-        try {
-            cv::RotatedRect ellipse = cv::fitEllipse(contour);
-            feature.majorAxis = std::max(ellipse.size.width, ellipse.size.height);
-            feature.minorAxis = std::min(ellipse.size.width, ellipse.size.height);
-            if (feature.minorAxis > 0) {
-                feature.elongation = feature.majorAxis / feature.minorAxis;
-            }
-        } catch (...) {
-            // 椭圆拟合失败，使用默认值
+    // 从过滤器中提取面积和圆度范围
+    for (const auto& filter : filters_) {
+        if (!filter.enabled) continue;
+        switch (filter.type) {
+            case BlobFilter::AreaMin: params.minArea = filter.value; break;
+            case BlobFilter::AreaMax: params.maxArea = filter.value; break;
+            case BlobFilter::CircularityMin: params.minCircularity = filter.value; break;
+            case BlobFilter::CircularityMax: params.maxCircularity = filter.value; break;
+            default: break;
         }
     }
 
-    // 紧凑度
-    if (feature.perimeter > 0) {
-        feature.compactness = feature.perimeter * feature.perimeter / feature.area;
-    }
+    params.maxCount = (maxCount_ > 0) ? maxCount_ : 1000;
+    params.sortByArea = (sortBy_ == SortByArea);
+    params.sortDescending = sortDescending_;
 
-    return feature;
+    return params;
 }
 
 std::vector<BlobFeature> BlobTool::applyFilters(const std::vector<BlobFeature>& blobs) const
@@ -580,6 +380,7 @@ void BlobTool::setBackend(BackendType backend)
 {
     if (backend_ != backend) {
         backend_ = backend;
+        analyzer_.reset();  // 重置分析器，下次 process() 时重新创建
         emit paramChanged();
     }
 }

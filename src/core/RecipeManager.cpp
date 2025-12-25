@@ -22,9 +22,23 @@ namespace Core {
 RecipeManager::RecipeManager()
     : currentRecipe_(nullptr)
     , maxRecentRecipes_(10)
+    , preloader_(nullptr)
 {
     // 默认方案目录
     recipeDirectory_ = QDir::currentPath() + "/recipes";
+
+    // 初始化模型预加载器
+    preloader_ = new ModelPreloader(this);
+
+    // 连接预加载器信号
+    connect(preloader_, &ModelPreloader::started,
+            this, &RecipeManager::modelPreloadStarted);
+    connect(preloader_, &ModelPreloader::progressChanged,
+            this, &RecipeManager::modelPreloadProgress);
+    connect(preloader_, &ModelPreloader::finished,
+            this, [this](int success, int failure, qint64) {
+                emit modelPreloadFinished(success, failure);
+            });
 }
 
 RecipeManager::~RecipeManager()
@@ -551,6 +565,26 @@ bool RecipeManager::loadLastRecipe()
 QString RecipeManager::getLastRecipeName() const
 {
     return Base::ConfigManager::instance().getValue(CONFIG_KEY_LAST_RECIPE, QString()).toString();
+}
+
+// ========== 模型预加载 ==========
+
+int RecipeManager::preloadCurrentRecipeModels(bool parallel)
+{
+    if (!currentRecipe_) {
+        LOG_WARNING("预加载失败：当前没有加载配方");
+        return 0;
+    }
+
+    ToolChain* toolChain = currentRecipe_->toolChain();
+    if (!toolChain) {
+        LOG_WARNING("预加载失败：配方工具链为空");
+        return 0;
+    }
+
+    LOG_INFO(QString("开始预加载配方 '%1' 的模型...").arg(currentRecipe_->name()));
+
+    return preloader_->preloadModels(toolChain, parallel);
 }
 
 } // namespace Core
