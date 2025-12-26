@@ -241,7 +241,7 @@ private:
     QString logFilePath_;       // 日志文件路径
     bool consoleOutput_;        // 是否输出到控制台
     bool fileOutput_;           // 是否输出到文件
-    QMutex mutex_;              // 互斥锁
+    mutable QMutex mutex_;      // 互斥锁（mutable允许在const方法中锁定）
     QFile* logFile_;            // 日志文件
     QTextStream* logStream_;    // 日志流
 

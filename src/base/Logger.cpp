@@ -192,7 +192,7 @@ QString Logger::levelToString(Level level)
 
 QVector<LogEntry> Logger::getLogHistory(int maxEntries) const
 {
-    QMutexLocker locker(&const_cast<Logger*>(this)->mutex_);
+    QMutexLocker locker(&mutex_);
 
     if (maxEntries <= 0 || maxEntries >= logHistory_.size()) {
         return logHistory_;
@@ -207,7 +207,7 @@ QVector<LogEntry> Logger::filterLogs(Level minLevel,
                                      const QDateTime& endTime,
                                      const QString& keyword) const
 {
-    QMutexLocker locker(&const_cast<Logger*>(this)->mutex_);
+    QMutexLocker locker(&mutex_);
 
     QVector<LogEntry> result;
     for (const auto& entry : logHistory_) {
@@ -289,7 +289,7 @@ int Logger::historySize() const
 
 QMap<Logger::Level, int> Logger::getLogStatistics() const
 {
-    QMutexLocker locker(&const_cast<Logger*>(this)->mutex_);
+    QMutexLocker locker(&mutex_);
 
     QMap<Level, int> stats;
     stats[Debug] = 0;

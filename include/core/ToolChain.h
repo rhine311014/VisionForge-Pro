@@ -16,6 +16,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <memory>
+#include <vector>
 
 namespace VisionForge {
 namespace Core {
@@ -24,7 +25,7 @@ namespace Core {
  * @brief 工具链节点
  */
 struct ToolChainNode {
-    Algorithm::VisionTool* tool;        // 工具实例
+    std::unique_ptr<Algorithm::VisionTool> tool;  // 工具实例（智能指针管理生命周期）
     QString id;                         // 节点ID
     QString name;                       // 显示名称
     bool enabled;                       // 是否启用
@@ -34,12 +35,21 @@ struct ToolChainNode {
         , enabled(true)
     {}
 
-    ToolChainNode(Algorithm::VisionTool* t, const QString& nodeId, const QString& nodeName)
-        : tool(t)
+    // 接管工具所有权的构造函数
+    ToolChainNode(std::unique_ptr<Algorithm::VisionTool> t, const QString& nodeId, const QString& nodeName)
+        : tool(std::move(t))
         , id(nodeId)
         , name(nodeName)
         , enabled(true)
     {}
+
+    // 支持移动语义
+    ToolChainNode(ToolChainNode&& other) noexcept = default;
+    ToolChainNode& operator=(ToolChainNode&& other) noexcept = default;
+
+    // 禁止拷贝
+    ToolChainNode(const ToolChainNode&) = delete;
+    ToolChainNode& operator=(const ToolChainNode&) = delete;
 };
 
 /**
@@ -121,7 +131,7 @@ public:
     /**
      * @brief 获取工具数量
      */
-    int toolCount() const { return nodes_.size(); }
+    int toolCount() const { return static_cast<int>(nodes_.size()); }
 
     /**
      * @brief 根据索引获取工具
@@ -268,7 +278,7 @@ private:
 private:
     QString name_;                      // 工具链名称
     QString description_;               // 描述
-    QList<ToolChainNode> nodes_;        // 工具节点列表
+    std::vector<ToolChainNode> nodes_;  // 工具节点列表（使用std::vector支持移动语义）
     int nodeIdCounter_;                 // 节点ID计数器
 };
 

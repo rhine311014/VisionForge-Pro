@@ -37,7 +37,8 @@ QString ToolChain::addTool(Algorithm::VisionTool* tool, const QString& name)
     QString nodeId = generateNodeId();
     QString nodeName = name.isEmpty() ? tool->toolName() : name;
 
-    nodes_.append(ToolChainNode(tool, nodeId, nodeName));
+    // 接管工具所有权
+    nodes_.push_back(ToolChainNode(std::unique_ptr<Algorithm::VisionTool>(tool), nodeId, nodeName));
 
     LOG_DEBUG(QString("添加工具到链尾: %1 [%2]").arg(nodeName).arg(nodeId));
 
@@ -52,7 +53,7 @@ QString ToolChain::insertTool(int index, Algorithm::VisionTool* tool, const QStr
         return QString();
     }
 
-    if (index < 0 || index > nodes_.size()) {
+    if (index < 0 || index > static_cast<int>(nodes_.size())) {
         LOG_ERROR(QString("插入工具失败：索引越界 %1").arg(index));
         return QString();
     }
@@ -60,7 +61,8 @@ QString ToolChain::insertTool(int index, Algorithm::VisionTool* tool, const QStr
     QString nodeId = generateNodeId();
     QString nodeName = name.isEmpty() ? tool->toolName() : name;
 
-    nodes_.insert(index, ToolChainNode(tool, nodeId, nodeName));
+    // 接管工具所有权
+    nodes_.insert(nodes_.begin() + index, ToolChainNode(std::unique_ptr<Algorithm::VisionTool>(tool), nodeId, nodeName));
 
     LOG_DEBUG(QString("插入工具到位置 %1: %2 [%3]").arg(index).arg(nodeName).arg(nodeId));
 
@@ -81,22 +83,15 @@ bool ToolChain::removeTool(const QString& nodeId)
 
 bool ToolChain::removeToolAt(int index)
 {
-    if (index < 0 || index >= nodes_.size()) {
+    if (index < 0 || index >= static_cast<int>(nodes_.size())) {
         LOG_ERROR(QString("移除工具失败：索引越界 %1").arg(index));
         return false;
     }
 
-    ToolChainNode& node = nodes_[index];
+    LOG_DEBUG(QString("移除工具: %1 [%2]").arg(nodes_[index].name).arg(nodes_[index].id));
 
-    LOG_DEBUG(QString("移除工具: %1 [%2]").arg(node.name).arg(node.id));
-
-    // 删除工具实例
-    if (node.tool) {
-        delete node.tool;
-        node.tool = nullptr;
-    }
-
-    nodes_.removeAt(index);
+    // unique_ptr会自动删除工具实例
+    nodes_.erase(nodes_.begin() + index);
 
     emit structureChanged();
     return true;
@@ -104,12 +99,12 @@ bool ToolChain::removeToolAt(int index)
 
 bool ToolChain::moveTool(int fromIndex, int toIndex)
 {
-    if (fromIndex < 0 || fromIndex >= nodes_.size()) {
+    if (fromIndex < 0 || fromIndex >= static_cast<int>(nodes_.size())) {
         LOG_ERROR(QString("移动工具失败：源索引越界 %1").arg(fromIndex));
         return false;
     }
 
-    if (toIndex < 0 || toIndex >= nodes_.size()) {
+    if (toIndex < 0 || toIndex >= static_cast<int>(nodes_.size())) {
         LOG_ERROR(QString("移动工具失败：目标索引越界 %1").arg(toIndex));
         return false;
     }
@@ -118,8 +113,10 @@ bool ToolChain::moveTool(int fromIndex, int toIndex)
         return true;
     }
 
-    ToolChainNode node = nodes_.takeAt(fromIndex);
-    nodes_.insert(toIndex, node);
+    // 使用移动语义重新排列节点
+    ToolChainNode node = std::move(nodes_[fromIndex]);
+    nodes_.erase(nodes_.begin() + fromIndex);
+    nodes_.insert(nodes_.begin() + toIndex, std::move(node));
 
     LOG_DEBUG(QString("移动工具: %1 -> %2").arg(fromIndex).arg(toIndex));
 
@@ -129,14 +126,7 @@ bool ToolChain::moveTool(int fromIndex, int toIndex)
 
 void ToolChain::clear()
 {
-    // 删除所有工具实例
-    for (ToolChainNode& node : nodes_) {
-        if (node.tool) {
-            delete node.tool;
-            node.tool = nullptr;
-        }
-    }
-
+    // unique_ptr会自动删除所有工具实例
     nodes_.clear();
 
     LOG_DEBUG("工具链已清空");
@@ -146,10 +136,10 @@ void ToolChain::clear()
 
 Algorithm::VisionTool* ToolChain::getTool(int index) const
 {
-    if (index < 0 || index >= nodes_.size()) {
+    if (index < 0 || index >= static_cast<int>(nodes_.size())) {
         return nullptr;
     }
-    return nodes_[index].tool;
+    return nodes_[index].tool.get();
 }
 
 Algorithm::VisionTool* ToolChain::getTool(const QString& nodeId) const
@@ -158,12 +148,12 @@ Algorithm::VisionTool* ToolChain::getTool(const QString& nodeId) const
     if (index < 0) {
         return nullptr;
     }
-    return nodes_[index].tool;
+    return nodes_[index].tool.get();
 }
 
 const ToolChainNode* ToolChain::getNode(int index) const
 {
-    if (index < 0 || index >= nodes_.size()) {
+    if (index < 0 || index >= static_cast<int>(nodes_.size())) {
         return nullptr;
     }
     return &nodes_[index];
@@ -171,7 +161,7 @@ const ToolChainNode* ToolChain::getNode(int index) const
 
 QString ToolChain::getNodeId(int index) const
 {
-    if (index < 0 || index >= nodes_.size()) {
+    if (index < 0 || index >= static_cast<int>(nodes_.size())) {
         return QString();
     }
     return nodes_[index].id;
@@ -179,9 +169,9 @@ QString ToolChain::getNodeId(int index) const
 
 int ToolChain::findNodeIndex(const QString& nodeId) const
 {
-    for (int i = 0; i < nodes_.size(); ++i) {
+    for (size_t i = 0; i < nodes_.size(); ++i) {
         if (nodes_[i].id == nodeId) {
-            return i;
+            return static_cast<int>(i);
         }
     }
     return -1;
@@ -229,20 +219,20 @@ bool ToolChain::execute(const Base::ImageData::Ptr& input, ToolChainResult& resu
         return false;
     }
 
-    if (nodes_.isEmpty()) {
+    if (nodes_.empty()) {
         result.success = false;
         result.errorMessage = "工具链为空";
         LOG_ERROR(result.errorMessage);
         return false;
     }
 
-    LOG_INFO(QString("开始执行工具链: %1 (%2个工具)").arg(name_).arg(nodes_.size()));
+    LOG_INFO(QString("开始执行工具链: %1 (%2个工具)").arg(name_).arg(static_cast<int>(nodes_.size())));
 
     // 执行工具链
     Base::ImageData::Ptr currentImage = input;
-    result.toolResults.reserve(nodes_.size());
+    result.toolResults.reserve(static_cast<int>(nodes_.size()));
 
-    for (int i = 0; i < nodes_.size(); ++i) {
+    for (size_t i = 0; i < nodes_.size(); ++i) {
         const ToolChainNode& node = nodes_[i];
 
         // 跳过禁用的工具
@@ -251,22 +241,22 @@ bool ToolChain::execute(const Base::ImageData::Ptr& input, ToolChainResult& resu
             continue;
         }
 
-        emit toolExecutionStarted(i, node.name);
-        emit executionProgress(i + 1, nodes_.size());
+        emit toolExecutionStarted(static_cast<int>(i), node.name);
+        emit executionProgress(static_cast<int>(i) + 1, static_cast<int>(nodes_.size()));
 
         Algorithm::ToolResult toolResult;
         bool success = node.tool->process(currentImage, toolResult);
 
         result.toolResults.append(toolResult);
 
-        emit toolExecutionFinished(i, success);
+        emit toolExecutionFinished(static_cast<int>(i), success);
 
         if (!success) {
             result.success = false;
             result.errorMessage = QString("工具 '%1' 执行失败: %2")
                                 .arg(node.name)
                                 .arg(toolResult.errorMessage);
-            result.failedToolIndex = i;
+            result.failedToolIndex = static_cast<int>(i);
 
             LOG_ERROR(result.errorMessage);
             return false;
@@ -279,7 +269,7 @@ bool ToolChain::execute(const Base::ImageData::Ptr& input, ToolChainResult& resu
 
         LOG_DEBUG(QString("工具 %1 执行成功，耗时 %2 ms")
                  .arg(node.name)
-                 .arg(toolResult.executionTime));
+                 .arg(toolResult.executionTime, 0, 'f', 2));
     }
 
     // 执行成功
@@ -294,7 +284,7 @@ bool ToolChain::execute(const Base::ImageData::Ptr& input, ToolChainResult& resu
 
 bool ToolChain::executeUntil(const Base::ImageData::Ptr& input, int untilIndex, ToolChainResult& result)
 {
-    if (untilIndex < 0 || untilIndex >= nodes_.size()) {
+    if (untilIndex < 0 || untilIndex >= static_cast<int>(nodes_.size())) {
         result.success = false;
         result.errorMessage = QString("索引越界: %1").arg(untilIndex);
         LOG_ERROR(result.errorMessage);
@@ -319,7 +309,7 @@ bool ToolChain::executeUntil(const Base::ImageData::Ptr& input, int untilIndex, 
     Base::ImageData::Ptr currentImage = input;
 
     for (int i = 0; i <= untilIndex; ++i) {
-        const ToolChainNode& node = nodes_[i];
+        const ToolChainNode& node = nodes_[static_cast<size_t>(i)];
 
         if (!node.enabled) {
             continue;
@@ -358,14 +348,14 @@ bool ToolChain::executeUntil(const Base::ImageData::Ptr& input, int untilIndex, 
 
 bool ToolChain::executeSingle(const Base::ImageData::Ptr& input, int index, Algorithm::ToolResult& result)
 {
-    if (index < 0 || index >= nodes_.size()) {
+    if (index < 0 || index >= static_cast<int>(nodes_.size())) {
         result.success = false;
         result.errorMessage = QString("索引越界: %1").arg(index);
         LOG_ERROR(result.errorMessage);
         return false;
     }
 
-    const ToolChainNode& node = nodes_[index];
+    const ToolChainNode& node = nodes_[static_cast<size_t>(index)];
 
     if (!node.enabled) {
         result.success = false;
@@ -453,11 +443,13 @@ bool ToolChain::deserialize(const QJsonObject& json)
         QString nodeName = nodeObj["name"].toString();
         bool enabled = nodeObj.value("enabled").toBool(true);
 
-        nodes_.append(ToolChainNode(tool, nodeId, nodeName));
-        nodes_.last().enabled = enabled;
+        // 接管工具所有权
+        ToolChainNode newNode(std::unique_ptr<Algorithm::VisionTool>(tool), nodeId, nodeName);
+        newNode.enabled = enabled;
+        nodes_.push_back(std::move(newNode));
     }
 
-    LOG_INFO(QString("工具链加载完成: %1 (%2个工具)").arg(name_).arg(nodes_.size()));
+    LOG_INFO(QString("工具链加载完成: %1 (%2个工具)").arg(name_).arg(static_cast<int>(nodes_.size())));
 
     emit structureChanged();
     return true;

@@ -11,8 +11,11 @@
 #include <QObject>
 #include <QTimer>
 #include <QStringList>
+#include <QFuture>
+#include <QMutex>
 #include <memory>
 #include <vector>
+#include <atomic>
 
 #include "base/ImageData.h"
 #include "hal/ICamera.h"
@@ -224,6 +227,23 @@ public:
      */
     void executeToolChainAsync(const QList<Algorithm::VisionTool*>& tools);
 
+    /**
+     * @brief 取消所有异步任务
+     */
+    void cancelAsyncTasks();
+
+    /**
+     * @brief 等待所有异步任务完成
+     * @param timeoutMs 超时时间（毫秒），-1表示无限等待
+     * @return 是否全部完成
+     */
+    bool waitForAsyncTasks(int timeoutMs = -1);
+
+    /**
+     * @brief 检查是否有异步任务正在运行
+     */
+    bool hasRunningAsyncTasks() const;
+
     // ============== 图像变换 ==============
 
     /**
@@ -287,6 +307,14 @@ private:
     // 图像序列
     QStringList imageSequence_;
     int currentImageIndex_;
+
+    // 异步任务管理
+    mutable QMutex asyncMutex_;                     // 保护异步任务列表
+    QList<QFuture<void>> asyncTasks_;               // 异步任务列表
+    std::atomic<bool> asyncCancelRequested_;        // 取消标志
+
+    // 清理已完成的异步任务
+    void cleanupFinishedTasks();
 };
 
 } // namespace Core

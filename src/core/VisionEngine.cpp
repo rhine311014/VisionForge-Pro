@@ -9,8 +9,13 @@
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
+#include <QThread>
+#include <QElapsedTimer>
+#include <QMutexLocker>
 #include <opencv2/opencv.hpp>
+#include <QtConcurrent>
 #include <chrono>
+#include <algorithm>
 
 namespace VisionForge {
 namespace Core {
@@ -28,6 +33,7 @@ VisionEngine::VisionEngine()
     , isLiveGrabbing_(false)
     , currentImage_(nullptr)
     , currentImageIndex_(-1)
+    , asyncCancelRequested_(false)
 {
     liveTimer_ = new QTimer(this);
     connect(liveTimer_, &QTimer::timeout, this, &VisionEngine::onLiveTimer);
@@ -37,6 +43,10 @@ VisionEngine::VisionEngine()
 
 VisionEngine::~VisionEngine()
 {
+    // 取消并等待所有异步任务完成
+    cancelAsyncTasks();
+    waitForAsyncTasks(5000);  // 最多等待5秒
+
     stopLiveGrab();
     closeCamera();
     LOG_INFO("VisionEngine 已销毁");
@@ -451,6 +461,174 @@ ProcessResult VisionEngine::processCurrentImage(const QList<Algorithm::VisionToo
     return executeToolChain(tools);
 }
 
+void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
+{
+    if (!tool || !currentImage_) {
+        emit errorOccurred("无法执行工具：工具为空或无图像");
+        return;
+    }
+
+    // 清理已完成的任务
+    cleanupFinishedTasks();
+
+    // 重置取消标志
+    asyncCancelRequested_.store(false);
+
+    // 捕获当前图像和工具指针
+    // 注意：ImageData是线程安全的（只要不修改），VisionTool需要确保在执行期间不被修改
+    Base::ImageData::Ptr inputImage = currentImage_;
+    QString toolName = tool->displayName();  // 提前保存工具名称
+
+    QFuture<void> future = QtConcurrent::run([this, tool, inputImage, toolName]() {
+        ProcessResult result;
+
+        // 检查是否已取消
+        if (asyncCancelRequested_.load()) {
+            result.errorMessage = "任务已取消";
+            return;
+        }
+
+        // 模拟executeTool的逻辑，但使用捕获的图像
+        if (!tool->isEnabled()) {
+            result.errorMessage = "工具已禁用";
+        } else {
+            auto startTime = std::chrono::high_resolution_clock::now();
+            Algorithm::ToolResult toolResult;
+
+            try {
+                if (tool->process(inputImage, toolResult)) {
+                    result.success = true;
+                    result.outputImage = toolResult.outputImage;
+                    result.toolResults.append(toolResult);
+                } else {
+                    result.errorMessage = toolResult.errorMessage;
+                }
+            } catch (const std::exception& e) {
+                result.errorMessage = QString("工具执行异常: %1").arg(e.what());
+            } catch (...) {
+                result.errorMessage = "工具执行发生未知异常";
+            }
+
+            auto endTime = std::chrono::high_resolution_clock::now();
+            result.totalTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+        }
+
+        // 再次检查是否取消（任务完成后）
+        if (asyncCancelRequested_.load()) {
+            return;  // 取消时不发送结果
+        }
+
+        // 回到主线程更新状态
+        QMetaObject::invokeMethod(this, [this, result, toolName]() {
+            if (result.success) {
+                if (result.outputImage) {
+                    setCurrentImage(result.outputImage);
+                }
+                emit statusMessage(QString("工具 \"%1\" 异步处理完成 (%.2f ms)")
+                    .arg(toolName).arg(result.totalTime));
+            } else {
+                emit errorOccurred(QString("工具 \"%1\" 处理失败: %2")
+                    .arg(toolName).arg(result.errorMessage));
+            }
+            emit processCompleted(result);
+        });
+    });
+
+    // 记录任务
+    {
+        QMutexLocker locker(&asyncMutex_);
+        asyncTasks_.append(future);
+    }
+}
+
+void VisionEngine::executeToolChainAsync(const QList<Algorithm::VisionTool*>& tools)
+{
+    if (tools.isEmpty() || !currentImage_) {
+        emit errorOccurred("无法执行工具链：工具链为空或无图像");
+        return;
+    }
+
+    // 清理已完成的任务
+    cleanupFinishedTasks();
+
+    // 重置取消标志
+    asyncCancelRequested_.store(false);
+
+    Base::ImageData::Ptr inputImage = currentImage_;
+
+    QFuture<void> future = QtConcurrent::run([this, tools, inputImage]() {
+        ProcessResult result;
+        result.success = true;
+
+        // 检查是否已取消
+        if (asyncCancelRequested_.load()) {
+            return;
+        }
+
+        auto startTime = std::chrono::high_resolution_clock::now();
+        Base::ImageData::Ptr workingImage = inputImage;
+
+        for (Algorithm::VisionTool* tool : tools) {
+            // 在每个工具执行前检查取消标志
+            if (asyncCancelRequested_.load()) {
+                result.success = false;
+                result.errorMessage = "任务已取消";
+                break;
+            }
+
+            if (!tool || !tool->isEnabled()) continue;
+
+            Algorithm::ToolResult toolResult;
+            try {
+                if (tool->process(workingImage, toolResult)) {
+                    result.toolResults.append(toolResult);
+                    if (toolResult.outputImage) {
+                        workingImage = toolResult.outputImage;
+                    }
+                } else {
+                    result.success = false;
+                    result.errorMessage = QString("工具 \"%1\" 处理失败: %2")
+                        .arg(tool->displayName()).arg(toolResult.errorMessage);
+                    break;
+                }
+            } catch (const std::exception& e) {
+                result.success = false;
+                result.errorMessage = QString("工具 \"%1\" 执行异常: %2")
+                    .arg(tool->displayName()).arg(e.what());
+                break;
+            }
+        }
+
+        auto endTime = std::chrono::high_resolution_clock::now();
+        result.totalTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+
+        if (result.success) {
+            result.outputImage = workingImage;
+        }
+
+        // 取消时不发送结果
+        if (asyncCancelRequested_.load()) {
+            return;
+        }
+
+        QMetaObject::invokeMethod(this, [this, result]() {
+            if (result.success) {
+                setCurrentImage(result.outputImage);
+                emit statusMessage(QString("工具链异步处理完成 (%.2f ms)").arg(result.totalTime));
+            } else {
+                emit errorOccurred(result.errorMessage);
+            }
+            emit processCompleted(result);
+        });
+    });
+
+    // 记录任务
+    {
+        QMutexLocker locker(&asyncMutex_);
+        asyncTasks_.append(future);
+    }
+}
+
 // ============== 图像变换 ==============
 
 void VisionEngine::applyImageTransform(Base::ImageData::Ptr& image)
@@ -494,6 +672,64 @@ void VisionEngine::applyImageTransform(Base::ImageData::Ptr& image)
     if (rotation != 0 || flipH || flipV) {
         image = std::make_shared<Base::ImageData>(mat);
     }
+}
+
+// ============== 异步任务管理 ==============
+
+void VisionEngine::cancelAsyncTasks()
+{
+    asyncCancelRequested_.store(true);
+    LOG_DEBUG("请求取消所有异步任务");
+}
+
+bool VisionEngine::waitForAsyncTasks(int timeoutMs)
+{
+    QMutexLocker locker(&asyncMutex_);
+
+    for (QFuture<void>& future : asyncTasks_) {
+        if (!future.isFinished()) {
+            if (timeoutMs < 0) {
+                future.waitForFinished();
+            } else {
+                // Qt 6 中 QFuture 没有带超时的 wait，使用轮询
+                QElapsedTimer timer;
+                timer.start();
+                while (!future.isFinished() && timer.elapsed() < timeoutMs) {
+                    locker.unlock();
+                    QThread::msleep(10);
+                    locker.relock();
+                }
+                if (!future.isFinished()) {
+                    LOG_WARNING("等待异步任务超时");
+                    return false;
+                }
+            }
+        }
+    }
+
+    asyncTasks_.clear();
+    return true;
+}
+
+bool VisionEngine::hasRunningAsyncTasks() const
+{
+    QMutexLocker locker(&asyncMutex_);
+    for (const QFuture<void>& future : asyncTasks_) {
+        if (!future.isFinished()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void VisionEngine::cleanupFinishedTasks()
+{
+    QMutexLocker locker(&asyncMutex_);
+    asyncTasks_.erase(
+        std::remove_if(asyncTasks_.begin(), asyncTasks_.end(),
+            [](const QFuture<void>& f) { return f.isFinished(); }),
+        asyncTasks_.end()
+    );
 }
 
 } // namespace Core
