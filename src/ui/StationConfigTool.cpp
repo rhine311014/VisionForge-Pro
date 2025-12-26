@@ -31,6 +31,7 @@ StationConfigTool::StationConfigTool(QWidget* parent)
     , rootItem_(nullptr)
     , settingsGroup_(nullptr)
     , comboPlatformIndex_(nullptr)
+    , comboPlatformType_(nullptr)
     , comboCameraCount_(nullptr)
     , checkSharedCamera_(nullptr)
     , comboSceneCount_(nullptr)
@@ -186,6 +187,25 @@ QGroupBox* StationConfigTool::createSettingsArea()
     comboPlatformIndex_->setMinimumWidth(120);
     grid->addWidget(labelPlatformIndex, row, 0);
     grid->addWidget(comboPlatformIndex_, row, 1);
+    ++row;
+
+    // 平台类型
+    QLabel* labelPlatformType = new QLabel(tr("平台类型:"), settingsGroup_);
+    comboPlatformType_ = new QComboBox(settingsGroup_);
+    // 添加常用平台类型
+    comboPlatformType_->addItem(tr("XYD (标准三轴)"), static_cast<int>(Platform::PlatformType::XYD));
+    comboPlatformType_->addItem(tr("XY (双轴)"), static_cast<int>(Platform::PlatformType::XY));
+    comboPlatformType_->addItem(tr("X1X2Y (龙门双X)"), static_cast<int>(Platform::PlatformType::X1X2Y));
+    comboPlatformType_->addItem(tr("XY1Y2 (双Y平台)"), static_cast<int>(Platform::PlatformType::XY1Y2));
+    comboPlatformType_->addItem(tr("DXY (旋转优先)"), static_cast<int>(Platform::PlatformType::DXY));
+    comboPlatformType_->addItem(tr("XD (X轴+旋转)"), static_cast<int>(Platform::PlatformType::XD));
+    comboPlatformType_->addItem(tr("YD (Y轴+旋转)"), static_cast<int>(Platform::PlatformType::YD));
+    comboPlatformType_->addItem(tr("XYDP (四轴)"), static_cast<int>(Platform::PlatformType::XYDP));
+    comboPlatformType_->addItem(tr("UVW (精密对位)"), static_cast<int>(Platform::PlatformType::UVW));
+    comboPlatformType_->setMinimumWidth(120);
+    comboPlatformType_->setToolTip(tr("选择平台运动轴配置类型"));
+    grid->addWidget(labelPlatformType, row, 0);
+    grid->addWidget(comboPlatformType_, row, 1);
     ++row;
 
     // 相机数
@@ -371,6 +391,8 @@ void StationConfigTool::setupConnections()
     // 参数变更
     connect(comboPlatformIndex_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &StationConfigTool::onPlatformIndexChanged);
+    connect(comboPlatformType_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &StationConfigTool::onPlatformTypeChanged);
     connect(comboCameraCount_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &StationConfigTool::onCameraCountChanged);
     connect(checkSharedCamera_, &QCheckBox::stateChanged,
@@ -431,9 +453,10 @@ void StationConfigTool::loadExistingConfig()
     for (const auto* station : stations) {
         PlatformConfig config;
         config.index = station->index + 1;  // 内部0-based，显示1-based
+        config.platformType = static_cast<int>(station->platformType);
         config.cameraCount = station->cameraNum;
         config.sharedCamera = station->shareCameraSystem;
-        config.sceneCount = 2;  // 默认值
+        config.sceneCount = station->sceneNum > 0 ? station->sceneNum : 1;  // 从配置读取
         config.positionCount = station->positionNum;
         config.displayMode = station->displayMode;
         config.productCount = 5;  // 默认值
@@ -469,13 +492,14 @@ bool StationConfigTool::saveConfig()
 
         QString stationId = manager.createStation(
             QString("平台%1").arg(config.index),
-            Platform::PlatformType::X1X2Y
+            static_cast<Platform::PlatformType>(config.platformType)
         );
 
         if (!stationId.isEmpty()) {
             auto* station = manager.getStation(stationId);
             if (station) {
                 station->index = config.index - 1;  // 显示1-based，内部0-based
+                station->platformType = static_cast<Platform::PlatformType>(config.platformType);
                 station->cameraNum = config.cameraCount;
                 station->shareCameraSystem = config.sharedCamera;
                 station->positionNum = config.positionCount;
@@ -589,6 +613,7 @@ void StationConfigTool::updateTreeItem(QTreeWidgetItem* item, int platformIndex)
         child->setFlags(child->flags() & ~Qt::ItemIsSelectable);
     };
 
+    addInfoItem(QString("平台类型: %1").arg(getPlatformTypeText(config.platformType)));
     addInfoItem(QString("相机数量: %1").arg(config.cameraCount));
     addInfoItem(QString("场景数量: %1").arg(config.sceneCount));
     addInfoItem(QString("位置数量: %1").arg(config.positionCount));
@@ -650,6 +675,11 @@ void StationConfigTool::updateSettingsPanel(int platformIndex)
     const auto& config = platforms_[platformIndex];
 
     comboPlatformIndex_->setCurrentIndex(config.index - 1);
+    // 设置平台类型（根据数据值找到对应的combo index）
+    int platformTypeIndex = comboPlatformType_->findData(config.platformType);
+    if (platformTypeIndex >= 0) {
+        comboPlatformType_->setCurrentIndex(platformTypeIndex);
+    }
     comboCameraCount_->setCurrentIndex(config.cameraCount - 1);
     checkSharedCamera_->setChecked(config.sharedCamera);
     comboSceneCount_->setCurrentIndex(config.sceneCount - 1);
@@ -677,6 +707,7 @@ void StationConfigTool::updateSettingsPanel(int platformIndex)
 void StationConfigTool::setSettingsPanelEnabled(bool enabled)
 {
     comboPlatformIndex_->setEnabled(enabled);
+    comboPlatformType_->setEnabled(enabled);
     comboCameraCount_->setEnabled(enabled);
     checkSharedCamera_->setEnabled(enabled);
     comboSceneCount_->setEnabled(enabled);
@@ -721,6 +752,22 @@ QString StationConfigTool::getFunctionModeText(int mode) const
     }
 }
 
+QString StationConfigTool::getPlatformTypeText(int type) const
+{
+    switch (type) {
+    case static_cast<int>(Platform::PlatformType::XYD): return tr("XYD (标准三轴)");
+    case static_cast<int>(Platform::PlatformType::XY): return tr("XY (双轴)");
+    case static_cast<int>(Platform::PlatformType::X1X2Y): return tr("X1X2Y (龙门双X)");
+    case static_cast<int>(Platform::PlatformType::XY1Y2): return tr("XY1Y2 (双Y平台)");
+    case static_cast<int>(Platform::PlatformType::DXY): return tr("DXY (旋转优先)");
+    case static_cast<int>(Platform::PlatformType::XD): return tr("XD (X轴+旋转)");
+    case static_cast<int>(Platform::PlatformType::YD): return tr("YD (Y轴+旋转)");
+    case static_cast<int>(Platform::PlatformType::XYDP): return tr("XYDP (四轴)");
+    case static_cast<int>(Platform::PlatformType::UVW): return tr("UVW (精密对位)");
+    default: return tr("未知");
+    }
+}
+
 void StationConfigTool::updateFunctionModeUI(int mode)
 {
     // 根据功能模式显示/隐藏参数组
@@ -755,6 +802,20 @@ void StationConfigTool::onPlatformIndexChanged(int index)
     }
 
     platforms_[currentPlatformIndex_].index = newIndex;
+    markAsChanged();
+
+    // 更新树形显示
+    if (rootItem_ && currentPlatformIndex_ < rootItem_->childCount()) {
+        updateTreeItem(rootItem_->child(currentPlatformIndex_), currentPlatformIndex_);
+    }
+}
+
+void StationConfigTool::onPlatformTypeChanged(int index)
+{
+    if (isUpdating_ || currentPlatformIndex_ < 0) return;
+
+    int platformType = comboPlatformType_->currentData().toInt();
+    platforms_[currentPlatformIndex_].platformType = platformType;
     markAsChanged();
 
     // 更新树形显示
@@ -896,13 +957,13 @@ void StationConfigTool::onAddPlatform()
         return;
     }
 
-    // 创建新平台配置
+    // 创建新平台配置（默认简单检测模式）
     PlatformConfig config;
     config.index = newIndex;
     config.cameraCount = 1;
     config.sharedCamera = false;
-    config.sceneCount = 2;
-    config.positionCount = 4;
+    config.sceneCount = 1;      // 默认1个场景（简单检测模式）
+    config.positionCount = 1;   // 默认1个位置（简单检测模式）
     config.displayMode = 0;
     config.productCount = 5;
     config.preloadCount = 1;

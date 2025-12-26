@@ -74,6 +74,7 @@ private slots:
 
     // 参数变更
     void onPlatformIndexChanged(int index);
+    void onPlatformTypeChanged(int index);
     void onCameraCountChanged(int value);
     void onSharedCameraChanged(int state);
     void onSceneCountChanged(int value);
@@ -161,6 +162,11 @@ private:
     QString getFunctionModeText(int mode) const;
 
     /**
+     * @brief 获取平台类型文本
+     */
+    QString getPlatformTypeText(int type) const;
+
+    /**
      * @brief 根据功能模式更新UI可见性
      */
     void updateFunctionModeUI(int mode);
@@ -168,6 +174,7 @@ private:
     // ========== 平台配置数据结构 ==========
     struct PlatformConfig {
         int index = 0;              ///< 平台序号 (1-6)
+        int platformType = 0;       ///< 平台类型 (PlatformType枚举值)
         int cameraCount = 1;        ///< 相机数量 (1-8)
         bool sharedCamera = false;  ///< 是否共享相机系统
         int sceneCount = 2;         ///< 场景数量 (1-8)
@@ -194,6 +201,7 @@ private:
     // 右侧设置控件
     QGroupBox* settingsGroup_;
     QComboBox* comboPlatformIndex_;     ///< 平台序
+    QComboBox* comboPlatformType_;      ///< 平台类型
     QComboBox* comboCameraCount_;       ///< 相机数
     QCheckBox* checkSharedCamera_;      ///< 相机是否共享系统
     QComboBox* comboSceneCount_;        ///< 场景数量

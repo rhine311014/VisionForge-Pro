@@ -195,32 +195,20 @@ MainWindow::MainWindow(QWidget* parent)
     // 初始化多工位管理器
     Core::MultiStationManager::instance().loadConfig();
 
-    // 创建工位切换栏（使用QToolBar包装）
+    // 工位和场景切换功能（通过StationConfigTool.exe配置，主界面不显示切换栏）
 #ifdef USE_HALCON
     stationSwitchBar_ = new StationSwitchBar(this);
+    stationSwitchBar_->setVisible(false);  // 隐藏，配置通过StationConfigTool完成
 
-    // 创建工具栏包装器来承载工位切换栏
-    QToolBar* stationToolBar = new QToolBar(tr("工位切换"), this);
-    stationToolBar->setObjectName("stationToolBar");
-    stationToolBar->addWidget(stationSwitchBar_);
-    stationToolBar->setVisible(false);  // 默认隐藏，有多工位配置时显示
-    addToolBar(Qt::TopToolBarArea, stationToolBar);
-
-    // 连接工位切换信号
+    // 连接工位切换信号（保留功能，但不显示UI）
     connect(stationSwitchBar_, &StationSwitchBar::stationSelected,
             this, &MainWindow::onStationSelected);
     connect(stationSwitchBar_, &StationSwitchBar::showAllStations,
             this, &MainWindow::onShowAllStations);
 
-    // 创建场景切换栏
+    // 场景切换栏（隐藏，配置通过StationConfigTool完成）
     sceneSwitchBar_ = new SceneSwitchBar(this);
-
-    // 创建工具栏包装器来承载场景切换栏
-    QToolBar* sceneToolBar = new QToolBar(tr("场景切换"), this);
-    sceneToolBar->setObjectName("sceneToolBar");
-    sceneToolBar->addWidget(sceneSwitchBar_);
-    sceneToolBar->setVisible(true);  // 默认显示
-    addToolBar(Qt::TopToolBarArea, sceneToolBar);
+    sceneSwitchBar_->setVisible(false);  // 隐藏，配置通过StationConfigTool完成
 
     // 连接场景切换信号
     connect(sceneSwitchBar_, &SceneSwitchBar::sceneSelected,
@@ -244,9 +232,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     int stationCount = stationManager.getStationCount();
     if (stationCount > 0) {
-        // 刷新工位切换栏
+        // 刷新工位切换栏（内部功能保留，UI隐藏）
         stationSwitchBar_->refreshStations();
-        stationToolBar->setVisible(true);
 
         // 获取当前工位配置
         auto* currentStation = stationManager.currentStation();
@@ -257,7 +244,7 @@ MainWindow::MainWindow(QWidget* parent)
             // 设置多相机视图
             multiCameraView_->setStation(currentStation);
 
-            // 刷新场景切换栏
+            // 刷新场景切换栏（内部功能保留，UI隐藏）
             if (sceneSwitchBar_) {
                 sceneSwitchBar_->refreshScenes(currentStation);
             }
@@ -1103,6 +1090,9 @@ void MainWindow::createMenus()
     connect(toggleMultiViewAction_, &QAction::triggered, this, &MainWindow::onToggleMultiCameraView);
     alignmentMenu_->addAction(toggleMultiViewAction_);
 #endif
+
+    // 默认隐藏对位菜单（检测模式不需要）
+    alignmentMenu_->menuAction()->setVisible(false);
 
     // 通信菜单
     commMenu_ = menuBar()->addMenu("通信(&M)");
