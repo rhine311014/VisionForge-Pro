@@ -10,6 +10,8 @@
 #include "ui/ROI.h"
 #include "ui/ModelCheckPointDialog.h"
 #include "algorithm/ShapeMatchTool.h"
+#include "algorithm/ShapeMatchUtils.h"
+#include "algorithm/HalconObjectWrapper.h"
 #include "algorithm/ShapeModelManager.h"
 #include "ui/ShapeModelLibraryDialog.h"
 #include "base/Logger.h"
@@ -845,8 +847,12 @@ void ShapeMatchToolDialog::onTrainModelClicked()
             HXLDCont contour;
             GenContourPolygonXld(&contour, rows, cols);
 
+            // 将HXLDCont包装成QVariant
+            auto wrapper = QSharedPointer<Algorithm::XLDContourWrapper>::create(contour);
+            QVariant contourVariant = QVariant::fromValue(Algorithm::HalconObjectPtr(wrapper));
+
             // 从轮廓训练模板
-            if (tool_->trainModelFromContour(contour, currentImage_)) {
+            if (tool_->trainModelFromContour(contourVariant, currentImage_)) {
                 LOG_INFO("从自由绘制轮廓训练模板成功");
                 currentLibraryModelId_.clear();  // 训练新模板，清除模板库ID
                 updateUI();
@@ -1122,8 +1128,21 @@ void ShapeMatchToolDialog::updateFeaturePreview()
     }
 
     try {
-        // 获取模型轮廓
-        HXLDCont contours = tool_->getModelContours();
+        // 获取模型轮廓 (从QVariant解包)
+        QVariant contourVariant = tool_->getModelContours();
+        if (!contourVariant.isValid() || !contourVariant.canConvert<Algorithm::HalconObjectPtr>()) {
+            LOG_WARNING("模型轮廓为空");
+            return;
+        }
+
+        Algorithm::HalconObjectPtr ptr = contourVariant.value<Algorithm::HalconObjectPtr>();
+        if (!ptr || ptr->type() != Algorithm::HalconObjectWrapper::XLD_Contour) {
+            LOG_WARNING("模型轮廓类型错误");
+            return;
+        }
+
+        Algorithm::XLDContourWrapper* wrapper = static_cast<Algorithm::XLDContourWrapper*>(ptr.data());
+        HXLDCont contours = wrapper->contours();
         if (contours.CountObj() == 0) {
             LOG_WARNING("模型轮廓为空");
             return;
@@ -1334,7 +1353,7 @@ void ShapeMatchToolDialog::onPreviewMarkContour()
         params.size3 = markSize3SpinBox_->value();
 
         // 生成轮廓
-        HXLDCont contour = Algorithm::ShapeMatchTool::generateMarkContour(params);
+        HXLDCont contour = Algorithm::ShapeMatchUtils::generateMarkContour(params);
 
         if (contour.CountObj() == 0) {
             QMessageBox::warning(this, "预览失败", "无法生成轮廓");
@@ -1438,7 +1457,7 @@ void ShapeMatchToolDialog::onGenerateMarkContourClicked()
 
     try {
         // 生成Mark轮廓
-        HXLDCont markContour = Algorithm::ShapeMatchTool::generateMarkContour(params);
+        HXLDCont markContour = Algorithm::ShapeMatchUtils::generateMarkContour(params);
 
         if (markContour.CountObj() == 0) {
             QMessageBox::warning(this, "生成失败", "无法生成轮廓");
@@ -1465,7 +1484,11 @@ void ShapeMatchToolDialog::onGenerateMarkContourClicked()
         }
 
         // 从轮廓训练模板
-        bool success = tool_->trainModelFromContour(markContour, sampleImage,
+        // 包装轮廓对象以传递给工具
+        Algorithm::XLDContourPtr contourPtr = QSharedPointer<Algorithm::XLDContourWrapper>::create(markContour);
+        QVariant contourVar = QVariant::fromValue(qSharedPointerCast<Algorithm::HalconObjectWrapper>(contourPtr));
+
+        bool success = tool_->trainModelFromContour(contourVar, sampleImage,
                                                      sampleRow1, sampleCol1,
                                                      sampleRow2, sampleCol2);
 

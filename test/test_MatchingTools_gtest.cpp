@@ -20,6 +20,7 @@
 #include <gmock/gmock.h>
 #include "algorithm/TemplateMatchTool.h"
 #include "algorithm/ShapeMatchTool.h"
+#include "algorithm/ShapeMatchUtils.h"
 #include "base/ImageData.h"
 #include "base/ImageMemoryPool.h"
 #include <opencv2/opencv.hpp>
@@ -479,7 +480,7 @@ TEST_F(MatchingToolsTest, ShapeMatch_SaveAndLoadModel) {
 
 TEST_F(MatchingToolsTest, ShapeMatch_GenerateCrossContour) {
     // 测试十字形轮廓生成（静态方法）
-    HXLDCont crossContour = ShapeMatchTool::generateCrossContour(50, 10, 256, 256);
+    HXLDCont crossContour = ShapeMatchUtils::generateCrossContour(50, 10, 256, 256);
 
     // 验证轮廓不为空
     EXPECT_GT(crossContour.CountObj(), 0);
@@ -487,7 +488,7 @@ TEST_F(MatchingToolsTest, ShapeMatch_GenerateCrossContour) {
 
 TEST_F(MatchingToolsTest, ShapeMatch_GenerateCircleContour) {
     // 测试圆形轮廓生成
-    HXLDCont circleContour = ShapeMatchTool::generateCircleContour(40, 200, 200);
+    HXLDCont circleContour = ShapeMatchUtils::generateCircleContour(40, 200, 200);
 
     EXPECT_GT(circleContour.CountObj(), 0);
 }
@@ -501,7 +502,7 @@ TEST_F(MatchingToolsTest, ShapeMatch_GenerateMarkContour) {
     params.centerRow = 256;
     params.centerCol = 256;
 
-    HXLDCont contour = ShapeMatchTool::generateMarkContour(params);
+    HXLDCont contour = ShapeMatchUtils::generateMarkContour(params);
     EXPECT_GT(contour.CountObj(), 0);
 }
 #endif

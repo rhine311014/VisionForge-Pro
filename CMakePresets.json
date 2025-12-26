@@ -1,0 +1,165 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "F:/Qt/6.9.3/msvc2022_64",
+                "OpenCV_DIR": "D:/Program Files/OPENCV CUDA",
+                "HALCONROOT": "F:/Halcon/HALCON-24.11-Progress-Steady",
+                "USE_HALCON": "ON",
+                "USE_OPENMP": "ON",
+                "USE_CUDA": "ON",
+                "BUILD_TESTS": "ON",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "windows-msvc",
+            "hidden": true,
+            "inherits": "base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": ["Windows"],
+                    "intelliSenseMode": "windows-msvc-x64"
+                }
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug (Ninja)",
+            "description": "Debug 配置 - 用于 VSCode/Antigravity 调试",
+            "inherits": "windows-msvc",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release (Ninja)",
+            "description": "Release 配置 - 用于发布",
+            "inherits": "windows-msvc",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL"
+            }
+        },
+        {
+            "name": "relwithdebinfo",
+            "displayName": "RelWithDebInfo (Ninja)",
+            "description": "Release + Debug Info - 用于性能分析",
+            "inherits": "windows-msvc",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL"
+            }
+        },
+        {
+            "name": "vs2022-debug",
+            "displayName": "VS2022 Debug",
+            "description": "Visual Studio 2022 Debug 配置",
+            "inherits": "base",
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "binaryDir": "${sourceDir}/build/vs2022",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "vs2022-release",
+            "displayName": "VS2022 Release",
+            "description": "Visual Studio 2022 Release 配置",
+            "inherits": "base",
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "binaryDir": "${sourceDir}/build/vs2022",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug-build",
+            "displayName": "Debug Build",
+            "configurePreset": "debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "release-build",
+            "displayName": "Release Build",
+            "configurePreset": "release",
+            "configuration": "Release"
+        },
+        {
+            "name": "relwithdebinfo-build",
+            "displayName": "RelWithDebInfo Build",
+            "configurePreset": "relwithdebinfo",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "vs2022-debug-build",
+            "displayName": "VS2022 Debug Build",
+            "configurePreset": "vs2022-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "vs2022-release-build",
+            "displayName": "VS2022 Release Build",
+            "configurePreset": "vs2022-release",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "debug-test",
+            "displayName": "Debug Tests",
+            "configurePreset": "debug",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "release-test",
+            "displayName": "Release Tests",
+            "configurePreset": "release",
+            "configuration": "Release"
+        }
+    ]
+}

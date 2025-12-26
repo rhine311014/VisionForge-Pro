@@ -573,57 +573,9 @@ void MainWindow::onRunSingle()
         return;
     }
 
-    Algorithm::ToolResult result;
-    if (tool->process(engine_.currentImage(), result)) {
-        // 更新当前图像
-        if (result.outputImage) {
-            engine_.setCurrentImage(result.outputImage);
-        }
-
-        // 根据当前模式显示图像
-        if (isMultiViewMode_ && multiCameraView_ && multiCameraView_->isVisible()) {
-            // 多视图模式：更新当前选中的视图
-            int selectedView = multiCameraView_->selectedView();
-            if (selectedView >= 0) {
-                multiCameraView_->updateImage(selectedView, engine_.currentImage());
-            }
-            // 同时更新隐藏的单图像查看器
-            imageViewer_->setImage(engine_.currentImage());
-        } else {
-            // 单视图模式
-            imageViewer_->setImage(engine_.currentImage());
-        }
-
-        // 处理displayObjects - XLD轮廓显示
-#ifdef USE_HALCON
-        if (!result.displayObjects.isEmpty() &&
-            result.displayObjects.contains("match_contours")) {
-            QVariant objVariant = result.displayObjects["match_contours"];
-            if (objVariant.canConvert<Algorithm::HalconObjectPtr>()) {
-                Algorithm::HalconObjectPtr objPtr =
-                    objVariant.value<Algorithm::HalconObjectPtr>();
-
-                if (objPtr && objPtr->type() == Algorithm::HalconObjectWrapper::XLD_Contour) {
-                    Algorithm::XLDContourPtr xldPtr =
-                        qSharedPointerCast<Algorithm::XLDContourWrapper>(objPtr);
-
-                    QList<HXLDCont> contours;
-                    contours.append(xldPtr->contours());
-                    imageViewer_->setXLDContours(contours);
-                }
-            }
-        } else {
-            // 清除之前的XLD显示
-            imageViewer_->clearXLDContours();
-        }
-#endif
-
-        statusLabel_->setText(QString("工具 \"%1\" 处理完成").arg(tool->displayName()));
-    } else {
-        QMessageBox::warning(this, "处理失败", result.errorMessage);
-    }
-
-    updateStatusBar();
+    // 使用异步执行，避免阻塞UI
+    statusLabel_->setText(QString("正在运行工具: %1...").arg(tool->displayName()));
+    engine_.executeToolAsync(tool);
 }
 
 void MainWindow::onRunAll()
@@ -633,7 +585,14 @@ void MainWindow::onRunAll()
         return;
     }
 
-    processImage(engine_.currentImage());
+    QList<Algorithm::VisionTool*> tools = toolChainPanel_->getTools();
+    if (tools.isEmpty()) {
+        QMessageBox::information(this, "提示", "工具链为空");
+        return;
+    }
+
+    statusLabel_->setText("正在运行工具链...");
+    engine_.executeToolChainAsync(tools);
 }
 
 // ========== 相机操作 ==========
@@ -673,8 +632,16 @@ void MainWindow::onFrameValidToggled(bool checked)
             if (image) {
                 // 应用图像变换（旋转、镜像）
                 engine_.applyImageTransform(image);
-                // 处理图像
-                processImage(image);
+                
+                // 设置为当前图像
+                engine_.setCurrentImage(image);
+
+                // 异步执行工具链
+                QList<Algorithm::VisionTool*> tools = toolChainPanel_->getTools();
+                if (!tools.isEmpty()) {
+                    engine_.executeToolChainAsync(tools);
+                }
+
                 statusLabel_->setText("帧有效: 采集成功");
                 LOG_INFO("帧有效采集成功");
             } else {
@@ -2791,6 +2758,36 @@ void MainWindow::onEngineProcessCompleted(const Core::ProcessResult& result)
                 }
                 resultTablePanel_->addResult(toolName, toolResult);
             }
+
+            // 处理displayObjects - XLD轮廓显示
+#ifdef USE_HALCON
+            if (!toolResult.displayObjects.isEmpty()) {
+                // 遍历所有显示对象
+                QMapIterator<QString, QVariant> i(toolResult.displayObjects);
+                while (i.hasNext()) {
+                    i.next();
+                    if (i.key() == "match_contours" || i.key().contains("contour")) {
+                        QVariant val = i.value();
+                        if (val.canConvert<Algorithm::HalconObjectPtr>()) {
+                            auto ptr = val.value<Algorithm::HalconObjectPtr>();
+                            if (ptr && ptr->type() == Algorithm::HalconObjectWrapper::XLD_Contour) {
+                                auto* wrapper = static_cast<Algorithm::XLDContourWrapper*>(ptr.data());
+                                
+                                // 显示在图像查看器中
+                                if (imageViewer_) {
+                                    imageViewer_->addXLDContour(wrapper->contours());
+                                }
+                                if (isMultiViewMode_ && multiCameraView_) {
+                                    // 多视图模式下也显示
+                                    // TODO: 需要确定显示在哪个视图，目前简化为当前视图
+                                    // multiCameraView_->displayXLD(wrapper->contours());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+#endif
         }
 
         // 更新统计
@@ -2848,6 +2845,27 @@ void MainWindow::onEngineStatusMessage(const QString& message)
         statusLabel_->setText(message);
     }
     LOG_INFO(message);
+}
+
+void MainWindow::updateImageSequenceActions()
+{
+    // 更新图片序列相关动作状态
+    int sequenceCount = engine_.getImageSequenceCount();
+    int currentIndex = engine_.getCurrentImageIndex();
+
+    bool hasSequence = sequenceCount > 1;
+    bool isFirstImage = currentIndex == 0;
+    bool isLastImage = currentIndex == sequenceCount - 1;
+
+    if (previousImageAction_) {
+        previousImageAction_->setEnabled(hasSequence && !isFirstImage);
+    }
+    if (nextImageAction_) {
+        nextImageAction_->setEnabled(hasSequence && !isLastImage);
+    }
+    if (runAllImagesAction_) {
+        runAllImagesAction_->setEnabled(hasSequence);
+    }
 }
 
 } // namespace UI

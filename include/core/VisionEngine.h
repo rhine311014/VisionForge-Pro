@@ -167,9 +167,19 @@ public:
     int imageSequenceSize() const { return imageSequence_.size(); }
 
     /**
+     * @brief 获取图像序列数量（别名，兼容旧接口）
+     */
+    int getImageSequenceCount() const { return imageSequence_.size(); }
+
+    /**
      * @brief 获取当前图像索引
      */
     int currentImageIndex() const { return currentImageIndex_; }
+
+    /**
+     * @brief 获取当前图像索引（别名，兼容旧接口）
+     */
+    int getCurrentImageIndex() const { return currentImageIndex_; }
 
     /**
      * @brief 获取图像序列列表
@@ -201,6 +211,18 @@ public:
      * @brief 对当前图像执行工具链
      */
     ProcessResult processCurrentImage(const QList<Algorithm::VisionTool*>& tools);
+
+    /**
+     * @brief 异步执行单个工具
+     * @param tool 工具指针
+     */
+    void executeToolAsync(Algorithm::VisionTool* tool);
+
+    /**
+     * @brief 异步执行工具链
+     * @param tools 工具列表
+     */
+    void executeToolChainAsync(const QList<Algorithm::VisionTool*>& tools);
 
     // ============== 图像变换 ==============
 

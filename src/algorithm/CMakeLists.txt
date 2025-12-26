@@ -90,6 +90,7 @@ set(ALGORITHM_SOURCES
 if(USE_HALCON)
     list(APPEND ALGORITHM_SOURCES
         ShapeMatchTool.cpp
+        ShapeMatchUtils.cpp
         ShapeModelManager.cpp
         CodeReadTool.cpp
     )
@@ -142,6 +143,7 @@ set(ALGORITHM_HEADERS
 if(USE_HALCON)
     list(APPEND ALGORITHM_HEADERS
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeMatchTool.h
+        ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeMatchUtils.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/HalconObjectWrapper.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeModelManager.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/CodeReadTool.h

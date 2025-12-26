@@ -311,22 +311,24 @@ HImage HalconDisplayWorker::imageDataToHImage(const Base::ImageData::Ptr& image)
             hImg.GenImageInterleaved(
                 (void*)mat.data,    // 直接使用原始数据指针
                 L"bgr",             // BGR格式（OpenCV默认）
-                width, height,
+                width, height,      // 原始宽高
                 0,                  // 对齐参数（0表示紧密排列）
                 L"byte",            // 像素类型
-                width * 3,          // 每行字节数
-                0);                 // 起始偏移
+                width, height,      // 图像宽高
+                0, 0,               // 起始行列
+                8, 0);              // 每通道位数, 位移
         }
         else if (channels == 4) {
             // BGRA图像支持（如带Alpha通道的PNG）
             hImg.GenImageInterleaved(
                 (void*)mat.data,
                 L"bgrx",            // BGRA格式（x表示忽略Alpha）
-                width, height,
-                0,
-                L"byte",
-                width * 4,
-                0);
+                width, height,      // 原始宽高
+                0,                  // 对齐参数
+                L"byte",            // 像素类型
+                width, height,      // 图像宽高
+                0, 0,               // 起始行列
+                8, 0);              // 每通道位数, 位移
         }
         else {
             LOG_ERROR(QString("不支持的图像通道数: %1").arg(channels));

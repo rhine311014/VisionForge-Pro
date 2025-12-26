@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # 项目信息
 project(VisionForge
-    VERSION 1.5.0
+    VERSION 1.6.1
     DESCRIPTION "VisionForge Pro - 通用工业视觉检测平台"
     LANGUAGES CXX
 )

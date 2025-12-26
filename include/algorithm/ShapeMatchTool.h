@@ -9,21 +9,17 @@
 
 #include "algorithm/VisionTool.h"
 #include <vector>
-
-#ifdef _WIN32
-#include "HalconCpp.h"
-using namespace HalconCpp;
-#endif
+#include <memory>
 
 namespace VisionForge {
 namespace Algorithm {
 
+// 前向声明实现类
+class ShapeMatchImpl;
+
 /**
  * @struct ModelCheckPoint
  * @brief 模型校验点结构
- *
- * 校验点用于在形状匹配后验证匹配结果的可靠性，
- * 通过检查特定位置的灰度值是否在期望范围内
  */
 struct ModelCheckPoint {
     double relRow;          // 相对于模板参考点的行偏移
@@ -160,125 +156,17 @@ public:
     /**
      * @brief 检查是否已加载模板
      */
-    bool hasModel() const { return modelLoaded_; }
-
-#ifdef _WIN32
-    /**
-     * @brief 获取模型轮廓（用于特征预览）
-     * @return XLD轮廓对象
-     */
-    HXLDCont getModelContours() const;
+    bool hasModel() const;
 
     /**
-     * @brief 生成标准十字形XLD轮廓
-     * @param armLength 十字臂长度（像素）
-     * @param armWidth 十字臂宽度（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 十字形XLD轮廓
+     * @brief 获取模型轮廓 (用于UI显示)
+     * @return 包装的轮廓数据，如果无模型返回空QVariant
      */
-    static HXLDCont generateCrossContour(double armLength, double armWidth,
-                                         double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成T字形XLD轮廓
-     * @param width T字顶部宽度（像素）
-     * @param height T字总高度（像素）
-     * @param thickness 线宽（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return T字形XLD轮廓
-     */
-    static HXLDCont generateTShapeContour(double width, double height, double thickness,
-                                          double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成L字形XLD轮廓
-     * @param width L字水平臂长度（像素）
-     * @param height L字垂直臂长度（像素）
-     * @param thickness 线宽（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return L字形XLD轮廓
-     */
-    static HXLDCont generateLShapeContour(double width, double height, double thickness,
-                                          double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成圆形XLD轮廓
-     * @param radius 圆半径（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 圆形XLD轮廓
-     */
-    static HXLDCont generateCircleContour(double radius,
-                                          double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成圆环形XLD轮廓
-     * @param outerRadius 外圆半径（像素）
-     * @param innerRadius 内圆半径（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 圆环形XLD轮廓
-     */
-    static HXLDCont generateRingContour(double outerRadius, double innerRadius,
-                                        double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成矩形XLD轮廓
-     * @param width 矩形宽度（像素）
-     * @param height 矩形高度（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 矩形XLD轮廓
-     */
-    static HXLDCont generateRectangleContour(double width, double height,
-                                             double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成三角形XLD轮廓
-     * @param sideLength 三角形边长（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 三角形XLD轮廓
-     */
-    static HXLDCont generateTriangleContour(double sideLength,
-                                            double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成菱形XLD轮廓
-     * @param width 菱形宽度（像素）
-     * @param height 菱形高度（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 菱形XLD轮廓
-     */
-    static HXLDCont generateDiamondContour(double width, double height,
-                                           double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 生成箭头形XLD轮廓
-     * @param length 箭头长度（像素）
-     * @param headWidth 箭头头部宽度（像素）
-     * @param shaftWidth 箭杆宽度（像素）
-     * @param centerRow 中心点行坐标
-     * @param centerCol 中心点列坐标
-     * @return 箭头形XLD轮廓
-     */
-    static HXLDCont generateArrowContour(double length, double headWidth, double shaftWidth,
-                                         double centerRow = 0, double centerCol = 0);
-
-    /**
-     * @brief 根据参数生成Mark形状轮廓（统一接口）
-     * @param params 形状参数
-     * @return XLD轮廓
-     */
-    static HXLDCont generateMarkContour(const MarkShapeParams& params);
+    QVariant getModelContours() const;
 
     /**
      * @brief 从XLD轮廓训练模板（适用于高噪声场景）
-     * @param contour XLD轮廓（如标准十字轮廓）
+     * @param contour 轮廓数据 (QVariant wrapping HalconObjectPtr)
      * @param highNoiseImage 高噪声样本图像（用于估计金字塔层级，可选）
      * @param sampleRow1 样本区域左上角行
      * @param sampleCol1 样本区域左上角列
@@ -286,172 +174,96 @@ public:
      * @param sampleCol2 样本区域右下角列
      * @return 是否成功
      */
-    bool trainModelFromContour(const HXLDCont& contour,
+    bool trainModelFromContour(const QVariant& contour,
                                const Base::ImageData::Ptr& highNoiseImage = nullptr,
                                int sampleRow1 = 0, int sampleCol1 = 0,
                                int sampleRow2 = 0, int sampleCol2 = 0);
 
-    /**
-     * @brief 设置当前使用的标准轮廓（用于显示）
-     */
-    void setStandardContour(const HXLDCont& contour) { standardContour_ = contour; }
-    HXLDCont getStandardContour() const { return standardContour_; }
-#endif
 
     // ========== 参数设置 ==========
 
-    void setMinScore(double score) { minScore_ = score; emit paramChanged(); }
+    void setMinScore(double score);
     double getMinScore() const { return minScore_; }
 
-    void setNumMatches(int num) { numMatches_ = num; emit paramChanged(); }
+    void setNumMatches(int num);
     int getNumMatches() const { return numMatches_; }
 
-    void setAngleStart(double angle) { angleStart_ = angle; emit paramChanged(); }
+    void setAngleStart(double angle);
     double getAngleStart() const { return angleStart_; }
 
-    void setAngleExtent(double angle) { angleExtent_ = angle; emit paramChanged(); }
+    void setAngleExtent(double angle);
     double getAngleExtent() const { return angleExtent_; }
 
-    void setMinContrast(int contrast) { minContrast_ = contrast; emit paramChanged(); }
+    void setMinContrast(int contrast);
     int getMinContrast() const { return minContrast_; }
 
-    void setScaleMin(double scale) { scaleMin_ = scale; emit paramChanged(); }
+    void setScaleMin(double scale);
     double getScaleMin() const { return scaleMin_; }
 
-    void setScaleMax(double scale) { scaleMax_ = scale; emit paramChanged(); }
+    void setScaleMax(double scale);
     double getScaleMax() const { return scaleMax_; }
 
-    void setMaxOverlap(double overlap) { maxOverlap_ = overlap; emit paramChanged(); }
+    void setMaxOverlap(double overlap);
     double getMaxOverlap() const { return maxOverlap_; }
 
-    void setGreediness(double greediness) { greediness_ = greediness; emit paramChanged(); }
+    void setGreediness(double greediness);
     double getGreediness() const { return greediness_; }
 
-    void setModelPath(const QString& path) { modelPath_ = path; }
-    QString getModelPath() const { return modelPath_; }
-
-    void setUseXLDDisplay(bool use) { useXLDDisplay_ = use; emit paramChanged(); }
+    void setUseXLDDisplay(bool use);
     bool getUseXLDDisplay() const { return useXLDDisplay_; }
 
-    void setMatchType(MatchType type) {
-        if (matchType_ != type) {
-            matchType_ = type;
-            emit paramChanged();
-        }
-    }
+    void setMatchType(MatchType type);
     MatchType getMatchType() const { return matchType_; }
 
-    void setScaleStepRow(double step) { scaleStepRow_ = step; emit paramChanged(); }
+    void setScaleStepRow(double step);
     double getScaleStepRow() const { return scaleStepRow_; }
 
-    void setScaleStepCol(double step) { scaleStepCol_ = step; emit paramChanged(); }
+    void setScaleStepCol(double step);
     double getScaleStepCol() const { return scaleStepCol_; }
 
     // ========== 轮廓过滤参数 ==========
 
-    void setContourFilterEnabled(bool enabled) { contourFilterEnabled_ = enabled; emit paramChanged(); }
+    void setContourFilterEnabled(bool enabled);
     bool isContourFilterEnabled() const { return contourFilterEnabled_; }
 
-    void setMinContourLength(double length) { minContourLength_ = length; emit paramChanged(); }
+    void setMinContourLength(double length);
     double getMinContourLength() const { return minContourLength_; }
 
-    void setUnionCollinearEnabled(bool enabled) { unionCollinearEnabled_ = enabled; emit paramChanged(); }
+    void setUnionCollinearEnabled(bool enabled);
     bool isUnionCollinearEnabled() const { return unionCollinearEnabled_; }
 
-    void setUnionAdjacentEnabled(bool enabled) { unionAdjacentEnabled_ = enabled; emit paramChanged(); }
+    void setUnionAdjacentEnabled(bool enabled);
     bool isUnionAdjacentEnabled() const { return unionAdjacentEnabled_; }
 
-    void setMaxDistCollinear(double dist) { maxDistCollinear_ = dist; emit paramChanged(); }
+    void setMaxDistCollinear(double dist);
     double getMaxDistCollinear() const { return maxDistCollinear_; }
 
-    void setMaxDistAdjacent(double dist) { maxDistAdjacent_ = dist; emit paramChanged(); }
+    void setMaxDistAdjacent(double dist);
     double getMaxDistAdjacent() const { return maxDistAdjacent_; }
 
     // ========== 模型校验点接口 ==========
 
-    /**
-     * @brief 添加校验点
-     * @param checkPoint 校验点
-     */
     void addCheckPoint(const ModelCheckPoint& checkPoint);
-
-    /**
-     * @brief 移除校验点
-     * @param index 索引
-     */
     void removeCheckPoint(int index);
-
-    /**
-     * @brief 清除所有校验点
-     */
     void clearCheckPoints();
-
-    /**
-     * @brief 获取校验点列表
-     */
     const std::vector<ModelCheckPoint>& getCheckPoints() const { return checkPoints_; }
-
-    /**
-     * @brief 设置校验点列表
-     */
-    void setCheckPoints(const std::vector<ModelCheckPoint>& points) { checkPoints_ = points; emit paramChanged(); }
-
-    /**
-     * @brief 启用/禁用校验点功能
-     */
-    void setCheckPointsEnabled(bool enabled) { checkPointsEnabled_ = enabled; emit paramChanged(); }
+    void setCheckPoints(const std::vector<ModelCheckPoint>& points);
+    void setCheckPointsEnabled(bool enabled);
     bool isCheckPointsEnabled() const { return checkPointsEnabled_; }
 
-    /**
-     * @brief 验证匹配结果的校验点
-     * @param image 搜索图像
-     * @param row 匹配位置行
-     * @param col 匹配位置列
-     * @param angle 匹配角度
-     * @param failedPoints 输出：失败的校验点索引
-     * @return 是否所有校验点都通过
-     */
     bool validateCheckPoints(const Base::ImageData::Ptr& image,
                             double row, double col, double angle,
                             std::vector<int>* failedPoints = nullptr);
+                            
+    // 供Impl访问的内部方法
+    friend class ShapeMatchImpl;
+
+    // 获取模型路径
+    QString getModelPath() const;
+    void setModelPath(const QString& path);
 
 private:
-#ifdef _WIN32
-    /**
-     * @brief ImageData转换为HImage
-     */
-    HImage imageDataToHImage(const Base::ImageData::Ptr& image);
-
-    /**
-     * @brief 绘制匹配结果到图像
-     */
-    void drawMatchResults(cv::Mat& image,
-                         const HTuple& row, const HTuple& col,
-                         const HTuple& angle, const HTuple& score);
-
-    /**
-     * @brief 创建匹配结果的XLD轮廓
-     */
-    HXLDCont createMatchContours(const HTuple& row, const HTuple& col,
-                                 const HTuple& angle);
-
-    /**
-     * @brief 过滤和优化XLD轮廓
-     * @param contours 输入轮廓
-     * @return 过滤后的轮廓
-     */
-    HXLDCont filterContours(const HXLDCont& contours) const;
-#endif
-
-private:
-#ifdef _WIN32
-    HTuple shapeModel_;         // Halcon形状模型句柄
-    HXLDCont standardContour_;  // 标准轮廓（用于显示和从轮廓训练）
-    HXLDCont lastMatchContours_; // 最后一次匹配的轮廓结果（从Generic模型直接获取）
-    bool useGenericModel_;      // 是否使用通用形状模型（从XLD轮廓创建）
-#endif
-    bool modelLoaded_;          // 模板是否已加载
-    QString modelPath_;         // 模板文件路径
+    std::unique_ptr<ShapeMatchImpl> impl_;
 
     // 匹配参数
     MatchType matchType_;       // 匹配类型
@@ -467,12 +279,6 @@ private:
     double maxOverlap_;         // 最大重叠度 (0.0-1.0)
     double greediness_;         // 贪婪度 (0.0-1.0)
     bool useXLDDisplay_;        // 是否使用XLD轮廓显示
-
-    // 模板信息
-    int modelWidth_;            // 模板宽度
-    int modelHeight_;           // 模板高度
-    double modelRefRow_;        // 模板参考点行
-    double modelRefCol_;        // 模板参考点列
 
     // 校验点
     std::vector<ModelCheckPoint> checkPoints_;  // 校验点列表
