@@ -201,9 +201,15 @@ QGroupBox* StationConfigTool::createSettingsArea()
     comboPlatformType_->addItem(tr("XD (X轴+旋转)"), static_cast<int>(Platform::PlatformType::XD));
     comboPlatformType_->addItem(tr("YD (Y轴+旋转)"), static_cast<int>(Platform::PlatformType::YD));
     comboPlatformType_->addItem(tr("XYDP (四轴)"), static_cast<int>(Platform::PlatformType::XYDP));
+    // UVW精密对位平台系列
     comboPlatformType_->addItem(tr("UVW (精密对位)"), static_cast<int>(Platform::PlatformType::UVW));
-    comboPlatformType_->setMinimumWidth(120);
-    comboPlatformType_->setToolTip(tr("选择平台运动轴配置类型"));
+    comboPlatformType_->addItem(tr("UVW-XXY (双X单Y)"), static_cast<int>(Platform::PlatformType::UVW_XXY));
+    comboPlatformType_->addItem(tr("UVW-XYY (单X双Y)"), static_cast<int>(Platform::PlatformType::UVW_XYY));
+    comboPlatformType_->addItem(tr("UVW-XXYY (四轴)"), static_cast<int>(Platform::PlatformType::UVW_XXYY));
+    comboPlatformType_->addItem(tr("UVW-中空 (光学)"), static_cast<int>(Platform::PlatformType::UVW_HOLLOW));
+    comboPlatformType_->addItem(tr("UVW-高精度 (2μm)"), static_cast<int>(Platform::PlatformType::UVW_HIGH_PRECISION));
+    comboPlatformType_->setMinimumWidth(150);
+    comboPlatformType_->setToolTip(tr("选择平台运动轴配置类型\nUVW系列适用于曝光机、贴合机、丝印机等精密对位场景"));
     grid->addWidget(labelPlatformType, row, 0);
     grid->addWidget(comboPlatformType_, row, 1);
     ++row;
@@ -763,7 +769,13 @@ QString StationConfigTool::getPlatformTypeText(int type) const
     case static_cast<int>(Platform::PlatformType::XD): return tr("XD (X轴+旋转)");
     case static_cast<int>(Platform::PlatformType::YD): return tr("YD (Y轴+旋转)");
     case static_cast<int>(Platform::PlatformType::XYDP): return tr("XYDP (四轴)");
+    // UVW精密对位平台系列
     case static_cast<int>(Platform::PlatformType::UVW): return tr("UVW (精密对位)");
+    case static_cast<int>(Platform::PlatformType::UVW_XXY): return tr("UVW-XXY (双X单Y)");
+    case static_cast<int>(Platform::PlatformType::UVW_XYY): return tr("UVW-XYY (单X双Y)");
+    case static_cast<int>(Platform::PlatformType::UVW_XXYY): return tr("UVW-XXYY (四轴)");
+    case static_cast<int>(Platform::PlatformType::UVW_HOLLOW): return tr("UVW-中空 (光学)");
+    case static_cast<int>(Platform::PlatformType::UVW_HIGH_PRECISION): return tr("UVW-高精度 (2μm)");
     default: return tr("未知");
     }
 }
