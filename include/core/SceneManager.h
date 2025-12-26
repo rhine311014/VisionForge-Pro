@@ -139,6 +139,31 @@ signals:
      */
     void sceneLoadProgress(int progress, const QString& message);
 
+    /**
+     * @brief 场景工具链文件变更信号
+     * @param filePath 工具链配置文件路径
+     */
+    void sceneToolChainFileChanged(const QString& filePath);
+
+    /**
+     * @brief 场景检测参数变更信号
+     * @param confidenceThreshold 置信度阈值
+     * @param nmsThreshold NMS阈值
+     */
+    void sceneDetectionParamsChanged(float confidenceThreshold, float nmsThreshold);
+
+    /**
+     * @brief 场景模型路径变更信号
+     * @param modelPath AI检测模型路径
+     */
+    void sceneModelPathChanged(const QString& modelPath);
+
+    /**
+     * @brief 场景模板路径变更信号
+     * @param templatePath 模板图像路径
+     */
+    void sceneTemplatePathChanged(const QString& templatePath);
+
 private:
     /**
      * @brief 加载场景资源

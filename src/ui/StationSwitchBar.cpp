@@ -26,25 +26,25 @@ StationSwitchBar::~StationSwitchBar()
 
 void StationSwitchBar::setupUI()
 {
-    // 创建布局
+    // 创建布局（紧凑）
     layout_ = new QHBoxLayout(this);
-    layout_->setSpacing(8);
-    layout_->setContentsMargins(4, 4, 4, 4);
+    layout_->setSpacing(3);
+    layout_->setContentsMargins(2, 1, 2, 1);
 
     // 创建按钮组
     buttonGroup_ = new QButtonGroup(this);
     buttonGroup_->setExclusive(true);
 
-    // 样式定义
+    // 样式定义（紧凑版）
     normalBtnStyle_ = R"(
         QPushButton {
             background-color: #3d3d3d;
             color: #cccccc;
             border: 1px solid #555555;
-            border-radius: 4px;
-            padding: 6px 16px;
-            font-size: 13px;
-            min-width: 80px;
+            border-radius: 3px;
+            padding: 3px 8px;
+            font-size: 11px;
+            min-width: 50px;
         }
         QPushButton:hover {
             background-color: #4d4d4d;
@@ -60,22 +60,22 @@ void StationSwitchBar::setupUI()
             background-color: #0078d4;
             color: #ffffff;
             border: 1px solid #0078d4;
-            border-radius: 4px;
-            padding: 6px 16px;
-            font-size: 13px;
+            border-radius: 3px;
+            padding: 3px 8px;
+            font-size: 11px;
             font-weight: bold;
-            min-width: 80px;
+            min-width: 50px;
         }
         QPushButton:hover {
             background-color: #1084d8;
         }
     )";
 
-    okStatusStyle_ = "QLabel { background-color: #00aa00; border-radius: 6px; min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px; }";
-    ngStatusStyle_ = "QLabel { background-color: #ff0000; border-radius: 6px; min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px; }";
-    unknownStatusStyle_ = "QLabel { background-color: #888888; border-radius: 6px; min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px; }";
+    okStatusStyle_ = "QLabel { background-color: #00aa00; border-radius: 4px; min-width: 8px; max-width: 8px; min-height: 8px; max-height: 8px; }";
+    ngStatusStyle_ = "QLabel { background-color: #ff0000; border-radius: 4px; min-width: 8px; max-width: 8px; min-height: 8px; max-height: 8px; }";
+    unknownStatusStyle_ = "QLabel { background-color: #888888; border-radius: 4px; min-width: 8px; max-width: 8px; min-height: 8px; max-height: 8px; }";
 
-    // 创建"全部"按钮
+    // 创建"全部"按钮（紧凑）
     btnShowAll_ = new QPushButton("全部", this);
     btnShowAll_->setStyleSheet(normalBtnStyle_);
     btnShowAll_->setToolTip("显示全部工位 (F7)");
@@ -85,11 +85,10 @@ void StationSwitchBar::setupUI()
     // 添加分隔线
     QFrame* separator = new QFrame(this);
     separator->setFrameShape(QFrame::VLine);
-    separator->setStyleSheet("QFrame { color: #555555; }");
+    separator->setStyleSheet("QFrame { color: #555555; max-height: 16px; }");
     layout_->addWidget(separator);
 
-    // 弹性空间
-    layout_->addStretch();
+    // 不添加弹性空间，保持紧凑
 }
 
 QPushButton* StationSwitchBar::createStationButton(int index, const QString& name)
@@ -137,38 +136,23 @@ void StationSwitchBar::refreshStations()
     auto& manager = Core::MultiStationManager::instance();
     auto stations = manager.getAllStations();
 
-    // 移除末尾的弹性空间
-    QLayoutItem* stretch = layout_->takeAt(layout_->count() - 1);
-    delete stretch;
-
-    // 创建工位按钮
+    // 创建工位按钮（紧凑布局，不使用容器）
     for (int i = 0; i < stations.size(); ++i) {
         const auto* station = stations[i];
-
-        // 创建水平布局容器（按钮+状态灯）
-        QWidget* container = new QWidget(this);
-        QHBoxLayout* containerLayout = new QHBoxLayout(container);
-        containerLayout->setSpacing(4);
-        containerLayout->setContentsMargins(0, 0, 0, 0);
 
         // 创建按钮
         QPushButton* btn = createStationButton(i, station->name);
         stationBtns_.append(btn);
         stationIds_.append(station->id);
-        containerLayout->addWidget(btn);
+        layout_->addWidget(btn);
 
-        // 创建状态指示灯
+        // 创建状态指示灯（直接添加）
         if (showStatus_) {
             QLabel* statusLabel = createStatusLabel();
             statusLabels_.append(statusLabel);
-            containerLayout->addWidget(statusLabel);
+            layout_->addWidget(statusLabel);
         }
-
-        layout_->addWidget(container);
     }
-
-    // 重新添加弹性空间
-    layout_->addStretch();
 
     // 更新当前选中状态
     if (!stationBtns_.isEmpty()) {

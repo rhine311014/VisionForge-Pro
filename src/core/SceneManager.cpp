@@ -6,8 +6,12 @@
 #include "core/SceneManager.h"
 #include "core/StationConfig.h"
 #include "core/SceneConfig.h"
+#include "core/PositionToolChainManager.h"
+#include "core/ToolChain.h"
 #include "base/Logger.h"
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 namespace VisionForge {
 namespace Core {
@@ -247,35 +251,40 @@ bool SceneManager::loadSceneResources(const SceneConfig* scene)
 
     LOG_DEBUG(QString("[SceneManager] 加载场景资源: %1").arg(scene->sceneName));
 
-    // 检查检测模型文件
+    // 检查并通知AI检测模型路径变更
     if (!scene->detectionModelPath.isEmpty()) {
         if (!QFile::exists(scene->detectionModelPath)) {
             LOG_WARNING(QString("[SceneManager] 检测模型文件不存在: %1").arg(scene->detectionModelPath));
-            // 不作为错误处理，继续加载
         } else {
             LOG_DEBUG(QString("[SceneManager] 检测模型: %1").arg(scene->detectionModelPath));
-            // TODO: 加载AI检测模型
         }
+        // 发送模型路径变更信号，让外部加载模型
+        emit sceneModelPathChanged(scene->detectionModelPath);
     }
 
-    // 检查模板图像文件
+    // 检查并通知模板图像路径变更
     if (!scene->templateImagePath.isEmpty()) {
         if (!QFile::exists(scene->templateImagePath)) {
             LOG_WARNING(QString("[SceneManager] 模板图像文件不存在: %1").arg(scene->templateImagePath));
         } else {
             LOG_DEBUG(QString("[SceneManager] 模板图像: %1").arg(scene->templateImagePath));
-            // TODO: 加载模板匹配图像
         }
+        // 发送模板路径变更信号
+        emit sceneTemplatePathChanged(scene->templateImagePath);
     }
 
-    // 检查工具链配置文件
+    // 检查并通知工具链配置文件变更
     if (!scene->toolChainFile.isEmpty()) {
         if (!QFile::exists(scene->toolChainFile)) {
             LOG_WARNING(QString("[SceneManager] 工具链配置文件不存在: %1").arg(scene->toolChainFile));
         } else {
-            LOG_DEBUG(QString("[SceneManager] 工具链配置: %1").arg(scene->toolChainFile));
-            // TODO: 加载工具链配置
+            LOG_DEBUG(QString("[SceneManager] 加载工具链配置: %1").arg(scene->toolChainFile));
         }
+        // 发送工具链文件变更信号，让外部（如MainWindow/ToolChainPanel）加载工具链
+        emit sceneToolChainFileChanged(scene->toolChainFile);
+    } else {
+        // 场景没有工具链文件，发送空路径信号清空工具链
+        emit sceneToolChainFileChanged(QString());
     }
 
     return true;
@@ -300,10 +309,8 @@ void SceneManager::applySceneParameters(const SceneConfig* scene)
               .arg(scene->confidenceThreshold)
               .arg(scene->nmsThreshold));
 
-    // TODO: 将场景参数应用到检测工具
-    // - 更新AIDetectionTool的阈值参数
-    // - 更新模板匹配工具的参数
-    // - 应用位置特定参数覆盖
+    // 发送检测参数变更信号，让外部更新检测工具的参数
+    emit sceneDetectionParamsChanged(scene->confidenceThreshold, scene->nmsThreshold);
 }
 
 void SceneManager::setError(const QString& error)

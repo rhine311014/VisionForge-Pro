@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 
     // 创建主窗口
     MainWindow mainWindow;
-    mainWindow.show();
+    mainWindow.showMaximized();  // 最大化显示
     mainWindow.raise();
     mainWindow.activateWindow();
 

@@ -172,6 +172,18 @@ StationConfig StationConfig::fromJson(const QJsonObject& json)
         config.scenes.append(SceneConfig::fromJson(sceneVal.toObject()));
     }
 
+    // 向后兼容：如果场景数量>0但场景列表为空，自动创建默认场景
+    if (config.scenes.isEmpty() && config.sceneNum > 0) {
+        for (int s = 0; s < config.sceneNum; ++s) {
+            SceneConfig scene;
+            scene.sceneId = QString("scene%1").arg(s);
+            scene.sceneName = QString("场景%1").arg(s + 1);
+            scene.sceneIndex = s;
+            scene.enabled = true;
+            config.scenes.append(scene);
+        }
+    }
+
     return config;
 }
 

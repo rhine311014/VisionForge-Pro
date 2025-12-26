@@ -14,6 +14,9 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QSplitter>
@@ -55,6 +58,8 @@
 #include "core/MultiStationManager.h"
 #include "core/PositionToolChainManager.h"
 #include "core/SceneManager.h"
+#include "core/SceneConfig.h"
+#include "core/ToolChain.h"
 #include "ui/SceneSwitchBar.h"
 // 基础设施
 #include "base/PermissionManager.h"
@@ -221,9 +226,9 @@ MainWindow::MainWindow(QWidget* parent)
     connect(sceneSwitchBar_, &SceneSwitchBar::sceneSelected,
             this, &MainWindow::onSceneSelected);
     connect(sceneSwitchBar_, &SceneSwitchBar::previousSceneRequested,
-            this, &MainWindow::onSceneSwitchRequested);
+            this, &MainWindow::onPreviousSceneRequested);
     connect(sceneSwitchBar_, &SceneSwitchBar::nextSceneRequested,
-            this, &MainWindow::onSceneSwitchRequested);
+            this, &MainWindow::onNextSceneRequested);
 
     // 创建多相机视图并添加到堆叠容器
     multiCameraView_ = new MultiCameraView(this);
@@ -1276,32 +1281,31 @@ void MainWindow::createMenus()
 
 void MainWindow::createToolBars()
 {
-    // 文件工具栏
-    fileToolBar_ = addToolBar("文件");
-    fileToolBar_->addAction(openImageAction_);
-    fileToolBar_->addAction(openImageFolderAction_);
-    fileToolBar_->addAction(saveImageAction_);
+    // ========== 主工具栏（精简：文件+处理合并）==========
+    fileToolBar_ = addToolBar("主工具栏");
+    fileToolBar_->setObjectName("mainToolBar");
+    fileToolBar_->addAction(openImageFolderAction_);  // 打开文件夹
     fileToolBar_->addSeparator();
-    fileToolBar_->addAction(previousImageAction_);
-    fileToolBar_->addAction(nextImageAction_);
-    fileToolBar_->addAction(runAllImagesAction_);
+    fileToolBar_->addAction(runSingleAction_);        // 运行单张
+    fileToolBar_->addAction(runAllAction_);           // 运行所有
+    fileToolBar_->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
-    // 视图工具栏
+    // ========== 视图工具栏（只保留适应窗口）==========
     viewToolBar_ = addToolBar("视图");
+    viewToolBar_->setObjectName("viewToolBar");
     viewToolBar_->addAction(fitToWindowAction_);
-    viewToolBar_->addAction(actualSizeAction_);
-    viewToolBar_->addAction(zoomInAction_);
-    viewToolBar_->addAction(zoomOutAction_);
+    viewToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    // 相机工具栏
+    // ========== 相机工具栏（默认隐藏）==========
     cameraToolBar_ = addToolBar("相机");
+    cameraToolBar_->setObjectName("cameraToolBar");
     cameraToolBar_->addAction(frameValidAction_);
     cameraToolBar_->addAction(liveDisplayAction_);
+    cameraToolBar_->setVisible(false);  // 默认隐藏
+    cameraToolBar_->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
-    // 处理工具栏
-    processToolBar_ = addToolBar("处理");
-    processToolBar_->addAction(runSingleAction_);
-    processToolBar_->addAction(runAllAction_);
+    // 处理工具栏指针指向主工具栏（兼容性）
+    processToolBar_ = fileToolBar_;
 }
 
 void MainWindow::createDockWindows()
@@ -2617,6 +2621,9 @@ void MainWindow::onSceneSelected(int index)
         if (sceneSwitchBar_) {
             sceneSwitchBar_->setCurrentScene(index);
         }
+
+        // 加载场景对应的工具链
+        loadSceneToolChain(scene);
     } else {
         LOG_ERROR(QString("场景切换失败: 索引 %1").arg(index));
         statusLabel_->setText(QString("场景切换失败"));
@@ -2626,7 +2633,7 @@ void MainWindow::onSceneSelected(int index)
 #endif
 }
 
-void MainWindow::onSceneSwitchRequested()
+void MainWindow::onPreviousSceneRequested()
 {
 #ifdef USE_HALCON
     // 获取当前工位
@@ -2634,7 +2641,51 @@ void MainWindow::onSceneSwitchRequested()
     auto* station = stationManager.currentStation();
 
     if (!station) {
-        LOG_WARNING("onSceneSwitchRequested: 没有当前工位");
+        LOG_WARNING("onPreviousSceneRequested: 没有当前工位");
+        return;
+    }
+
+    int sceneCount = station->scenes.size();
+    if (sceneCount <= 1) {
+        statusLabel_->setText("只有一个场景，无法切换");
+        return;
+    }
+
+    // 获取当前索引
+    int currentIndex = station->currentSceneIndex;
+
+    // 切换到上一个场景（循环）
+    int prevIndex = (currentIndex - 1 + sceneCount) % sceneCount;
+
+    if (station->switchToScene(prevIndex)) {
+        const Core::SceneConfig* scene = station->getCurrentScene();
+        QString sceneName = scene ? scene->sceneName : QString("场景%1").arg(prevIndex + 1);
+        statusLabel_->setText(QString("切换到场景: %1").arg(sceneName));
+        LOG_INFO(QString("切换到上一个场景: %1").arg(sceneName));
+
+        // 更新场景切换栏
+        if (sceneSwitchBar_) {
+            sceneSwitchBar_->setCurrentScene(prevIndex);
+        }
+
+        // 加载场景对应的工具链
+        loadSceneToolChain(scene);
+    } else {
+        LOG_ERROR(QString("场景切换失败: 索引 %1").arg(prevIndex));
+        statusLabel_->setText(QString("场景切换失败"));
+    }
+#endif
+}
+
+void MainWindow::onNextSceneRequested()
+{
+#ifdef USE_HALCON
+    // 获取当前工位
+    auto& stationManager = Core::MultiStationManager::instance();
+    auto* station = stationManager.currentStation();
+
+    if (!station) {
+        LOG_WARNING("onNextSceneRequested: 没有当前工位");
         return;
     }
 
@@ -2654,17 +2705,127 @@ void MainWindow::onSceneSwitchRequested()
         const Core::SceneConfig* scene = station->getCurrentScene();
         QString sceneName = scene ? scene->sceneName : QString("场景%1").arg(nextIndex + 1);
         statusLabel_->setText(QString("切换到场景: %1").arg(sceneName));
-        LOG_INFO(QString("切换到场景: %1").arg(sceneName));
+        LOG_INFO(QString("切换到下一个场景: %1").arg(sceneName));
 
         // 更新场景切换栏
         if (sceneSwitchBar_) {
             sceneSwitchBar_->setCurrentScene(nextIndex);
         }
+
+        // 加载场景对应的工具链
+        loadSceneToolChain(scene);
     } else {
         LOG_ERROR(QString("场景切换失败: 索引 %1").arg(nextIndex));
         statusLabel_->setText(QString("场景切换失败"));
     }
 #endif
+}
+
+void MainWindow::loadSceneToolChain(const Core::SceneConfig* scene)
+{
+    if (!scene) {
+        LOG_WARNING("loadSceneToolChain: 场景配置为空");
+        return;
+    }
+
+    if (!toolChainPanel_) {
+        LOG_WARNING("loadSceneToolChain: 工具链面板未初始化");
+        return;
+    }
+
+    // 检查场景是否有工具链配置文件
+    if (scene->toolChainFile.isEmpty()) {
+        LOG_DEBUG(QString("场景 '%1' 没有工具链配置文件，清空当前工具链").arg(scene->sceneName));
+        // 清空当前工具链面板
+        QList<Algorithm::VisionTool*> currentTools = toolChainPanel_->getTools();
+        for (auto* tool : currentTools) {
+            toolChainPanel_->removeTool(tool);
+            delete tool;
+        }
+        return;
+    }
+
+    // 检查文件是否存在
+    if (!QFile::exists(scene->toolChainFile)) {
+        LOG_WARNING(QString("场景 '%1' 的工具链文件不存在: %2")
+                   .arg(scene->sceneName).arg(scene->toolChainFile));
+        return;
+    }
+
+    // 使用 ToolChain 加载工具链配置
+    Core::ToolChain tempToolChain;
+    if (!tempToolChain.loadFromFile(scene->toolChainFile)) {
+        LOG_ERROR(QString("加载场景工具链失败: %1").arg(scene->toolChainFile));
+        return;
+    }
+
+    LOG_INFO(QString("加载场景 '%1' 的工具链: %2, 工具数: %3")
+            .arg(scene->sceneName)
+            .arg(scene->toolChainFile)
+            .arg(tempToolChain.toolCount()));
+
+    // 清空当前工具链面板的工具（并释放内存）
+    QList<Algorithm::VisionTool*> currentTools = toolChainPanel_->getTools();
+    for (auto* tool : currentTools) {
+        toolChainPanel_->removeTool(tool);
+        delete tool;
+    }
+
+    // 从加载的工具链中复制工具到面板
+    // 注意：ToolChain 使用 unique_ptr 管理工具，我们需要重新创建工具
+    // 由于 ToolChain 不提供直接获取工具的方法，这里需要特殊处理
+    // 我们直接将 ToolChain 的工具移动到面板（需要 ToolChain 提供相应接口）
+
+    // 目前的设计限制：ToolChain 使用 unique_ptr，而 ToolChainPanel 使用裸指针
+    // 作为临时方案，我们将工具从 ToolChain 中提取出来（需要修改 ToolChain 类）
+    // 或者我们可以通过序列化/反序列化来传递工具配置
+
+    // 简化实现：使用 ToolChain 的 serialize/deserialize 机制
+    // 重新从文件读取配置，然后用 ToolFactory 创建工具
+    QFile file(scene->toolChainFile);
+    if (!file.open(QIODevice::ReadOnly)) {
+        LOG_ERROR(QString("无法打开工具链文件: %1").arg(scene->toolChainFile));
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    if (!doc.isObject()) {
+        LOG_ERROR(QString("工具链文件格式错误: %1").arg(scene->toolChainFile));
+        return;
+    }
+
+    QJsonObject rootObj = doc.object();
+    QJsonArray toolsArray = rootObj["tools"].toArray();
+
+    for (const auto& toolVal : toolsArray) {
+        QJsonObject toolObj = toolVal.toObject();
+
+        // 获取工具类型（整数枚举值）
+        int toolType = toolObj["toolType"].toInt(-1);
+        QString toolName = toolObj["name"].toString();
+        bool enabled = toolObj["enabled"].toBool(true);
+        QJsonObject params = toolObj["params"].toObject();
+
+        // 使用工厂单例创建工具
+        Algorithm::VisionTool* tool = Algorithm::ToolFactory::instance().createTool(
+            static_cast<Algorithm::VisionTool::ToolType>(toolType)
+        );
+        if (tool) {
+            tool->setDisplayName(toolName);
+            tool->setEnabled(enabled);
+            // 加载工具参数
+            tool->deserializeParams(params);
+            toolChainPanel_->addTool(tool);
+            LOG_DEBUG(QString("  添加工具: %1 (type=%2)").arg(toolName).arg(toolType));
+        } else {
+            LOG_WARNING(QString("  无法创建工具: %1 (type=%2)").arg(toolName).arg(toolType));
+        }
+    }
+
+    statusLabel_->setText(QString("已加载场景 '%1' 的工具链 (%2 个工具)")
+                         .arg(scene->sceneName).arg(toolChainPanel_->getTools().size()));
 }
 
 // ========== VisionEngine 信号连接 ==========
@@ -2870,6 +3031,3 @@ void MainWindow::updateImageSequenceActions()
 
 } // namespace UI
 } // namespace VisionForge
-
-// 包含MOC生成的文件
-#include "MainWindow.moc"

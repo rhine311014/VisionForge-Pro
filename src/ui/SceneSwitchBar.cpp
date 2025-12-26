@@ -24,38 +24,41 @@ SceneSwitchBar::~SceneSwitchBar()
 void SceneSwitchBar::setupUI()
 {
     layout_ = new QHBoxLayout(this);
-    layout_->setContentsMargins(5, 2, 5, 2);
-    layout_->setSpacing(5);
+    layout_->setContentsMargins(2, 1, 2, 1);  // 更紧凑的边距
+    layout_->setSpacing(2);
 
-    // 场景标签
-    labelScene_ = new QLabel("场景:", this);
+    // 场景标签（简短）
+    labelScene_ = new QLabel("场景", this);
+    labelScene_->setStyleSheet("font-size: 11px;");
     layout_->addWidget(labelScene_);
 
-    // 上一个按钮
-    btnPrevious_ = new QPushButton("<", this);
-    btnPrevious_->setFixedWidth(30);
+    // 上一个按钮（更小）
+    btnPrevious_ = new QPushButton("◀", this);
+    btnPrevious_->setFixedSize(22, 22);
     btnPrevious_->setToolTip("上一个场景");
+    btnPrevious_->setStyleSheet("QPushButton { font-size: 10px; padding: 0px; }");
     layout_->addWidget(btnPrevious_);
 
-    // 场景下拉框
+    // 场景下拉框（紧凑）
     comboScene_ = new QComboBox(this);
-    comboScene_->setMinimumWidth(120);
+    comboScene_->setMinimumWidth(80);
+    comboScene_->setMaximumWidth(150);
     comboScene_->setToolTip("选择检测场景");
+    comboScene_->setStyleSheet("QComboBox { font-size: 11px; padding: 2px; }");
     layout_->addWidget(comboScene_);
 
-    // 下一个按钮
-    btnNext_ = new QPushButton(">", this);
-    btnNext_->setFixedWidth(30);
+    // 下一个按钮（更小）
+    btnNext_ = new QPushButton("▶", this);
+    btnNext_->setFixedSize(22, 22);
     btnNext_->setToolTip("下一个场景");
+    btnNext_->setStyleSheet("QPushButton { font-size: 10px; padding: 0px; }");
     layout_->addWidget(btnNext_);
 
-    // 状态标签
+    // 状态标签（隐藏，保留用于代码兼容）
     labelStatus_ = new QLabel(this);
-    labelStatus_->setMinimumWidth(100);
-    layout_->addWidget(labelStatus_);
+    labelStatus_->hide();  // 隐藏状态标签减少占用空间
 
-    // 弹性空间
-    layout_->addStretch();
+    // 不添加弹性空间，保持紧凑
 
     // 连接信号
     connect(btnPrevious_, &QPushButton::clicked, this, &SceneSwitchBar::onPreviousClicked);

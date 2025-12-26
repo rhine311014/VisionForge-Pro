@@ -518,6 +518,19 @@ bool StationConfigTool::saveConfig()
 
                     station->positionBindings.append(binding);
                 }
+
+                // 生成场景配置
+                station->scenes.clear();
+                station->sceneNum = config.sceneCount;
+                for (int s = 0; s < config.sceneCount; ++s) {
+                    Core::SceneConfig scene;
+                    scene.sceneId = QString("scene%1").arg(s);
+                    scene.sceneName = QString("场景%1").arg(s + 1);
+                    scene.sceneIndex = s;
+                    scene.enabled = true;
+                    station->scenes.append(scene);
+                }
+                station->currentSceneIndex = 0;
             }
         }
     }

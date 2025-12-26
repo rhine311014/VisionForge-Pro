@@ -40,6 +40,12 @@
 #include <memory>
 
 namespace VisionForge {
+
+// 前向声明
+namespace Core {
+struct SceneConfig;
+}
+
 namespace UI {
 
 /**
@@ -163,7 +169,8 @@ private slots:
 
     // 场景切换
     void onSceneSelected(int index);
-    void onSceneSwitchRequested();
+    void onPreviousSceneRequested();
+    void onNextSceneRequested();
 
     // VisionEngine 信号响应
     void onEngineImageUpdated(Base::ImageData::Ptr image);
@@ -188,6 +195,12 @@ private:
     void processImage(Base::ImageData::Ptr image);
     void displayImage(Base::ImageData::Ptr image);  // 只显示图像，不运行工具
     void showAddToolDialog();
+
+    /**
+     * @brief 加载场景对应的工具链
+     * @param scene 场景配置
+     */
+    void loadSceneToolChain(const Core::SceneConfig* scene);
 
 private:
     // 中央显示
