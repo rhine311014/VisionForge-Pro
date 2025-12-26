@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # 项目信息
 project(VisionForge
-    VERSION 1.6.2
+    VERSION 1.6.3
     DESCRIPTION "VisionForge Pro - 通用工业视觉检测平台"
     LANGUAGES CXX
 )
@@ -184,6 +184,55 @@ message(STATUS "Qt版本: ${Qt6_VERSION}")
 find_package(OpenCV 4 REQUIRED)
 message(STATUS "OpenCV版本: ${OpenCV_VERSION}")
 message(STATUS "OpenCV库: ${OpenCV_LIBS}")
+
+# ============================================================
+# Eigen配置（用于标定和3D算法模块）
+# ============================================================
+# Eigen路径配置（可通过 -DEIGEN3_INCLUDE_DIR= 覆盖）
+if(NOT DEFINED EIGEN3_INCLUDE_DIR)
+    # 尝试多个常见路径
+    set(_EIGEN_SEARCH_PATHS
+        "$ENV{EIGEN_ROOT}"
+        "$ENV{EIGEN3_ROOT}"
+        "F:/机器视觉/eigen-5.0.0"
+        "F:/机器视觉/eigen"
+        "C:/eigen"
+        "C:/Program Files/Eigen"
+        "${CMAKE_SOURCE_DIR}/third_party/eigen"
+    )
+
+    foreach(_path ${_EIGEN_SEARCH_PATHS})
+        if(EXISTS "${_path}/Eigen/Core")
+            set(EIGEN3_INCLUDE_DIR "${_path}" CACHE PATH "Eigen3 include directory")
+            message(STATUS "Eigen3: 自动找到于 ${EIGEN3_INCLUDE_DIR}")
+            break()
+        endif()
+    endforeach()
+endif()
+
+# 创建Eigen3::Eigen导入目标（如果不存在）
+if(NOT TARGET Eigen3::Eigen)
+    # 先尝试通过CONFIG模式查找
+    find_package(Eigen3 CONFIG QUIET)
+
+    if(NOT Eigen3_FOUND AND EIGEN3_INCLUDE_DIR AND EXISTS "${EIGEN3_INCLUDE_DIR}/Eigen/Core")
+        # 手动创建导入目标
+        message(STATUS "Eigen3: 使用手动配置 (${EIGEN3_INCLUDE_DIR})")
+        add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
+        set_target_properties(Eigen3::Eigen PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${EIGEN3_INCLUDE_DIR}"
+        )
+        set(Eigen3_FOUND TRUE)
+    endif()
+
+    if(Eigen3_FOUND)
+        message(STATUS "Eigen3: 已配置")
+    else()
+        message(WARNING "Eigen3: 未找到，3D算法和标定模块可能无法编译")
+    endif()
+else()
+    message(STATUS "Eigen3: 使用已存在的目标")
+endif()
 
 # 查找Halcon（可选）
 if(USE_HALCON)

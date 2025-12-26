@@ -48,22 +48,12 @@ target_include_directories(VisionForgeAlgorithm3D PUBLIC
 )
 
 # ============================================================
-# 查找Eigen（必需）
+# Eigen依赖（由主CMakeLists.txt配置Eigen3::Eigen目标）
 # ============================================================
-set(EIGEN3_INCLUDE_DIR "F:/机器视觉/eigen-5.0.0")
 if(NOT TARGET Eigen3::Eigen)
-    find_package(Eigen3 CONFIG QUIET)
-    if(NOT Eigen3_FOUND)
-        # 如果CONFIG模式失败，手动配置
-        message(STATUS "Algorithm3D: Eigen3 CONFIG未找到，使用手动配置: ${EIGEN3_INCLUDE_DIR}")
-        add_library(Eigen3::Eigen INTERFACE IMPORTED)
-        set_target_properties(Eigen3::Eigen PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${EIGEN3_INCLUDE_DIR}"
-        )
-    endif()
-else()
-    message(STATUS "Algorithm3D: 使用已存在的Eigen3::Eigen目标")
+    message(FATAL_ERROR "Algorithm3D: Eigen3::Eigen目标未找到，请检查主CMakeLists.txt中的Eigen配置")
 endif()
+message(STATUS "Algorithm3D: 使用Eigen3::Eigen目标")
 
 # ============================================================
 # 可选：PCL点云库

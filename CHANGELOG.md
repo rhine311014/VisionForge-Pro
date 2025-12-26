@@ -4,6 +4,28 @@
 
 ---
 
+## [1.6.3] - 2025-12-26
+
+### 🚀 性能优化与代码改进
+
+#### 图像拷贝优化 (P1-1)
+- ✅ **toQImage优化**: BGR转RGB时直接在QImage内存上操作，减少一次拷贝
+- ✅ **BlurTool优化**: 预分配输出图像，直接写入内存池，避免临时Mat拷贝
+- ✅ **GrayTool优化**: 转换方法重构为直接写入版本，使用 `cv::extractChannel` 替代 split+clone
+
+#### Halcon异常处理完善 (P2-2)
+- ✅ **HalconUtils增强**: 新增 `FormatHException()` 格式化详细错误信息（错误码、操作名称）
+- ✅ **错误码描述**: 新增 `GetErrorCodeDescription()` 提供常见错误码中文描述
+- ✅ **许可证检查**: 新增 `CheckLicense()` 和 `IsHalconInitialized()` 辅助函数
+- ✅ **后端改进**: Halcon后端异常信息包含错误码、操作名称和详细描述
+
+#### Eigen路径配置优化 (P3-1)
+- ✅ **集中配置**: Eigen配置移至主CMakeLists.txt，子模块复用
+- ✅ **自动查找**: 支持环境变量 `EIGEN_ROOT`/`EIGEN3_ROOT` 和多个常见路径
+- ✅ **简化子模块**: calibration和algorithm3d模块直接使用全局Eigen3::Eigen目标
+
+---
+
 ## [1.6.2] - 2025-12-26
 
 ### 🔧 代码质量与安全性优化

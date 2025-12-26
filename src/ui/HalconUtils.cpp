@@ -303,6 +303,113 @@ void HalconUtils::FitImageToWindow(const HTuple& windowHandle, const HImage& ima
     }
 }
 
+QString HalconUtils::FormatHException(const HException& e, const QString& context)
+{
+    QString result;
+
+    // 添加上下文
+    if (!context.isEmpty()) {
+        result = context + ": ";
+    }
+
+    // 获取错误信息
+    int errorCode = static_cast<int>(e.ErrorCode());
+    QString errorMsg = QString::fromUtf8(e.ErrorMessage().Text());
+    QString procName = QString::fromUtf8(e.ProcName().Text());
+
+    // 格式化详细错误信息
+    result += QString("Halcon错误 [%1]").arg(errorCode);
+
+    if (!procName.isEmpty()) {
+        result += QString(" 在 '%1'").arg(procName);
+    }
+
+    result += QString(": %1").arg(errorMsg);
+
+    // 添加错误码描述
+    QString codeDesc = GetErrorCodeDescription(errorCode);
+    if (!codeDesc.isEmpty()) {
+        result += QString(" (%1)").arg(codeDesc);
+    }
+
+    return result;
+}
+
+QString HalconUtils::GetErrorCodeDescription(int errorCode)
+{
+    // 常见Halcon错误码的中文描述
+    switch (errorCode) {
+        // 通用错误
+        case 1201: return "内存不足";
+        case 1202: return "内存分配失败";
+        case 1301: return "文件不存在";
+        case 1302: return "文件无法打开";
+        case 1303: return "文件格式错误";
+
+        // 图像处理错误
+        case 2001: return "图像为空";
+        case 2002: return "图像类型不支持";
+        case 2003: return "图像尺寸无效";
+        case 2010: return "区域为空";
+
+        // 模板匹配错误
+        case 3001: return "模板未创建";
+        case 3002: return "模板无效";
+        case 3003: return "未找到匹配";
+        case 3010: return "模型文件损坏";
+
+        // 许可证错误
+        case 5001: return "许可证无效";
+        case 5002: return "许可证过期";
+        case 5003: return "功能未授权";
+
+        // 参数错误
+        case 6001: return "参数无效";
+        case 6002: return "参数超出范围";
+        case 6003: return "参数类型错误";
+
+        // 系统错误
+        case 7001: return "系统资源不足";
+        case 7002: return "GPU初始化失败";
+        case 7003: return "GPU内存不足";
+
+        default: return QString();
+    }
+}
+
+bool HalconUtils::CheckLicense()
+{
+    try {
+        // 尝试调用一个需要许可证的基本操作
+        HTuple info;
+        GetSystem("halcon_info", &info);
+        return true;
+    }
+    catch (const HException& e) {
+        int errorCode = static_cast<int>(e.ErrorCode());
+        // 许可证相关错误码范围
+        if (errorCode >= 5001 && errorCode <= 5099) {
+            LOG_ERROR(QString("Halcon许可证错误: %1").arg(e.ErrorMessage().Text()));
+            return false;
+        }
+        // 其他错误也认为许可证检查失败
+        LOG_WARNING(QString("Halcon许可证检查异常: %1").arg(e.ErrorMessage().Text()));
+        return false;
+    }
+}
+
+bool HalconUtils::IsHalconInitialized()
+{
+    try {
+        HTuple version;
+        GetSystem("halcon_version", &version);
+        return true;
+    }
+    catch (const HException&) {
+        return false;
+    }
+}
+
 #endif // _WIN32
 
 } // namespace UI

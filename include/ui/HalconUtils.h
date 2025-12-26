@@ -164,6 +164,39 @@ public:
     static void FitImageToWindow(const HTuple& windowHandle, const HImage& image);
 #endif
 
+    // ========== Halcon异常处理辅助 ==========
+
+#ifdef _WIN32
+    /**
+     * @brief 格式化Halcon异常为详细错误信息
+     * @param e Halcon异常
+     * @param context 上下文描述（可选）
+     * @return 格式化的错误信息字符串
+     *
+     * 包含：错误码、操作名称、错误消息、详细信息
+     */
+    static QString FormatHException(const HException& e, const QString& context = QString());
+
+    /**
+     * @brief 获取Halcon错误码的中文描述
+     * @param errorCode Halcon错误码
+     * @return 错误描述
+     */
+    static QString GetErrorCodeDescription(int errorCode);
+
+    /**
+     * @brief 检查Halcon许可证状态
+     * @return 是否有有效许可证
+     */
+    static bool CheckLicense();
+
+    /**
+     * @brief 检查Halcon是否已初始化
+     * @return 是否初始化成功
+     */
+    static bool IsHalconInitialized();
+#endif
+
 private:
     HalconUtils() = delete;  // 工具类，禁止实例化
 };

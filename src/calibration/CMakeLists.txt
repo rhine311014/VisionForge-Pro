@@ -45,18 +45,12 @@ target_include_directories(VisionForgeCalibration PUBLIC
 )
 
 # ============================================================
-# 查找Eigen库
+# Eigen依赖（由主CMakeLists.txt配置Eigen3::Eigen目标）
 # ============================================================
-set(EIGEN3_INCLUDE_DIR "F:/机器视觉/eigen-5.0.0")
-find_package(Eigen3 CONFIG QUIET)
-if(NOT Eigen3_FOUND)
-    # 如果CONFIG模式失败，手动配置
-    message(STATUS "Eigen3 CONFIG未找到，使用手动配置: ${EIGEN3_INCLUDE_DIR}")
-    add_library(Eigen3::Eigen INTERFACE IMPORTED)
-    set_target_properties(Eigen3::Eigen PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${EIGEN3_INCLUDE_DIR}"
-    )
+if(NOT TARGET Eigen3::Eigen)
+    message(FATAL_ERROR "Calibration: Eigen3::Eigen目标未找到，请检查主CMakeLists.txt中的Eigen配置")
 endif()
+message(STATUS "Calibration: 使用Eigen3::Eigen目标")
 
 # ============================================================
 # 链接依赖

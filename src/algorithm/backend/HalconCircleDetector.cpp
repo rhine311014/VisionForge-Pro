@@ -142,7 +142,10 @@ bool HalconCircleDetector::detectWithEdgeFit(const cv::Mat& image,
         return true;
 
     } catch (const HException& e) {
-        errorMsg = QString("Halcon边缘圆检测失败: %1").arg(e.ErrorMessage().Text());
+        errorMsg = QString("Halcon边缘圆检测失败 [%1] 在 '%2': %3")
+            .arg(static_cast<int>(e.ErrorCode()))
+            .arg(QString::fromUtf8(e.ProcName().Text()))
+            .arg(QString::fromUtf8(e.ErrorMessage().Text()));
         LOG_ERROR(errorMsg);
         return false;
     }
@@ -215,7 +218,10 @@ bool HalconCircleDetector::detectWithBlobFit(const cv::Mat& image,
         return true;
 
     } catch (const HException& e) {
-        errorMsg = QString("Halcon Blob圆检测失败: %1").arg(e.ErrorMessage().Text());
+        errorMsg = QString("Halcon Blob圆检测失败 [%1] 在 '%2': %3")
+            .arg(static_cast<int>(e.ErrorCode()))
+            .arg(QString::fromUtf8(e.ProcName().Text()))
+            .arg(QString::fromUtf8(e.ErrorMessage().Text()));
         LOG_ERROR(errorMsg);
         return false;
     }

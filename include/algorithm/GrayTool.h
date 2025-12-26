@@ -77,10 +77,11 @@ public:
     ChannelType channel() const { return channel_; }
 
 private:
-    cv::Mat convertAverage(const cv::Mat& input);
-    cv::Mat convertWeighted(const cv::Mat& input);
-    cv::Mat convertDesaturation(const cv::Mat& input);
-    cv::Mat convertSingleChannel(const cv::Mat& input);
+    // 转换方法（直接写入输出Mat，避免临时对象）
+    void convertAverageTo(const cv::Mat& input, cv::Mat& output);
+    void convertWeightedTo(const cv::Mat& input, cv::Mat& output);
+    void convertDesaturationTo(const cv::Mat& input, cv::Mat& output);
+    void convertSingleChannelTo(const cv::Mat& input, cv::Mat& output);
 
 private:
     ConvertMode convertMode_;

@@ -58,56 +58,64 @@ bool BlurTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
 
     try {
         const cv::Mat& inputMat = input->mat();
-        cv::Mat blurredMat;
 
-        // 根据模糊类型执行不同算法
+        // 双边滤波类型检查（需要提前检查以便提前返回）
+        if (blurType_ == Bilateral && inputMat.depth() != CV_8U) {
+            output.success = false;
+            output.errorMessage = "双边滤波仅支持8位图像";
+            setStatusText(output.errorMessage);
+            emit processingFinished(false, timer.elapsed());
+            return false;
+        }
+
+        // 预分配输出图像（模糊操作输出尺寸和类型与输入相同）
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            inputMat.cols, inputMat.rows, inputMat.type());
+        if (!output.outputImage) {
+            output.success = false;
+            output.errorMessage = "内存分配失败";
+            setStatusText(output.errorMessage);
+            emit processingFinished(false, timer.elapsed());
+            return false;
+        }
+        output.outputImage->setTimestamp(input->timestamp());
+
+        cv::Mat& outputMat = output.outputImage->mat();
+
+        // 根据模糊类型执行不同算法（直接写入输出Mat）
         switch (blurType_) {
         case Mean:
             // 均值模糊（盒式滤波）
-            cv::blur(inputMat, blurredMat, cv::Size(kernelSize_, kernelSize_));
+            cv::blur(inputMat, outputMat, cv::Size(kernelSize_, kernelSize_));
             break;
 
         case Gaussian:
             // 高斯模糊
-            cv::GaussianBlur(inputMat, blurredMat,
+            cv::GaussianBlur(inputMat, outputMat,
                            cv::Size(kernelSize_, kernelSize_),
                            sigma_, sigma_);
             break;
 
         case Median:
             // 中值模糊
-            cv::medianBlur(inputMat, blurredMat, kernelSize_);
+            cv::medianBlur(inputMat, outputMat, kernelSize_);
             break;
 
         case Bilateral:
-            // 双边滤波（仅支持8位单通道或3通道）
-            if (inputMat.depth() != CV_8U) {
-                output.success = false;
-                output.errorMessage = "双边滤波仅支持8位图像";
-                setStatusText(output.errorMessage);
-                emit processingFinished(false, timer.elapsed());
-                return false;
-            }
-            cv::bilateralFilter(inputMat, blurredMat,
+            // 双边滤波
+            cv::bilateralFilter(inputMat, outputMat,
                               kernelSize_,
                               sigmaColor_,
                               sigmaSpace_);
             break;
 
         default:
-            cv::GaussianBlur(inputMat, blurredMat,
+            cv::GaussianBlur(inputMat, outputMat,
                            cv::Size(kernelSize_, kernelSize_),
                            sigma_);
             break;
         }
 
-        // 使用内存池分配输出图像
-        output.outputImage = Base::ImageMemoryPool::instance().allocate(
-            blurredMat.cols, blurredMat.rows, blurredMat.type());
-        if (output.outputImage) {
-            blurredMat.copyTo(output.outputImage->mat());
-            output.outputImage->setTimestamp(input->timestamp());
-        }
         output.success = true;
 
         // 设置调试图像

@@ -140,46 +140,47 @@ QImage ImageData::toQImage() const
         return QImage();
     }
 
-    QImage::Format format;
     int type = mat_.type();
 
-    // 确定QImage格式
+    // CV_8UC1: 灰度图 - 零拷贝
     if (type == CV_8UC1) {
-        format = QImage::Format_Grayscale8;
-    } else if (type == CV_8UC3) {
-        format = QImage::Format_RGB888;
-    } else if (type == CV_8UC4) {
-        format = QImage::Format_RGBA8888;
-    } else {
-        // 不支持的格式，需要转换
-        cv::Mat converted;
-        if (mat_.channels() == 1) {
-            converted = mat_;
-            format = QImage::Format_Grayscale8;
-        } else {
-            cv::cvtColor(mat_, converted, cv::COLOR_BGR2RGB);
-            format = QImage::Format_RGB888;
-        }
-        return QImage(converted.data, converted.cols, converted.rows,
-                     static_cast<int>(converted.step), format).copy();
+        // 灰度图可以直接零拷贝，QImage不会修改数据
+        return QImage(const_cast<uchar*>(mat_.data), mat_.cols, mat_.rows,
+                     static_cast<int>(mat_.step), QImage::Format_Grayscale8,
+                     nullptr, nullptr);
     }
 
-    // 零拷贝创建QImage
-    // 注意：OpenCV使用BGR，Qt使用RGB，需要转换
-    if (type == CV_8UC3) {
-        // 创建临时RGB图像
-        cv::Mat rgb;
-        cv::cvtColor(mat_, rgb, cv::COLOR_BGR2RGB);
-
-        // 拷贝到新的QImage（这里无法完全零拷贝，因为需要颜色空间转换）
-        return QImage(rgb.data, rgb.cols, rgb.rows,
-                     static_cast<int>(rgb.step), format).copy();
-    } else {
-        // 灰度或RGBA可以零拷贝
-        // 使用const_cast是安全的，因为QImage不会修改数据
+    // CV_8UC4: RGBA图 - 零拷贝
+    if (type == CV_8UC4) {
         return QImage(const_cast<uchar*>(mat_.data), mat_.cols, mat_.rows,
-                     static_cast<int>(mat_.step), format,
+                     static_cast<int>(mat_.step), QImage::Format_RGBA8888,
                      nullptr, nullptr);
+    }
+
+    // CV_8UC3: BGR转RGB - 需要一次拷贝（颜色空间转换）
+    if (type == CV_8UC3) {
+        // 直接创建QImage并在其内存上进行颜色转换，避免临时Mat
+        QImage result(mat_.cols, mat_.rows, QImage::Format_RGB888);
+        cv::Mat rgbWrapper(mat_.rows, mat_.cols, CV_8UC3, result.bits(),
+                          static_cast<size_t>(result.bytesPerLine()));
+        cv::cvtColor(mat_, rgbWrapper, cv::COLOR_BGR2RGB);
+        return result;
+    }
+
+    // 其他格式：尝试转换
+    if (mat_.channels() == 1) {
+        // 非8位灰度图，转换为8位
+        cv::Mat converted;
+        mat_.convertTo(converted, CV_8U);
+        return QImage(converted.data, converted.cols, converted.rows,
+                     static_cast<int>(converted.step), QImage::Format_Grayscale8).copy();
+    } else {
+        // 其他多通道格式，转换为RGB
+        cv::Mat converted;
+        mat_.convertTo(converted, CV_8UC3);
+        cv::cvtColor(converted, converted, cv::COLOR_BGR2RGB);
+        return QImage(converted.data, converted.cols, converted.rows,
+                     static_cast<int>(converted.step), QImage::Format_RGB888).copy();
     }
 }
 

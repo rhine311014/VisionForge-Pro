@@ -57,43 +57,48 @@ bool GrayTool::process(const Base::ImageData::Ptr& input, ToolResult& output)
             return true;
         }
 
-        // 执行转换
-        cv::Mat grayMat;
+        // 预分配输出图像（灰度图输出尺寸与输入相同，类型为CV_8UC1）
+        output.outputImage = Base::ImageMemoryPool::instance().allocate(
+            inputMat.cols, inputMat.rows, CV_8UC1);
+        if (!output.outputImage) {
+            output.success = false;
+            output.errorMessage = "内存分配失败";
+            setStatusText(output.errorMessage);
+            emit processingFinished(false, timer.elapsed());
+            return false;
+        }
+        output.outputImage->setTimestamp(input->timestamp());
 
+        cv::Mat& outputMat = output.outputImage->mat();
+
+        // 执行转换（直接写入输出Mat）
         {
             // 性能计时
             PERF_TIMER("GrayTool::convert");
 
             switch (convertMode_) {
             case Average:
-                grayMat = convertAverage(inputMat);
+                convertAverageTo(inputMat, outputMat);
                 break;
 
             case Weighted:
-                grayMat = convertWeighted(inputMat);
+                convertWeightedTo(inputMat, outputMat);
                 break;
 
             case Desaturation:
-                grayMat = convertDesaturation(inputMat);
+                convertDesaturationTo(inputMat, outputMat);
                 break;
 
             case SingleChannel:
-                grayMat = convertSingleChannel(inputMat);
+                convertSingleChannelTo(inputMat, outputMat);
                 break;
 
             default:
-                grayMat = convertWeighted(inputMat);
+                convertWeightedTo(inputMat, outputMat);
                 break;
             }
         }
 
-        // 使用内存池分配输出图像
-        output.outputImage = Base::ImageMemoryPool::instance().allocate(
-            grayMat.cols, grayMat.rows, grayMat.type());
-        if (output.outputImage) {
-            grayMat.copyTo(output.outputImage->mat());
-            output.outputImage->setTimestamp(input->timestamp());
-        }
         output.success = true;
 
         // 设置调试图像
@@ -170,62 +175,54 @@ void GrayTool::setChannel(ChannelType channel)
     }
 }
 
-// ========== 私有转换方法 ==========
+// ========== 私有转换方法（直接写入输出Mat）==========
 
-cv::Mat GrayTool::convertAverage(const cv::Mat& input)
+void GrayTool::convertAverageTo(const cv::Mat& input, cv::Mat& output)
 {
-    cv::Mat gray;
     std::vector<cv::Mat> channels;
     cv::split(input, channels);
 
     // 平均法: (B + G + R) / 3
-    gray = (channels[0] + channels[1] + channels[2]) / 3;
-
-    return gray;
+    cv::Mat temp = (channels[0] + channels[1] + channels[2]) / 3;
+    temp.copyTo(output);
 }
 
-cv::Mat GrayTool::convertWeighted(const cv::Mat& input)
+void GrayTool::convertWeightedTo(const cv::Mat& input, cv::Mat& output)
 {
-    cv::Mat gray;
-
-    // 使用OpenCV标准加权法
+    // 使用OpenCV标准加权法（直接写入输出）
     // Gray = 0.299*R + 0.587*G + 0.114*B
-    cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
-
-    return gray;
+    cv::cvtColor(input, output, cv::COLOR_BGR2GRAY);
 }
 
-cv::Mat GrayTool::convertDesaturation(const cv::Mat& input)
+void GrayTool::convertDesaturationTo(const cv::Mat& input, cv::Mat& output)
 {
-    cv::Mat gray(input.rows, input.cols, CV_8UC1);
-
 #ifdef USE_OPENMP
     // OpenMP并行化加速
     #pragma omp parallel for
 #endif
     for (int y = 0; y < input.rows; ++y) {
+        const uchar* inputRow = input.ptr<uchar>(y);
+        uchar* outputRow = output.ptr<uchar>(y);
         for (int x = 0; x < input.cols; ++x) {
-            cv::Vec3b pixel = input.at<cv::Vec3b>(y, x);
+            int idx = x * 3;
+            uchar b = inputRow[idx];
+            uchar g = inputRow[idx + 1];
+            uchar r = inputRow[idx + 2];
 
             // 去饱和法: (max + min) / 2
-            uchar maxVal = std::max({pixel[0], pixel[1], pixel[2]});
-            uchar minVal = std::min({pixel[0], pixel[1], pixel[2]});
-            uchar grayVal = (maxVal + minVal) / 2;
-
-            gray.at<uchar>(y, x) = grayVal;
+            uchar maxVal = std::max({b, g, r});
+            uchar minVal = std::min({b, g, r});
+            outputRow[x] = (maxVal + minVal) / 2;
         }
     }
-
-    return gray;
 }
 
-cv::Mat GrayTool::convertSingleChannel(const cv::Mat& input)
+void GrayTool::convertSingleChannelTo(const cv::Mat& input, cv::Mat& output)
 {
-    std::vector<cv::Mat> channels;
-    cv::split(input, channels);
+    int channelIdx = static_cast<int>(channel_);
 
-    // 返回指定通道
-    return channels[static_cast<int>(channel_)].clone();
+    // 使用cv::extractChannel直接提取到输出，避免split+clone的开销
+    cv::extractChannel(input, output, channelIdx);
 }
 
 } // namespace Algorithm
