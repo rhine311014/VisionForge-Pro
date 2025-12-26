@@ -144,6 +144,11 @@ size_t ParallelProcessor::processBatchFiles(
     std::atomic<size_t> successCount{0};
     std::atomic<size_t> processedCount{0};
 
+    // 进度回调节流：计算报告间隔（至少每1%或每10个文件报告一次）
+    size_t reportInterval = std::max(totalFiles / 100, static_cast<size_t>(10));
+    reportInterval = std::min(reportInterval, totalFiles);  // 确保不超过总数
+    std::atomic<size_t> lastReportedProgress{0};
+
     if (!enabled_ || totalFiles < 2) {
         // 串行处理
         serialTasks_++;
@@ -153,8 +158,15 @@ size_t ParallelProcessor::processBatchFiles(
                 successCount++;
             }
             processedCount++;
+
+            // 节流进度回调
             if (progressCallback) {
-                progressCallback(processedCount.load(), totalFiles);
+                size_t current = processedCount.load();
+                size_t lastReported = lastReportedProgress.load();
+                if (current - lastReported >= reportInterval || current == totalFiles) {
+                    lastReportedProgress.store(current);
+                    progressCallback(current, totalFiles);
+                }
             }
         }
         return successCount.load();
@@ -174,13 +186,22 @@ size_t ParallelProcessor::processBatchFiles(
         if (result.success) {
             successCount++;
         }
-        processedCount++;
+        size_t current = processedCount.fetch_add(1, std::memory_order_relaxed) + 1;
 
-        // 进度回调（线程安全）
+        // 节流进度回调：只在达到报告间隔或处理完成时调用
         if (progressCallback) {
-            #pragma omp critical(progress_callback)
-            {
-                progressCallback(processedCount.load(), totalFiles);
+            size_t lastReported = lastReportedProgress.load(std::memory_order_relaxed);
+            // 检查是否需要报告（使用CAS避免重复报告）
+            if ((current - lastReported >= reportInterval || current == totalFiles)) {
+                // 尝试更新lastReportedProgress，避免多线程重复调用
+                if (lastReportedProgress.compare_exchange_weak(lastReported, current,
+                        std::memory_order_relaxed, std::memory_order_relaxed) ||
+                    current == totalFiles) {
+                    #pragma omp critical(progress_callback)
+                    {
+                        progressCallback(current, totalFiles);
+                    }
+                }
             }
         }
     }
@@ -191,8 +212,15 @@ size_t ParallelProcessor::processBatchFiles(
             successCount++;
         }
         processedCount++;
+
+        // 节流进度回调
         if (progressCallback) {
-            progressCallback(processedCount.load(), totalFiles);
+            size_t current = processedCount.load();
+            size_t lastReported = lastReportedProgress.load();
+            if (current - lastReported >= reportInterval || current == totalFiles) {
+                lastReportedProgress.store(current);
+                progressCallback(current, totalFiles);
+            }
         }
     }
 #endif

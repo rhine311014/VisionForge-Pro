@@ -13,6 +13,8 @@
 #include <QStringList>
 #include <QFuture>
 #include <QMutex>
+#include <QWaitCondition>
+#include <QReadWriteLock>
 #include <memory>
 #include <vector>
 #include <atomic>
@@ -122,9 +124,12 @@ public:
     void setCurrentImage(Base::ImageData::Ptr image);
 
     /**
-     * @brief 获取当前图像
+     * @brief 获取当前图像（线程安全）
      */
-    Base::ImageData::Ptr currentImage() const { return currentImage_; }
+    Base::ImageData::Ptr currentImage() const {
+        QReadLocker locker(&currentImageLock_);
+        return currentImage_;
+    }
 
     /**
      * @brief 从文件加载图像
@@ -301,8 +306,9 @@ private:
     QTimer* liveTimer_;
     bool isLiveGrabbing_;
 
-    // 当前图像
+    // 当前图像（线程安全保护）
     Base::ImageData::Ptr currentImage_;
+    mutable QReadWriteLock currentImageLock_;       // 读写锁保护currentImage_
 
     // 图像序列
     QStringList imageSequence_;
@@ -310,11 +316,16 @@ private:
 
     // 异步任务管理
     mutable QMutex asyncMutex_;                     // 保护异步任务列表
+    QWaitCondition asyncTaskFinished_;              // 任务完成条件变量
     QList<QFuture<void>> asyncTasks_;               // 异步任务列表
     std::atomic<bool> asyncCancelRequested_;        // 取消标志
+    std::atomic<int> runningTaskCount_{0};          // 运行中任务计数
 
     // 清理已完成的异步任务
     void cleanupFinishedTasks();
+
+    // 通知任务完成
+    void notifyTaskFinished();
 };
 
 } // namespace Core

@@ -4,6 +4,35 @@
 
 ---
 
+## [1.6.4] - 2025-12-26
+
+### 🔒 线程安全与性能深度优化
+
+#### ImageMemoryPool 原子内存计数器 (P0-A)
+- ✅ **O(1)内存查询**: 新增 `currentMemoryUsage_` 原子计数器，`getTotalMemoryUsage()` 从O(n)优化为O(1)
+- ✅ **无锁内存统计**: 所有分配/释放/清理操作使用 `fetch_add`/`fetch_sub` 原子操作更新计数器
+- ✅ **消除锁竞争**: 内存使用量查询无需获取互斥锁
+
+#### VisionEngine 异步等待优化 (P0-B)
+- ✅ **条件变量等待**: 使用 `QWaitCondition` 替代忙等待轮询
+- ✅ **任务计数器**: 新增 `runningTaskCount_` 原子计数器跟踪运行中任务
+- ✅ **高效等待**: `waitForAsyncTasks()` 使用条件变量休眠，消除CPU空转
+- ✅ **无锁状态查询**: `hasRunningAsyncTasks()` 直接读取原子计数器
+
+#### VisionEngine currentImage_ 线程安全 (P0-C)
+- ✅ **读写锁保护**: 新增 `QReadWriteLock currentImageLock_` 保护当前图像
+- ✅ **读操作并发**: `currentImage()` getter 使用读锁，支持多线程并发读取
+- ✅ **写操作同步**: `setCurrentImage()`、`loadImage()`、`onLiveTimer()` 使用写锁
+- ✅ **完整覆盖**: 所有访问 `currentImage_` 的路径都受保护
+
+#### ParallelProcessor 进度回调优化 (P1-A)
+- ✅ **回调节流**: 每1%或每10个文件报告一次进度，避免频繁回调
+- ✅ **CAS去重**: 使用 `compare_exchange_weak` 避免多线程重复调用回调
+- ✅ **完成保证**: 确保处理完成时始终报告最终进度
+- ✅ **减少锁竞争**: 大幅减少 `omp critical` 区域的进入频率
+
+---
+
 ## [1.6.3] - 2025-12-26
 
 ### 🚀 性能优化与代码改进

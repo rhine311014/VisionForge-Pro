@@ -198,6 +198,10 @@ ImageData::Ptr ImageMemoryPool::allocate(int width, int height, int type)
         ImageData::Ptr image = it->second.back();
         it->second.pop_back();
 
+        // 更新内存计数器（从池中取出，减少内存使用）
+        size_t memSize = key.getMemorySize();
+        currentMemoryUsage_.fetch_sub(memSize, std::memory_order_relaxed);
+
         // 更新元数据
         auto metaIt = poolMeta_.find(key);
         if (metaIt != poolMeta_.end()) {
@@ -211,11 +215,8 @@ ImageData::Ptr ImageMemoryPool::allocate(int width, int height, int type)
     // 未命中，创建新对象
     cacheMisses_++;
 
-    // 检查是否需要清理内存
-    size_t currentUsage = 0;
-    for (const auto& pair : pool_) {
-        currentUsage += pair.second.size() * pair.first.getMemorySize();
-    }
+    // 检查是否需要清理内存（使用O(1)原子计数器）
+    size_t currentUsage = currentMemoryUsage_.load(std::memory_order_relaxed);
 
     if (memoryLimit_ > 0 && currentUsage > memoryLimit_) {
         locker.unlock();
@@ -247,18 +248,22 @@ void ImageMemoryPool::release(ImageData::Ptr image)
         return;
     }
 
-    // 检查内存限制
-    size_t currentUsage = getTotalMemoryUsage();
-    if (memoryLimit_ > 0 && currentUsage + key.getMemorySize() > memoryLimit_) {
+    // 检查内存限制（使用O(1)原子计数器）
+    size_t memSize = key.getMemorySize();
+    size_t currentUsage = currentMemoryUsage_.load(std::memory_order_relaxed);
+    if (memoryLimit_ > 0 && currentUsage + memSize > memoryLimit_) {
         // 超出内存限制，不归还
         return;
     }
 
     vec.push_back(image);
 
+    // 更新内存计数器（放入池中，增加内存使用）
+    currentMemoryUsage_.fetch_add(memSize, std::memory_order_relaxed);
+
     // 更新元数据
     auto& meta = poolMeta_[key];
-    meta.memorySize = key.getMemorySize();
+    meta.memorySize = memSize;
     meta.lastAccess = std::chrono::steady_clock::now();
 }
 
@@ -278,12 +283,20 @@ void ImageMemoryPool::preallocate(int width, int height, int type, int count)
     QMutexLocker locker(&mutex_);
     auto& vec = pool_[key];
     vec.insert(vec.end(), images.begin(), images.end());
+
+    // 更新内存计数器
+    size_t memSize = key.getMemorySize() * count;
+    currentMemoryUsage_.fetch_add(memSize, std::memory_order_relaxed);
 }
 
 void ImageMemoryPool::clear()
 {
     QMutexLocker locker(&mutex_);
     pool_.clear();
+    poolMeta_.clear();
+
+    // 重置内存计数器
+    currentMemoryUsage_.store(0, std::memory_order_relaxed);
 }
 
 // ============================================================
@@ -318,16 +331,8 @@ size_t ImageMemoryPool::size(int width, int height, int type) const
 
 size_t ImageMemoryPool::getTotalMemoryUsage() const
 {
-    QMutexLocker locker(&mutex_);
-
-    size_t total = 0;
-    for (const auto& pair : pool_) {
-        size_t count = pair.second.size();
-        size_t memPerImage = pair.first.getMemorySize();
-        total += count * memPerImage;
-    }
-
-    return total;
+    // O(1)查询：直接返回原子计数器的值（无需加锁）
+    return currentMemoryUsage_.load(std::memory_order_relaxed);
 }
 
 // ============================================================
@@ -393,7 +398,7 @@ void ImageMemoryPool::triggerMemoryPressureCleanup(double targetReduction)
 {
     cleanupCount_++;
 
-    size_t currentUsage = getTotalMemoryUsage();
+    size_t currentUsage = currentMemoryUsage_.load(std::memory_order_relaxed);
     size_t targetUsage = static_cast<size_t>(currentUsage * (1.0 - targetReduction));
 
     LOG_DEBUG(QString("触发内存压力清理: 当前=%1MB, 目标=%2MB")
@@ -406,6 +411,7 @@ void ImageMemoryPool::triggerMemoryPressureCleanup(double targetReduction)
     auto keysToClean = selectKeysForCleanup(pool_.size());
 
     size_t evicted = 0;
+    size_t freedMemory = 0;
     for (const auto& key : keysToClean) {
         auto it = pool_.find(key);
         if (it != pool_.end()) {
@@ -417,6 +423,7 @@ void ImageMemoryPool::triggerMemoryPressureCleanup(double targetReduction)
             if (toRemove > 0) {
                 it->second.resize(beforeSize - toRemove);
                 evicted += toRemove;
+                freedMemory += toRemove * memPerItem;
                 currentUsage -= toRemove * memPerItem;
             }
 
@@ -426,8 +433,12 @@ void ImageMemoryPool::triggerMemoryPressureCleanup(double targetReduction)
         }
     }
 
+    // 更新内存计数器
+    currentMemoryUsage_.fetch_sub(freedMemory, std::memory_order_relaxed);
+
     evictedCount_ += evicted;
-    LOG_DEBUG(QString("内存压力清理完成: 清理了 %1 个对象").arg(evicted));
+    LOG_DEBUG(QString("内存压力清理完成: 清理了 %1 个对象, 释放 %2MB")
+             .arg(evicted).arg(freedMemory / 1024 / 1024));
 }
 
 void ImageMemoryPool::shrinkTo(size_t targetSize)
@@ -447,12 +458,14 @@ void ImageMemoryPool::shrinkTo(size_t targetSize)
     auto keysToClean = selectKeysForCleanup(pool_.size());
 
     size_t removed = 0;
+    size_t freedMemory = 0;
     for (const auto& key : keysToClean) {
         auto it = pool_.find(key);
         if (it != pool_.end() && !it->second.empty()) {
             size_t canRemove = std::min(it->second.size(), toRemove - removed);
             it->second.resize(it->second.size() - canRemove);
             removed += canRemove;
+            freedMemory += canRemove * key.getMemorySize();
             evictedCount_ += canRemove;
 
             if (removed >= toRemove) {
@@ -461,7 +474,11 @@ void ImageMemoryPool::shrinkTo(size_t targetSize)
         }
     }
 
-    LOG_DEBUG(QString("池收缩完成: 移除了 %1 个对象").arg(removed));
+    // 更新内存计数器
+    currentMemoryUsage_.fetch_sub(freedMemory, std::memory_order_relaxed);
+
+    LOG_DEBUG(QString("池收缩完成: 移除了 %1 个对象, 释放 %2MB")
+             .arg(removed).arg(freedMemory / 1024 / 1024));
 }
 
 // ============================================================
@@ -473,13 +490,20 @@ void ImageMemoryPool::evictExcess()
     // 清理超出限制的对象
     QMutexLocker locker(&mutex_);
 
+    size_t freedMemory = 0;
     for (auto& pair : pool_) {
         auto& vec = pair.second;
         if (vec.size() > maxPoolSize_) {
             size_t toRemove = vec.size() - maxPoolSize_;
             vec.resize(maxPoolSize_);
+            freedMemory += toRemove * pair.first.getMemorySize();
             evictedCount_ += toRemove;
         }
+    }
+
+    // 更新内存计数器
+    if (freedMemory > 0) {
+        currentMemoryUsage_.fetch_sub(freedMemory, std::memory_order_relaxed);
     }
 }
 

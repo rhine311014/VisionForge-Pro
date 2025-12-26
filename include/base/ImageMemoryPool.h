@@ -263,6 +263,9 @@ private:
     mutable std::atomic<size_t> cacheMisses_{0};
     mutable std::atomic<size_t> cleanupCount_{0};
     mutable std::atomic<size_t> evictedCount_{0};
+
+    // 内存使用跟踪（原子计数器，O(1)查询）
+    mutable std::atomic<size_t> currentMemoryUsage_{0};
 };
 
 } // namespace Base

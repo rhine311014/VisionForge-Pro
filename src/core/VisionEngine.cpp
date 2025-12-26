@@ -12,6 +12,8 @@
 #include <QThread>
 #include <QElapsedTimer>
 #include <QMutexLocker>
+#include <QReadLocker>
+#include <QWriteLocker>
 #include <opencv2/opencv.hpp>
 #include <QtConcurrent>
 #include <chrono>
@@ -214,7 +216,10 @@ void VisionEngine::onLiveTimer()
     Base::ImageData::Ptr image = camera_->grabImage(100);
     if (image) {
         applyImageTransform(image);
-        currentImage_ = image;
+        {
+            QWriteLocker locker(&currentImageLock_);
+            currentImage_ = image;
+        }
         emit liveFrameArrived(image);
     }
 }
@@ -223,7 +228,10 @@ void VisionEngine::onLiveTimer()
 
 void VisionEngine::setCurrentImage(Base::ImageData::Ptr image)
 {
-    currentImage_ = image;
+    {
+        QWriteLocker locker(&currentImageLock_);
+        currentImage_ = image;
+    }
     emit imageUpdated(image);
 }
 
@@ -248,8 +256,12 @@ bool VisionEngine::loadImage(const QString& filePath)
         return false;
     }
 
-    currentImage_ = std::make_shared<Base::ImageData>(mat);
-    emit imageUpdated(currentImage_);
+    auto newImage = std::make_shared<Base::ImageData>(mat);
+    {
+        QWriteLocker locker(&currentImageLock_);
+        currentImage_ = newImage;
+    }
+    emit imageUpdated(newImage);
     emit statusMessage(QString("已加载图像: %1").arg(QFileInfo(filePath).fileName()));
     LOG_INFO(QString("加载图像: %1").arg(filePath));
 
@@ -258,12 +270,18 @@ bool VisionEngine::loadImage(const QString& filePath)
 
 bool VisionEngine::saveImage(const QString& filePath)
 {
-    if (!currentImage_) {
+    Base::ImageData::Ptr imageToSave;
+    {
+        QReadLocker locker(&currentImageLock_);
+        imageToSave = currentImage_;
+    }
+
+    if (!imageToSave) {
         emit errorOccurred("没有可保存的图像");
         return false;
     }
 
-    if (cv::imwrite(filePath.toStdString(), currentImage_->mat())) {
+    if (cv::imwrite(filePath.toStdString(), imageToSave->mat())) {
         emit statusMessage(QString("图像已保存: %1").arg(filePath));
         LOG_INFO(QString("保存图像: %1").arg(filePath));
         return true;
@@ -360,7 +378,13 @@ ProcessResult VisionEngine::executeTool(Algorithm::VisionTool* tool)
         return result;
     }
 
-    if (!currentImage_) {
+    Base::ImageData::Ptr inputImage;
+    {
+        QReadLocker locker(&currentImageLock_);
+        inputImage = currentImage_;
+    }
+
+    if (!inputImage) {
         result.errorMessage = "没有可处理的图像";
         return result;
     }
@@ -373,11 +397,12 @@ ProcessResult VisionEngine::executeTool(Algorithm::VisionTool* tool)
     auto startTime = std::chrono::high_resolution_clock::now();
 
     Algorithm::ToolResult toolResult;
-    if (tool->process(currentImage_, toolResult)) {
+    if (tool->process(inputImage, toolResult)) {
         result.success = true;
 
         // 更新当前图像
         if (toolResult.outputImage) {
+            QWriteLocker locker(&currentImageLock_);
             currentImage_ = toolResult.outputImage;
             result.outputImage = currentImage_;
         }
@@ -391,7 +416,7 @@ ProcessResult VisionEngine::executeTool(Algorithm::VisionTool* tool)
     result.totalTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
 
     if (result.success) {
-        emit imageUpdated(currentImage_);
+        emit imageUpdated(result.outputImage);
         emit statusMessage(QString("工具 \"%1\" 处理完成 (%.2f ms)")
             .arg(tool->displayName()).arg(result.totalTime));
     }
@@ -409,15 +434,18 @@ ProcessResult VisionEngine::executeToolChain(const QList<Algorithm::VisionTool*>
         return result;
     }
 
-    if (!currentImage_) {
+    Base::ImageData::Ptr workingImage;
+    {
+        QReadLocker locker(&currentImageLock_);
+        workingImage = currentImage_;
+    }
+
+    if (!workingImage) {
         result.errorMessage = "没有可处理的图像";
         return result;
     }
 
     auto startTime = std::chrono::high_resolution_clock::now();
-
-    // 保存原始图像用于恢复
-    Base::ImageData::Ptr workingImage = currentImage_;
 
     result.success = true;
     for (Algorithm::VisionTool* tool : tools) {
@@ -446,9 +474,12 @@ ProcessResult VisionEngine::executeToolChain(const QList<Algorithm::VisionTool*>
     result.totalTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
 
     if (result.success) {
-        currentImage_ = workingImage;
-        result.outputImage = currentImage_;
-        emit imageUpdated(currentImage_);
+        {
+            QWriteLocker locker(&currentImageLock_);
+            currentImage_ = workingImage;
+        }
+        result.outputImage = workingImage;
+        emit imageUpdated(workingImage);
         emit statusMessage(QString("工具链处理完成 (%.2f ms)").arg(result.totalTime));
     }
 
@@ -463,7 +494,13 @@ ProcessResult VisionEngine::processCurrentImage(const QList<Algorithm::VisionToo
 
 void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
 {
-    if (!tool || !currentImage_) {
+    Base::ImageData::Ptr inputImage;
+    {
+        QReadLocker locker(&currentImageLock_);
+        inputImage = currentImage_;
+    }
+
+    if (!tool || !inputImage) {
         emit errorOccurred("无法执行工具：工具为空或无图像");
         return;
     }
@@ -474,9 +511,9 @@ void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
     // 重置取消标志
     asyncCancelRequested_.store(false);
 
-    // 捕获当前图像和工具指针
-    // 注意：ImageData是线程安全的（只要不修改），VisionTool需要确保在执行期间不被修改
-    Base::ImageData::Ptr inputImage = currentImage_;
+    // 增加运行中任务计数
+    runningTaskCount_.fetch_add(1, std::memory_order_relaxed);
+
     QString toolName = tool->displayName();  // 提前保存工具名称
 
     QFuture<void> future = QtConcurrent::run([this, tool, inputImage, toolName]() {
@@ -485,6 +522,7 @@ void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
         // 检查是否已取消
         if (asyncCancelRequested_.load()) {
             result.errorMessage = "任务已取消";
+            notifyTaskFinished();
             return;
         }
 
@@ -515,6 +553,7 @@ void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
 
         // 再次检查是否取消（任务完成后）
         if (asyncCancelRequested_.load()) {
+            notifyTaskFinished();
             return;  // 取消时不发送结果
         }
 
@@ -532,6 +571,9 @@ void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
             }
             emit processCompleted(result);
         });
+
+        // 通知任务完成
+        notifyTaskFinished();
     });
 
     // 记录任务
@@ -543,7 +585,13 @@ void VisionEngine::executeToolAsync(Algorithm::VisionTool* tool)
 
 void VisionEngine::executeToolChainAsync(const QList<Algorithm::VisionTool*>& tools)
 {
-    if (tools.isEmpty() || !currentImage_) {
+    Base::ImageData::Ptr inputImage;
+    {
+        QReadLocker locker(&currentImageLock_);
+        inputImage = currentImage_;
+    }
+
+    if (tools.isEmpty() || !inputImage) {
         emit errorOccurred("无法执行工具链：工具链为空或无图像");
         return;
     }
@@ -554,7 +602,8 @@ void VisionEngine::executeToolChainAsync(const QList<Algorithm::VisionTool*>& to
     // 重置取消标志
     asyncCancelRequested_.store(false);
 
-    Base::ImageData::Ptr inputImage = currentImage_;
+    // 增加运行中任务计数
+    runningTaskCount_.fetch_add(1, std::memory_order_relaxed);
 
     QFuture<void> future = QtConcurrent::run([this, tools, inputImage]() {
         ProcessResult result;
@@ -562,6 +611,7 @@ void VisionEngine::executeToolChainAsync(const QList<Algorithm::VisionTool*>& to
 
         // 检查是否已取消
         if (asyncCancelRequested_.load()) {
+            notifyTaskFinished();
             return;
         }
 
@@ -608,6 +658,7 @@ void VisionEngine::executeToolChainAsync(const QList<Algorithm::VisionTool*>& to
 
         // 取消时不发送结果
         if (asyncCancelRequested_.load()) {
+            notifyTaskFinished();
             return;
         }
 
@@ -620,6 +671,9 @@ void VisionEngine::executeToolChainAsync(const QList<Algorithm::VisionTool*>& to
             }
             emit processCompleted(result);
         });
+
+        // 通知任务完成
+        notifyTaskFinished();
     });
 
     // 记录任务
@@ -686,23 +740,26 @@ bool VisionEngine::waitForAsyncTasks(int timeoutMs)
 {
     QMutexLocker locker(&asyncMutex_);
 
-    for (QFuture<void>& future : asyncTasks_) {
-        if (!future.isFinished()) {
-            if (timeoutMs < 0) {
-                future.waitForFinished();
-            } else {
-                // Qt 6 中 QFuture 没有带超时的 wait，使用轮询
-                QElapsedTimer timer;
-                timer.start();
-                while (!future.isFinished() && timer.elapsed() < timeoutMs) {
-                    locker.unlock();
-                    QThread::msleep(10);
-                    locker.relock();
-                }
-                if (!future.isFinished()) {
-                    LOG_WARNING("等待异步任务超时");
-                    return false;
-                }
+    // 使用条件变量等待所有任务完成
+    if (timeoutMs < 0) {
+        // 无限等待
+        while (runningTaskCount_.load(std::memory_order_relaxed) > 0) {
+            asyncTaskFinished_.wait(&asyncMutex_);
+        }
+    } else {
+        // 带超时等待
+        QElapsedTimer timer;
+        timer.start();
+        while (runningTaskCount_.load(std::memory_order_relaxed) > 0) {
+            int remaining = timeoutMs - static_cast<int>(timer.elapsed());
+            if (remaining <= 0) {
+                LOG_WARNING("等待异步任务超时");
+                return false;
+            }
+            // 使用条件变量等待，避免忙等待
+            if (!asyncTaskFinished_.wait(&asyncMutex_, remaining)) {
+                LOG_WARNING("等待异步任务超时");
+                return false;
             }
         }
     }
@@ -713,13 +770,8 @@ bool VisionEngine::waitForAsyncTasks(int timeoutMs)
 
 bool VisionEngine::hasRunningAsyncTasks() const
 {
-    QMutexLocker locker(&asyncMutex_);
-    for (const QFuture<void>& future : asyncTasks_) {
-        if (!future.isFinished()) {
-            return true;
-        }
-    }
-    return false;
+    // 使用原子计数器，无需加锁
+    return runningTaskCount_.load(std::memory_order_relaxed) > 0;
 }
 
 void VisionEngine::cleanupFinishedTasks()
@@ -730,6 +782,16 @@ void VisionEngine::cleanupFinishedTasks()
             [](const QFuture<void>& f) { return f.isFinished(); }),
         asyncTasks_.end()
     );
+}
+
+void VisionEngine::notifyTaskFinished()
+{
+    // 减少运行中任务计数
+    runningTaskCount_.fetch_sub(1, std::memory_order_relaxed);
+
+    // 唤醒等待的线程
+    QMutexLocker locker(&asyncMutex_);
+    asyncTaskFinished_.wakeAll();
 }
 
 } // namespace Core
