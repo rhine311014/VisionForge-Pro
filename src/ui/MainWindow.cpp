@@ -22,6 +22,7 @@
 #include <QSplitter>
 #include <QActionGroup>
 #include <QThread>
+#include <QVBoxLayout>
 #include <opencv2/opencv.hpp>
 #include <chrono>
 
@@ -55,6 +56,7 @@
 // 多工位多相机组件
 #include "ui/ManualDebugDialog.h"
 #include "ui/CalibrationWizard.h"
+#include "ui/StationConfigTool.h"
 #include "core/MultiStationManager.h"
 #include "core/PositionToolChainManager.h"
 #include "core/SceneManager.h"
@@ -129,6 +131,8 @@ MainWindow::MainWindow(QWidget* parent)
     , multiCameraView_(nullptr)
     , centralStack_(nullptr)
     , isMultiViewMode_(false)
+    , operatorToolBar_(nullptr)
+    , infoBar_(nullptr)
     , engine_(Core::VisionEngine::instance())
     , isFrameValid_(true)
     , isLiveDisplay_(true)
@@ -141,6 +145,16 @@ MainWindow::MainWindow(QWidget* parent)
     // 设置主窗口样式，移除所有内边距和边距
     setStyleSheet("QMainWindow { padding: 0px; margin: 0px; } "
                   "QMainWindow::separator { width: 0px; height: 0px; }");
+
+    // 创建主容器（包含信息栏 + 图像区域 + 操作员工具栏）
+    QWidget* mainContainer = new QWidget(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout(mainContainer);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
+    // 创建顶部信息栏
+    infoBar_ = new InfoBar(this);
+    mainLayout->addWidget(infoBar_);
 
     // 创建中央堆叠容器（用于切换单视图/多视图）
     centralStack_ = new QStackedWidget(this);
@@ -156,8 +170,15 @@ MainWindow::MainWindow(QWidget* parent)
     // 将图像查看器添加到堆叠容器
     centralStack_->addWidget(imageViewer_);
 
-    // 设置堆叠容器为中央窗口
-    setCentralWidget(centralStack_);
+    // 将堆叠容器添加到主布局（占用剩余空间）
+    mainLayout->addWidget(centralStack_, 1);
+
+    // 创建底部操作员工具栏
+    operatorToolBar_ = new OperatorToolBar(this);
+    mainLayout->addWidget(operatorToolBar_);
+
+    // 设置主容器为中央窗口
+    setCentralWidget(mainContainer);
 
     // 移除所有可能的边距
     centralWidget()->setContentsMargins(0, 0, 0, 0);
@@ -534,18 +555,17 @@ void MainWindow::onRemoveTool()
         QMessageBox::Yes | QMessageBox::No);
 
     if (ret == QMessageBox::Yes) {
-        toolChainPanel_->removeTool(tool);
-
-        // 同步到PositionToolChainManager (多工位模式)
-        // 注意：removeTool会删除工具，所以这里需要在删除前从Manager中移除
 #ifdef USE_HALCON
+        // 多工位模式：先从PositionToolChainManager移除引用（必须在delete前）
         if (isMultiViewMode_) {
             auto& toolChainManager = Core::PositionToolChainManager::instance();
-            // 标记当前工具链已修改（工具已从面板移除）
-            toolChainManager.markCurrentAsModified();
+            toolChainManager.removeTool(tool);  // 从Manager中移除引用
         }
 #endif
+        // 再从面板移除
+        toolChainPanel_->removeTool(tool);
 
+        // 最后删除工具对象
         delete tool;
 
         statusLabel_->setText("已删除工具");
@@ -1110,6 +1130,11 @@ void MainWindow::createMenus()
     connect(systemSettingsAction_, &QAction::triggered, this, &MainWindow::onSystemSettings);
     settingsMenu_->addAction(systemSettingsAction_);
 
+    stationConfigToolAction_ = new QAction(Theme::getIcon(Icons::APP_SETTINGS), "平台节点配置(&P)...", this);
+    stationConfigToolAction_->setStatusTip("配置工位平台参数和UVW节点位置");
+    connect(stationConfigToolAction_, &QAction::triggered, this, &MainWindow::onStationConfigTool);
+    settingsMenu_->addAction(stationConfigToolAction_);
+
     settingsMenu_->addSeparator();
 
     // 主题子菜单
@@ -1513,6 +1538,72 @@ void MainWindow::connectSignals()
             this, &MainWindow::onRecipeActivated);
     connect(recipeManagerWidget_, &RecipeManagerWidget::editRecipeRequested,
             this, &MainWindow::onEditRecipeRequested);
+
+    // 操作员界面信号
+    connectOperatorSignals();
+}
+
+void MainWindow::connectOperatorSignals()
+{
+    if (!operatorToolBar_ || !infoBar_) {
+        return;
+    }
+
+    // 操作员工具栏信号
+    connect(operatorToolBar_, &OperatorToolBar::cameraClicked, this, &MainWindow::onCameraConfig);
+    connect(operatorToolBar_, &OperatorToolBar::communicationClicked, this, &MainWindow::onPLCConfig);
+    connect(operatorToolBar_, &OperatorToolBar::systemClicked, this, &MainWindow::onSystemSettings);
+    connect(operatorToolBar_, &OperatorToolBar::runClicked, this, &MainWindow::onRunAll);
+    connect(operatorToolBar_, &OperatorToolBar::loginClicked, this, &MainWindow::onLogin);
+    connect(operatorToolBar_, &OperatorToolBar::exitClicked, this, &MainWindow::onExit);
+    connect(operatorToolBar_, &OperatorToolBar::stationClicked, this, &MainWindow::onStationConfigTool);
+
+    // 隐藏按钮 - 切换侧边面板
+    connect(operatorToolBar_, &OperatorToolBar::hideClicked, this, &MainWindow::onTogglePanels);
+
+    // 产品按钮 - 打开方案管理
+    connect(operatorToolBar_, &OperatorToolBar::productClicked, [this]() {
+        if (recipeDock_) {
+            recipeDock_->setVisible(!recipeDock_->isVisible());
+        }
+    });
+
+    // 选项按钮 - 打开工具参数面板
+    connect(operatorToolBar_, &OperatorToolBar::optionsClicked, [this]() {
+        if (toolParameterDock_) {
+            toolParameterDock_->setVisible(!toolParameterDock_->isVisible());
+        }
+    });
+
+    // 图像预览按钮 - 切换图像适应窗口
+    connect(operatorToolBar_, &OperatorToolBar::previewClicked, this, &MainWindow::onFitToWindow);
+
+    // 信息栏信号
+    connect(infoBar_, &InfoBar::sceneChanged, this, &MainWindow::onSceneSelected);
+    connect(infoBar_, &InfoBar::positionChanged, [this](int index) {
+        // 位置切换处理
+        auto& stationManager = Core::MultiStationManager::instance();
+        auto* station = stationManager.currentStation();
+        if (station && index < station->positionBindings.size()) {
+            QString posId = station->positionBindings[index].positionId;
+            Core::PositionToolChainManager::instance().setCurrentPosition(station->id, posId);
+            LOG_INFO(QString("切换到位置: %1").arg(posId));
+        }
+    });
+
+    // GUI清除
+    connect(infoBar_, &InfoBar::clearDisplayClicked, [this]() {
+        if (imageViewer_) {
+            imageViewer_->clearROIs();  // 清除ROI
+        }
+        if (resultTablePanel_) {
+            resultTablePanel_->clearResults();
+        }
+        infoBar_->clearInfo();
+        statusLabel_->setText(tr("显示已清除"));
+    });
+
+    LOG_DEBUG("操作员界面信号已连接");
 }
 
 void MainWindow::updateActions()
@@ -2090,6 +2181,19 @@ void MainWindow::onSystemSettings()
 {
     SystemSettingsDialog dialog(this);
     dialog.exec();
+}
+
+void MainWindow::onStationConfigTool()
+{
+    StationConfigTool dialog(this);
+    if (dialog.exec() == QDialog::Accepted && dialog.isSaveAndExit()) {
+        // 配置已保存，重新加载工位配置
+        Core::MultiStationManager::instance().loadConfig();
+        LOG_INFO("平台配置已更新");
+
+        // 刷新界面（如需要）
+        // TODO: 如果当前工位配置发生变化，可能需要刷新界面
+    }
 }
 
 // ========== 用户登录/注销 ==========

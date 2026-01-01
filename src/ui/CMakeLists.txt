@@ -67,6 +67,9 @@ set(UI_SOURCES
     CameraSetupDialog.cpp
     # 场景切换栏
     SceneSwitchBar.cpp
+    # 操作员界面组件
+    OperatorToolBar.cpp
+    InfoBar.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -158,6 +161,9 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/CameraSetupDialog.h
     # 场景切换栏头文件
     ${CMAKE_SOURCE_DIR}/include/ui/SceneSwitchBar.h
+    # 操作员界面组件头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/OperatorToolBar.h
+    ${CMAKE_SOURCE_DIR}/include/ui/InfoBar.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件

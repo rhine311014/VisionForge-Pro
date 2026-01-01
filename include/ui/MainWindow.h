@@ -25,6 +25,8 @@
 #include "ui/StationSwitchBar.h"
 #include "ui/SceneSwitchBar.h"
 #include "ui/MultiCameraView.h"
+#include "ui/OperatorToolBar.h"
+#include "ui/InfoBar.h"
 #include "hal/SimulatedCamera.h"
 #include "hal/ICamera.h"
 #include "algorithm/VisionTool.h"
@@ -149,6 +151,7 @@ private slots:
 
     // 系统设置
     void onSystemSettings();
+    void onStationConfigTool();  // 平台节点配置
 
     // 用户管理
     void onLogin();
@@ -186,8 +189,10 @@ private:
     void createToolBars();
     void createDockWindows();
     void createStatusBar();
+    void createOperatorUI();          // 创建操作员界面组件
     void addDockWidgetsToViewMenu();
     void connectSignals();
+    void connectOperatorSignals();    // 连接操作员界面信号
 
     void updateActions();
     void updateStatusBar();
@@ -308,8 +313,13 @@ private:
     QStackedWidget* centralStack_;      // 中央堆叠容器（切换单视图/多视图）
     bool isMultiViewMode_;              // 是否多视图模式
 
+    // 操作员界面组件
+    OperatorToolBar* operatorToolBar_;  // 底部操作员工具栏
+    InfoBar* infoBar_;                  // 顶部信息栏
+
     // 系统设置动作
     QAction* systemSettingsAction_;
+    QAction* stationConfigToolAction_;  // 平台节点配置
 
     // 用户动作
     QAction* loginAction_;
