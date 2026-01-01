@@ -405,21 +405,38 @@ bool TaskScheduler::waitForTask(const QString& taskId, int timeout)
     QElapsedTimer timer;
     timer.start();
 
+    QMutexLocker locker(&tasksMutex_);
+
     while (true) {
-        TaskState state = getTaskState(taskId);
+        // 检查任务状态（锁已持有）
+        TaskState state = TaskState::Pending;
+        if (runningTasks_.contains(taskId)) {
+            state = runningTasks_[taskId];
+        } else if (completedTasks_.contains(taskId)) {
+            state = completedTasks_[taskId].state;
+        }
 
         if (state == TaskState::Completed || state == TaskState::Failed ||
             state == TaskState::Cancelled) {
             return (state == TaskState::Completed);
         }
 
-        if (timeout >= 0 && timer.elapsed() >= timeout) {
-            LOG_WARNING(QString("等待任务超时: %1").arg(taskId));
-            return false;
+        // 计算剩余等待时间
+        if (timeout >= 0) {
+            qint64 remaining = timeout - timer.elapsed();
+            if (remaining <= 0) {
+                LOG_WARNING(QString("等待任务超时: %1").arg(taskId));
+                return false;
+            }
+            // 使用条件变量等待，带超时
+            if (!taskCompletionCondition_.wait(&tasksMutex_, remaining)) {
+                LOG_WARNING(QString("等待任务超时: %1").arg(taskId));
+                return false;
+            }
+        } else {
+            // 无限等待
+            taskCompletionCondition_.wait(&tasksMutex_);
         }
-
-        // 等待一小段时间
-        QThread::msleep(10);
     }
 }
 
@@ -477,6 +494,9 @@ void TaskScheduler::onTaskCompleted(const QString& taskId, const ToolChainResult
         task.endTime = QDateTime::currentMSecsSinceEpoch();
 
         completedTasks_[taskId] = task;
+
+        // 唤醒等待任务完成的线程
+        taskCompletionCondition_.wakeAll();
     }
 
     emit taskCompleted(taskId, result);
@@ -497,6 +517,9 @@ void TaskScheduler::onTaskFailed(const QString& taskId, const QString& errorMess
         task.endTime = QDateTime::currentMSecsSinceEpoch();
 
         completedTasks_[taskId] = task;
+
+        // 唤醒等待任务完成的线程
+        taskCompletionCondition_.wakeAll();
     }
 
     emit taskFailed(taskId, errorMessage);
@@ -517,6 +540,9 @@ void TaskScheduler::onTaskCancelled(const QString& taskId)
         task.endTime = QDateTime::currentMSecsSinceEpoch();
 
         completedTasks_[taskId] = task;
+
+        // 唤醒等待任务完成的线程
+        taskCompletionCondition_.wakeAll();
     }
 
     LOG_INFO(QString("任务取消完成: %1").arg(taskId));

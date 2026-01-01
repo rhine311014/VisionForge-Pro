@@ -51,6 +51,19 @@ struct StationConfig {
     double yRange = 500.0;      ///< Y轴行程 (mm)
     double dRange = 360.0;      ///< 旋转行程 (度)
 
+    // ========== UVW平台配置 (仅UVW系列平台有效) ==========
+    int uvwStructureType = 0;       ///< 结构类型 (0=XXY, 1=XYY)
+    int uvwSliderType = 0;          ///< 滑轨类型 (0=固定, 1=移动)
+    int uvwPrecisionGrade = 0;      ///< 精度等级 (0=P级, 1=B级, 2=G级)
+    double uvwNode1PosX = 67.5;     ///< 节点1 X坐标 (mm)
+    double uvwNode1PosY = -57.0;    ///< 节点1 Y坐标 (mm)
+    double uvwNode2PosX = 67.5;     ///< 节点2 X坐标 (mm)
+    double uvwNode2PosY = 57.0;     ///< 节点2 Y坐标 (mm)
+    double uvwNode3PosX = -57.0;    ///< 节点3 X坐标 (mm)
+    double uvwNode3PosY = 67.5;     ///< 节点3 Y坐标 (mm)
+    double uvwTravelXY = 5.0;       ///< XY行程范围 (±mm)
+    double uvwTravelTheta = 2.0;    ///< θ旋转范围 (±度)
+
     // ========== 相机配置 ==========
     int cameraNum = 2;          ///< 相机数量 (1-8)
     QVector<QString> cameraIds; ///< 相机ID列表

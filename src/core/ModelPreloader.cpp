@@ -10,6 +10,7 @@
 #include "base/Logger.h"
 #include <QtConcurrent>
 #include <QElapsedTimer>
+#include <algorithm>
 
 namespace VisionForge {
 namespace Core {
@@ -54,7 +55,10 @@ int ModelPreloader::preloadModels(ToolChain* toolChain, bool parallel)
         return 0;
     }
 
-    LOG_INFO(QString("ModelPreloader: 开始预加载 %1 个模型").arg(tasks_.size()));
+    // 按优先级排序（优先级高的先加载）
+    std::sort(tasks_.begin(), tasks_.end());
+
+    LOG_INFO(QString("ModelPreloader: 开始预加载 %1 个模型（已按优先级排序）").arg(tasks_.size()));
 
     isLoading_ = true;
     cancelRequested_ = false;
@@ -137,10 +141,29 @@ QList<PreloadTask> ModelPreloader::scanToolChain(ToolChain* toolChain) const
                 const ToolChainNode* node = toolChain->getNode(i);
                 QString toolName = node ? node->name : tool->toolName();
 
-                tasks.append(PreloadTask(nodeId, toolName, modelPath, tool));
+                // 根据工具类型设置优先级
+                PreloadPriority priority = PreloadPriority::Normal;
+                Algorithm::VisionTool::ToolType type = tool->toolType();
+                switch (type) {
+                case Algorithm::VisionTool::AIDetection:
+                    priority = PreloadPriority::Critical;  // AI模型最大，优先加载
+                    break;
+                case Algorithm::VisionTool::Match:
+                case Algorithm::VisionTool::TemplateMatch:
+                    priority = PreloadPriority::High;      // 形状模板次之
+                    break;
+                case Algorithm::VisionTool::CodeRead:
+                    priority = PreloadPriority::Normal;    // 条码工具普通优先级
+                    break;
+                default:
+                    priority = PreloadPriority::Low;
+                    break;
+                }
 
-                LOG_DEBUG(QString("ModelPreloader: 发现需预加载的模型 - %1: %2")
-                    .arg(toolName).arg(modelPath));
+                tasks.append(PreloadTask(nodeId, toolName, modelPath, tool, priority));
+
+                LOG_DEBUG(QString("ModelPreloader: 发现需预加载的模型 - %1: %2 (优先级: %3)")
+                    .arg(toolName).arg(modelPath).arg(static_cast<int>(priority)));
             }
         }
     }
@@ -348,7 +371,7 @@ QString ModelPreloader::getModelPath(Algorithm::VisionTool* tool) const
         {
             auto* shapeTool = qobject_cast<Algorithm::ShapeMatchTool*>(tool);
             if (shapeTool) {
-                return shapeTool->modelPath();
+                return shapeTool->getModelPath();
             }
         }
         break;

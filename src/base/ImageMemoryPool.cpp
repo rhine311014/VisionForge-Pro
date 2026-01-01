@@ -396,6 +396,17 @@ void ImageMemoryPool::setAutoCleanup(bool enabled, int intervalMs)
 
 void ImageMemoryPool::triggerMemoryPressureCleanup(double targetReduction)
 {
+    // 节流控制：检查冷却时间，避免高频触发
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - lastCleanupTime_);
+
+    if (elapsed < CLEANUP_COOLDOWN) {
+        // 冷却期内，跳过本次清理
+        return;
+    }
+
+    lastCleanupTime_ = now;
     cleanupCount_++;
 
     size_t currentUsage = currentMemoryUsage_.load(std::memory_order_relaxed);

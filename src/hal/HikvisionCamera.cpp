@@ -19,6 +19,11 @@ namespace HAL {
 // 静态设备列表缓存
 static MV_CC_DEVICE_INFO_LIST g_deviceList = {0};
 
+// 静态成员变量定义（设备枚举缓存）
+QList<CameraDeviceInfo> HikvisionCamera::deviceCache_;
+std::chrono::steady_clock::time_point HikvisionCamera::lastEnumTime_;
+QMutex HikvisionCamera::cacheMutex_;
+
 HikvisionCamera::HikvisionCamera(QObject* parent)
     : ICamera(parent)
     , handle_(nullptr)
@@ -51,6 +56,16 @@ QString HikvisionCamera::sdkVersion()
 
 QList<CameraDeviceInfo> HikvisionCamera::enumerateDevices()
 {
+    // 检查缓存是否有效
+    {
+        QMutexLocker locker(&cacheMutex_);
+        auto now = std::chrono::steady_clock::now();
+        if (!deviceCache_.isEmpty() && (now - lastEnumTime_) < CACHE_EXPIRY) {
+            LOG_DEBUG(QString("使用缓存的设备列表，共 %1 个设备").arg(deviceCache_.size()));
+            return deviceCache_;
+        }
+    }
+
     QList<CameraDeviceInfo> devices;
 
     LOG_INFO("开始枚举海康相机设备...");
@@ -125,6 +140,13 @@ QList<CameraDeviceInfo> HikvisionCamera::enumerateDevices()
         }
 
         devices.append(info);
+    }
+
+    // 更新缓存
+    {
+        QMutexLocker locker(&cacheMutex_);
+        deviceCache_ = devices;
+        lastEnumTime_ = std::chrono::steady_clock::now();
     }
 
     return devices;

@@ -271,6 +271,7 @@ private:
 private:
     QList<TaskWorker*> workers_;                    // 工作线程列表
     mutable QMutex tasksMutex_;                     // 任务列表互斥锁
+    mutable QWaitCondition taskCompletionCondition_; // 任务完成条件变量
     QMap<QString, TaskInfo> completedTasks_;        // 已完成任务映射
     QMap<QString, TaskState> runningTasks_;         // 运行中任务状态
 };

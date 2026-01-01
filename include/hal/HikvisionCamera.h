@@ -9,6 +9,7 @@
 
 #include "hal/ICamera.h"
 #include <QMutex>
+#include <chrono>
 
 #ifdef USE_HIKVISION_MVS
 
@@ -199,6 +200,12 @@ private:
     // 图像缓冲区
     unsigned char* imageBuffer_;
     unsigned int bufferSize_;
+
+    // 设备枚举缓存（静态成员）
+    static QList<CameraDeviceInfo> deviceCache_;
+    static std::chrono::steady_clock::time_point lastEnumTime_;
+    static constexpr std::chrono::seconds CACHE_EXPIRY{5};  // 5秒缓存
+    static QMutex cacheMutex_;
 };
 
 } // namespace HAL

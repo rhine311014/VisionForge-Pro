@@ -17,10 +17,10 @@ Logger::Logger()
     : logLevel_(Info)
     , consoleOutput_(true)
     , fileOutput_(false)
-    , logFile_(nullptr)
-    , logStream_(nullptr)
     , maxHistorySize_(10000)  // 默认保留1万条日志
+    , unflushedCount_(0)
 {
+    // logFile_ 和 logStream_ 使用智能指针，自动初始化为nullptr
 }
 
 Logger::~Logger()
@@ -45,7 +45,7 @@ void Logger::log(Level level, const QString& message, const QString& file, int l
     QString formattedMessage = formatMessage(level, message, file, line);
     QDateTime now = QDateTime::currentDateTime();
 
-    QMutexLocker locker(&mutex_);
+    QWriteLocker locker(&rwLock_);  // 写入操作使用写锁
 
     // 存储到历史记录
     LogEntry entry(now, level, message, file, line);
@@ -84,7 +84,7 @@ void Logger::setLogLevel(Level level)
 
 bool Logger::setLogFile(const QString& filePath)
 {
-    QMutexLocker locker(&mutex_);
+    QWriteLocker locker(&rwLock_);  // 写入操作使用写锁
 
     // 关闭已有文件
     close();
@@ -98,17 +98,16 @@ bool Logger::setLogFile(const QString& filePath)
         }
     }
 
-    // 打开新文件
+    // 打开新文件（使用智能指针）
     logFilePath_ = filePath;
-    logFile_ = new QFile(logFilePath_);
+    logFile_ = std::make_unique<QFile>(logFilePath_);
 
     if (!logFile_->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        delete logFile_;
-        logFile_ = nullptr;
+        logFile_.reset();  // 智能指针自动释放
         return false;
     }
 
-    logStream_ = new QTextStream(logFile_);
+    logStream_ = std::make_unique<QTextStream>(logFile_.get());
     logStream_->setEncoding(QStringConverter::Utf8);  // 显式设置UTF-8编码
     fileOutput_ = true;
 
@@ -127,7 +126,7 @@ void Logger::enableFileOutput(bool enabled)
 
 void Logger::flush()
 {
-    QMutexLocker locker(&mutex_);
+    QWriteLocker locker(&rwLock_);  // 文件操作使用写锁
 
     if (logStream_) {
         logStream_->flush();
@@ -140,15 +139,18 @@ void Logger::flush()
 
 void Logger::close()
 {
-    if (logStream_) {
-        delete logStream_;
-        logStream_ = nullptr;
+    // 关闭前确保所有日志已flush
+    if (logStream_ && unflushedCount_ > 0) {
+        logStream_->flush();
+        unflushedCount_ = 0;
     }
+
+    // 先释放流，再释放文件（智能指针自动管理）
+    logStream_.reset();
 
     if (logFile_) {
         logFile_->close();
-        delete logFile_;
-        logFile_ = nullptr;
+        logFile_.reset();
     }
 }
 
@@ -156,7 +158,13 @@ void Logger::writeToFile(const QString& formattedMessage)
 {
     if (logStream_) {
         *logStream_ << formattedMessage << '\n';
-        logStream_->flush();
+
+        // 批量flush优化：累积一定数量后再flush，减少I/O开销
+        unflushedCount_++;
+        if (unflushedCount_ >= FLUSH_THRESHOLD) {
+            logStream_->flush();
+            unflushedCount_ = 0;
+        }
     }
 }
 
@@ -192,7 +200,7 @@ QString Logger::levelToString(Level level)
 
 QVector<LogEntry> Logger::getLogHistory(int maxEntries) const
 {
-    QMutexLocker locker(&mutex_);
+    QReadLocker locker(&rwLock_);  // 读取操作使用读锁
 
     if (maxEntries <= 0 || maxEntries >= logHistory_.size()) {
         return logHistory_;
@@ -207,7 +215,7 @@ QVector<LogEntry> Logger::filterLogs(Level minLevel,
                                      const QDateTime& endTime,
                                      const QString& keyword) const
 {
-    QMutexLocker locker(&mutex_);
+    QReadLocker locker(&rwLock_);  // 读取操作使用读锁
 
     QVector<LogEntry> result;
     for (const auto& entry : logHistory_) {
@@ -267,13 +275,13 @@ QString Logger::exportLogsToString(LogExportFormat format,
 
 void Logger::clearHistory()
 {
-    QMutexLocker locker(&mutex_);
+    QWriteLocker locker(&rwLock_);  // 写入操作使用写锁
     logHistory_.clear();
 }
 
 void Logger::setMaxHistorySize(int maxSize)
 {
-    QMutexLocker locker(&mutex_);
+    QWriteLocker locker(&rwLock_);  // 写入操作使用写锁
     maxHistorySize_ = maxSize;
 
     // 如果需要，裁剪现有历史
@@ -284,12 +292,13 @@ void Logger::setMaxHistorySize(int maxSize)
 
 int Logger::historySize() const
 {
+    QReadLocker locker(&rwLock_);  // 读取操作使用读锁
     return logHistory_.size();
 }
 
 QMap<Logger::Level, int> Logger::getLogStatistics() const
 {
-    QMutexLocker locker(&mutex_);
+    QReadLocker locker(&rwLock_);  // 读取操作使用读锁
 
     QMap<Level, int> stats;
     stats[Debug] = 0;

@@ -13,17 +13,17 @@ namespace VisionForge {
 namespace Base {
 
 ConfigManager::ConfigManager()
-    : settings_(nullptr)
+    : QObject(nullptr)  // 单例不需要父对象
 {
     configPath_ = getDefaultConfigPath();
-    settings_ = new QSettings(configPath_, QSettings::IniFormat);
+    settings_ = std::make_unique<QSettings>(configPath_, QSettings::IniFormat);
 }
 
 ConfigManager::~ConfigManager()
 {
     if (settings_) {
         settings_->sync();
-        delete settings_;
+        // unique_ptr自动释放，无需delete
     }
 }
 
@@ -44,7 +44,13 @@ QVariant ConfigManager::getValue(const QString& key, const QVariant& defaultValu
 void ConfigManager::setValue(const QString& key, const QVariant& value)
 {
     if (settings_) {
+        QVariant oldValue = settings_->value(key);
         settings_->setValue(key, value);
+
+        // 仅在值发生变化时发出信号
+        if (oldValue != value) {
+            emit valueChanged(key, value);
+        }
     }
 }
 
@@ -52,7 +58,11 @@ bool ConfigManager::save()
 {
     if (settings_) {
         settings_->sync();
-        return settings_->status() == QSettings::NoError;
+        bool success = (settings_->status() == QSettings::NoError);
+        if (success) {
+            emit saved();
+        }
+        return success;
     }
     return false;
 }
@@ -61,7 +71,11 @@ bool ConfigManager::load()
 {
     if (settings_) {
         settings_->sync();
-        return settings_->status() == QSettings::NoError;
+        bool success = (settings_->status() == QSettings::NoError);
+        if (success) {
+            emit loaded();
+        }
+        return success;
     }
     return false;
 }
@@ -80,7 +94,6 @@ void ConfigManager::setConfigFilePath(const QString& path)
     // 保存旧配置
     if (settings_) {
         settings_->sync();
-        delete settings_;
     }
 
     // 创建新配置
@@ -93,7 +106,7 @@ void ConfigManager::setConfigFilePath(const QString& path)
         dir.mkpath(".");
     }
 
-    settings_ = new QSettings(configPath_, QSettings::IniFormat);
+    settings_ = std::make_unique<QSettings>(configPath_, QSettings::IniFormat);
 }
 
 bool ConfigManager::contains(const QString& key) const

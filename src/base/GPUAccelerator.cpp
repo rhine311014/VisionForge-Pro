@@ -19,6 +19,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <cstdlib>  // for getenv
 #endif
 
 // ============================================================
@@ -30,6 +31,34 @@
 static int g_sehCudaDeviceCount = -1;
 static bool g_sehCudaCheckDone = false;
 
+// 动态加载CUDA Runtime并调用cudaGetDeviceCount
+typedef int (*cudaGetDeviceCountFunc)(int*);
+typedef int (*cudaGetDevicePropertiesFunc)(void*, int);
+
+static int directCudaGetDeviceCount()
+{
+    // 尝试直接从CUDA Runtime获取设备数量
+    HMODULE cudart = GetModuleHandleA("cudart64_12.dll");
+    if (!cudart) {
+        cudart = LoadLibraryA("cudart64_12.dll");
+    }
+
+    if (cudart) {
+        cudaGetDeviceCountFunc getCount = (cudaGetDeviceCountFunc)GetProcAddress(cudart, "cudaGetDeviceCount");
+        if (getCount) {
+            int count = 0;
+            int result = getCount(&count);
+            if (result == 0) {  // cudaSuccess
+                return count;
+            } else {
+                // CUDA错误
+                return -100 - result;  // 返回负值表示错误码
+            }
+        }
+    }
+    return -2;  // 无法加载CUDA Runtime
+}
+
 // SEH保护的CUDA设备数量检测（纯C风格）
 static int sehSafeCudaGetDeviceCount()
 {
@@ -39,6 +68,95 @@ static int sehSafeCudaGetDeviceCount()
     __except(EXCEPTION_EXECUTE_HANDLER) {
         return -1;  // 发生SEH异常
     }
+}
+
+// 检查DLL是否可加载
+static bool checkDllLoaded(const char* dllName)
+{
+    HMODULE hModule = LoadLibraryExA(dllName, NULL, LOAD_LIBRARY_AS_DATAFILE);
+    if (hModule != NULL) {
+        FreeLibrary(hModule);
+        return true;
+    }
+    return false;
+}
+
+// 获取DLL完整路径
+static std::string getDllFullPath(const char* dllName)
+{
+    HMODULE hModule = LoadLibraryA(dllName);
+    if (hModule != NULL) {
+        char path[MAX_PATH];
+        GetModuleFileNameA(hModule, path, MAX_PATH);
+        FreeLibrary(hModule);
+        return std::string(path);
+    }
+    return "NOT FOUND";
+}
+
+// 诊断函数：获取OpenCV CUDA编译信息（使用LOG记录到文件）
+static void printCudaDiagnostics()
+{
+    using namespace VisionForge::Base;
+
+    LOG_INFO("=== OpenCV CUDA 诊断信息 ===");
+    LOG_INFO(QString("OpenCV版本: %1").arg(CV_VERSION));
+
+    // 检查OpenCV是否有CUDA支持
+    #ifdef HAVE_CUDA
+    LOG_INFO("HAVE_CUDA: 已定义");
+    #else
+    LOG_INFO("HAVE_CUDA: 未定义");
+    #endif
+
+    // 检查CUDA版本
+    #ifdef CUDA_VERSION
+    LOG_INFO(QString("CUDA_VERSION: %1").arg(CUDA_VERSION));
+    #else
+    LOG_INFO("CUDA_VERSION: 未定义");
+    #endif
+
+    // 检查关键CUDA DLL
+    LOG_INFO("--- CUDA DLL 检查 ---");
+    const char* cudaDlls[] = {
+        "cudart64_12.dll",
+        "nvcuda.dll",
+        "nppc64_12.dll",
+        "nppial64_12.dll",
+        "nppig64_12.dll",
+        "cublas64_12.dll",
+        "cublasLt64_12.dll",
+        nullptr
+    };
+    bool allDllsFound = true;
+    for (int i = 0; cudaDlls[i] != nullptr; ++i) {
+        bool found = checkDllLoaded(cudaDlls[i]);
+        if (found) {
+            std::string path = getDllFullPath(cudaDlls[i]);
+            LOG_INFO(QString("[OK] %1 -> %2").arg(cudaDlls[i]).arg(QString::fromStdString(path)));
+        } else {
+            LOG_WARNING(QString("[MISSING] %1").arg(cudaDlls[i]));
+            allDllsFound = false;
+        }
+    }
+
+    if (!allDllsFound) {
+        LOG_WARNING("部分CUDA DLL未找到，请检查PATH环境变量");
+        LOG_WARNING("需要添加: D:\\Program Files\\CUDA12.5\\bin");
+    }
+
+    // 打印当前PATH中CUDA相关路径
+    char* pathEnv = getenv("PATH");
+    if (pathEnv) {
+        std::string pathStr(pathEnv);
+        if (pathStr.find("CUDA") != std::string::npos || pathStr.find("cuda") != std::string::npos) {
+            LOG_INFO("PATH中包含CUDA相关路径");
+        } else {
+            LOG_WARNING("PATH中未找到CUDA相关路径");
+        }
+    }
+
+    LOG_INFO("=============================");
 }
 
 #endif // USE_CUDA && _WIN32
@@ -209,7 +327,27 @@ void GPUAccelerator::detectDevices()
     LOG_DEBUG("detectDevices: 开始");
 #ifdef USE_CUDA
 #ifdef _WIN32
-    LOG_DEBUG("detectDevices: 调用SEH保护函数");
+    // 打印诊断信息
+    printCudaDiagnostics();
+
+    // 先使用直接CUDA Runtime API调用进行诊断
+    LOG_DEBUG("detectDevices: 调用直接CUDA Runtime API");
+    int directCount = directCudaGetDeviceCount();
+    LOG_INFO(QString("Direct CUDA API cudaGetDeviceCount 返回: %1").arg(directCount));
+
+    if (directCount < 0) {
+        if (directCount == -2) {
+            LOG_WARNING("无法加载 cudart64_12.dll");
+        } else {
+            LOG_WARNING(QString("CUDA Runtime 错误码: %1").arg(-100 - directCount));
+        }
+    } else if (directCount == 0) {
+        LOG_WARNING("CUDA Runtime 报告0个设备");
+    } else {
+        LOG_INFO(QString("CUDA Runtime 检测到 %1 个GPU设备").arg(directCount));
+    }
+
+    LOG_DEBUG("detectDevices: 调用SEH保护函数（OpenCV）");
     // 使用SEH保护的函数检测CUDA设备数量
     // 这可以捕获OpenCV抛出的任何类型的异常
     int testCount = sehSafeCudaGetDeviceCount();
@@ -628,10 +766,12 @@ void GPUAccelerator::resize(const cv::cuda::GpuMat& src,
     cv::cuda::resize(src, dst, dsize, 0, 0, interpolation);
 }
 
-void GPUAccelerator::erode(const cv::cuda::GpuMat& src,
-                          cv::cuda::GpuMat& dst,
-                          const cv::Mat& kernel,
-                          int iterations)
+// 私有辅助方法：形态学操作的通用实现
+static void morphologyOp(const cv::cuda::GpuMat& src,
+                         cv::cuda::GpuMat& dst,
+                         const cv::Mat& kernel,
+                         int iterations,
+                         int morphType)  // cv::MORPH_ERODE 或 cv::MORPH_DILATE
 {
     if (iterations <= 0) {
         src.copyTo(dst);
@@ -639,7 +779,7 @@ void GPUAccelerator::erode(const cv::cuda::GpuMat& src,
     }
 
     auto filter = cv::cuda::createMorphologyFilter(
-        cv::MORPH_ERODE, src.type(), kernel
+        morphType, src.type(), kernel
     );
 
     if (iterations == 1) {
@@ -672,48 +812,20 @@ void GPUAccelerator::erode(const cv::cuda::GpuMat& src,
     pool.release(buffer2);
 }
 
+void GPUAccelerator::erode(const cv::cuda::GpuMat& src,
+                          cv::cuda::GpuMat& dst,
+                          const cv::Mat& kernel,
+                          int iterations)
+{
+    morphologyOp(src, dst, kernel, iterations, cv::MORPH_ERODE);
+}
+
 void GPUAccelerator::dilate(const cv::cuda::GpuMat& src,
                            cv::cuda::GpuMat& dst,
                            const cv::Mat& kernel,
                            int iterations)
 {
-    if (iterations <= 0) {
-        src.copyTo(dst);
-        return;
-    }
-
-    auto filter = cv::cuda::createMorphologyFilter(
-        cv::MORPH_DILATE, src.type(), kernel
-    );
-
-    if (iterations == 1) {
-        filter->apply(src, dst);
-        return;
-    }
-
-    // 使用双缓冲避免每次迭代clone，减少GPU内存分配
-    GpuMemoryPool& pool = GpuMemoryPool::instance();
-    cv::cuda::GpuMat buffer1 = pool.allocate(src.rows, src.cols, src.type());
-    cv::cuda::GpuMat buffer2 = pool.allocate(src.rows, src.cols, src.type());
-
-    cv::cuda::GpuMat* current = &buffer1;
-    cv::cuda::GpuMat* next = &buffer2;
-
-    src.copyTo(*current);
-
-    for (int i = 0; i < iterations; ++i) {
-        if (i == iterations - 1) {
-            // 最后一次迭代，输出到dst
-            filter->apply(*current, dst);
-        } else {
-            filter->apply(*current, *next);
-            std::swap(current, next);
-        }
-    }
-
-    // 归还到内存池
-    pool.release(buffer1);
-    pool.release(buffer2);
+    morphologyOp(src, dst, kernel, iterations, cv::MORPH_DILATE);
 }
 
 void GPUAccelerator::medianFilter(const cv::cuda::GpuMat& src,

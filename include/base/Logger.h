@@ -10,6 +10,7 @@
 #include <QString>
 #include <QStringList>
 #include <QMutex>
+#include <QReadWriteLock>
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
@@ -241,13 +242,17 @@ private:
     QString logFilePath_;       // 日志文件路径
     bool consoleOutput_;        // 是否输出到控制台
     bool fileOutput_;           // 是否输出到文件
-    mutable QMutex mutex_;      // 互斥锁（mutable允许在const方法中锁定）
-    QFile* logFile_;            // 日志文件
-    QTextStream* logStream_;    // 日志流
+    mutable QReadWriteLock rwLock_;  // 读写锁（读多写少场景优化）
+    std::unique_ptr<QFile> logFile_;        // 日志文件（智能指针）
+    std::unique_ptr<QTextStream> logStream_; // 日志流（智能指针）
 
     // 日志历史记录
     QVector<LogEntry> logHistory_;  // 日志历史
     int maxHistorySize_;            // 最大历史条数
+
+    // 批量flush优化
+    int unflushedCount_;                        // 未flush的日志计数
+    static constexpr int FLUSH_THRESHOLD = 10;  // 每10条flush一次
 };
 
 } // namespace Base

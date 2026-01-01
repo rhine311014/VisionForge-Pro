@@ -10,6 +10,8 @@
 #include <QString>
 #include <QVariant>
 #include <QSettings>
+#include <QObject>
+#include <memory>
 
 namespace VisionForge {
 namespace Base {
@@ -21,8 +23,11 @@ namespace Base {
  * - 配置读写：键值对方式存储配置
  * - 持久化：自动保存到INI文件
  * - 类型安全：使用QVariant支持多种类型
+ * - 变更通知：配置变化时发出信号
  */
-class ConfigManager {
+class ConfigManager : public QObject {
+    Q_OBJECT
+
 public:
     /**
      * @brief 获取单例实例
@@ -92,6 +97,24 @@ public:
      */
     QStringList allKeys() const;
 
+signals:
+    /**
+     * @brief 配置值变更信号
+     * @param key 配置键
+     * @param value 新值
+     */
+    void valueChanged(const QString& key, const QVariant& value);
+
+    /**
+     * @brief 配置保存完成信号
+     */
+    void saved();
+
+    /**
+     * @brief 配置加载完成信号
+     */
+    void loaded();
+
 private:
     // 私有构造函数（单例）
     ConfigManager();
@@ -108,8 +131,8 @@ private:
     QString getDefaultConfigPath() const;
 
 private:
-    QString configPath_;        // 配置文件路径
-    QSettings* settings_;       // Qt配置对象
+    QString configPath_;                        // 配置文件路径
+    std::unique_ptr<QSettings> settings_;       // Qt配置对象（智能指针）
 };
 
 } // namespace Base

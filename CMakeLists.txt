@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # 项目信息
 project(VisionForge
-    VERSION 1.6.7
+    VERSION 1.6.8
     DESCRIPTION "VisionForge Pro - 通用工业视觉检测平台"
     LANGUAGES CXX
 )
@@ -340,34 +340,46 @@ endif()
 # 查找CUDA（GPU加速）
 option(USE_CUDA "使用CUDA GPU加速" ON)
 if(USE_CUDA)
-    # 检查OpenCV是否编译了CUDA支持（通过检查OpenCV_CUDA_VERSION变量）
+    # 先查找CUDA Toolkit
+    find_package(CUDAToolkit QUIET)
+
+    set(CUDA_ENABLED FALSE)
+
+    # 方法1: 检查OpenCV是否编译了CUDA支持（通过检查OpenCV_CUDA_VERSION变量）
     if(DEFINED OpenCV_CUDA_VERSION AND OpenCV_CUDA_VERSION)
         message(STATUS "CUDA GPU加速: 已启用")
         message(STATUS "OpenCV CUDA版本: ${OpenCV_CUDA_VERSION}")
-        add_definitions(-DUSE_CUDA)
+        set(CUDA_ENABLED TRUE)
+    else()
+        # 方法2: 检查OpenCV组件列表中是否包含cuda模块
+        foreach(lib ${OpenCV_LIB_COMPONENTS})
+            if(lib MATCHES "opencv_cuda")
+                message(STATUS "CUDA GPU加速: 已启用 (通过组件检测)")
+                set(CUDA_ENABLED TRUE)
+                break()
+            endif()
+        endforeach()
+    endif()
 
-        # 查找CUDA Toolkit（OpenCV CUDA版本需要）
-        find_package(CUDAToolkit QUIET)
+    # 方法3: 对于opencv_world构建，检查CUDA头文件和Toolkit
+    if(NOT CUDA_ENABLED AND CUDAToolkit_FOUND)
+        # 检查OpenCV是否有cuda头文件
+        if(EXISTS "${OpenCV_INCLUDE_DIRS}/opencv2/core/cuda.hpp" OR
+           EXISTS "${OpenCV_DIR}/include/opencv2/core/cuda.hpp")
+            message(STATUS "CUDA GPU加速: 已启用 (opencv_world + CUDA Toolkit ${CUDAToolkit_VERSION})")
+            message(STATUS "注意: 运行时将检测实际CUDA可用性")
+            set(CUDA_ENABLED TRUE)
+        endif()
+    endif()
+
+    if(CUDA_ENABLED)
+        add_definitions(-DUSE_CUDA)
         if(CUDAToolkit_FOUND)
             message(STATUS "CUDA Toolkit版本: ${CUDAToolkit_VERSION}")
         endif()
     else()
-        # 备用检测：检查OpenCV组件列表中是否包含cuda模块
-        set(OPENCV_HAS_CUDA_MODULE FALSE)
-        foreach(lib ${OpenCV_LIB_COMPONENTS})
-            if(lib MATCHES "opencv_cuda")
-                set(OPENCV_HAS_CUDA_MODULE TRUE)
-                break()
-            endif()
-        endforeach()
-
-        if(OPENCV_HAS_CUDA_MODULE)
-            message(STATUS "CUDA GPU加速: 已启用 (通过组件检测)")
-            add_definitions(-DUSE_CUDA)
-        else()
-            message(WARNING "OpenCV未包含CUDA模块，GPU加速将不可用")
-            set(USE_CUDA OFF)
-        endif()
+        message(WARNING "OpenCV未包含CUDA模块或CUDA Toolkit未找到，GPU加速将不可用")
+        set(USE_CUDA OFF)
     endif()
 endif()
 

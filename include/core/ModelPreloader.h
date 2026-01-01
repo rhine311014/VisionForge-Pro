@@ -19,6 +19,16 @@ namespace VisionForge {
 namespace Core {
 
 /**
+ * @brief 预加载优先级（数值越小优先级越高）
+ */
+enum class PreloadPriority {
+    Critical = 0,   ///< 关键（AI模型等大型模型）
+    High = 1,       ///< 高（形状模板等）
+    Normal = 2,     ///< 普通
+    Low = 3         ///< 低
+};
+
+/**
  * @brief 模型预加载任务信息
  */
 struct PreloadTask {
@@ -26,18 +36,27 @@ struct PreloadTask {
     QString toolName;           ///< 工具名称
     QString modelPath;          ///< 模型路径
     Algorithm::VisionTool* tool; ///< 工具指针
+    PreloadPriority priority;   ///< 加载优先级
 
     PreloadTask()
         : tool(nullptr)
+        , priority(PreloadPriority::Normal)
     {}
 
     PreloadTask(const QString& id, const QString& name,
-                const QString& path, Algorithm::VisionTool* t)
+                const QString& path, Algorithm::VisionTool* t,
+                PreloadPriority p = PreloadPriority::Normal)
         : toolId(id)
         , toolName(name)
         , modelPath(path)
         , tool(t)
+        , priority(p)
     {}
+
+    /// 用于排序（优先级高的排在前面）
+    bool operator<(const PreloadTask& other) const {
+        return static_cast<int>(priority) < static_cast<int>(other.priority);
+    }
 };
 
 /**

@@ -32,6 +32,23 @@ QJsonObject StationConfig::toJson() const
     platformJson["dRange"] = dRange;
     json["platform"] = platformJson;
 
+    // UVW平台配置 (仅UVW系列平台保存)
+    if (Platform::platformIsUVW(platformType)) {
+        QJsonObject uvwJson;
+        uvwJson["structureType"] = uvwStructureType;
+        uvwJson["sliderType"] = uvwSliderType;
+        uvwJson["precisionGrade"] = uvwPrecisionGrade;
+        uvwJson["node1PosX"] = uvwNode1PosX;
+        uvwJson["node1PosY"] = uvwNode1PosY;
+        uvwJson["node2PosX"] = uvwNode2PosX;
+        uvwJson["node2PosY"] = uvwNode2PosY;
+        uvwJson["node3PosX"] = uvwNode3PosX;
+        uvwJson["node3PosY"] = uvwNode3PosY;
+        uvwJson["travelXY"] = uvwTravelXY;
+        uvwJson["travelTheta"] = uvwTravelTheta;
+        json["uvwConfig"] = uvwJson;
+    }
+
     // 相机配置
     QJsonObject camerasJson;
     camerasJson["count"] = cameraNum;
@@ -113,6 +130,22 @@ StationConfig StationConfig::fromJson(const QJsonObject& json)
     config.xRange = platformJson["xRange"].toDouble(500.0);
     config.yRange = platformJson["yRange"].toDouble(500.0);
     config.dRange = platformJson["dRange"].toDouble(360.0);
+
+    // UVW平台配置
+    if (json.contains("uvwConfig")) {
+        QJsonObject uvwJson = json["uvwConfig"].toObject();
+        config.uvwStructureType = uvwJson["structureType"].toInt(0);
+        config.uvwSliderType = uvwJson["sliderType"].toInt(0);
+        config.uvwPrecisionGrade = uvwJson["precisionGrade"].toInt(0);
+        config.uvwNode1PosX = uvwJson["node1PosX"].toDouble(67.5);
+        config.uvwNode1PosY = uvwJson["node1PosY"].toDouble(-57.0);
+        config.uvwNode2PosX = uvwJson["node2PosX"].toDouble(67.5);
+        config.uvwNode2PosY = uvwJson["node2PosY"].toDouble(57.0);
+        config.uvwNode3PosX = uvwJson["node3PosX"].toDouble(-57.0);
+        config.uvwNode3PosY = uvwJson["node3PosY"].toDouble(67.5);
+        config.uvwTravelXY = uvwJson["travelXY"].toDouble(5.0);
+        config.uvwTravelTheta = uvwJson["travelTheta"].toDouble(2.0);
+    }
 
     // 相机配置
     QJsonObject camerasJson = json["cameras"].toObject();

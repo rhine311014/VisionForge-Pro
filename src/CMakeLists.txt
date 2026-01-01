@@ -143,6 +143,10 @@ if(MSVC)
     target_compile_options(VisionForge PRIVATE
         /utf-8  # 使用UTF-8编码
     )
+    # 解决LIBCMT与MSVCRT库冲突警告 (LNK4098)
+    target_link_options(VisionForge PRIVATE
+        /NODEFAULTLIB:libcmt
+    )
 endif()
 
 # ============================================================
@@ -178,6 +182,106 @@ if(WIN32)
                 "$<TARGET_FILE:VisionForge>"
             COMMENT "运行 windeployqt 部署Qt依赖..."
         )
+    endif()
+
+    # 复制OpenCV DLL到输出目录（确保使用CUDA版本）
+    if(OpenCV_FOUND AND OpenCV_DIR)
+        set(OPENCV_WORLD_DLL "${OpenCV_DIR}/x64/vc17/bin/opencv_world${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}0.dll")
+        if(EXISTS "${OPENCV_WORLD_DLL}")
+            add_custom_command(TARGET VisionForge POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${OPENCV_WORLD_DLL}"
+                    "$<TARGET_FILE_DIR:VisionForge>"
+                COMMENT "复制OpenCV CUDA DLL到输出目录..."
+            )
+            message(STATUS "将复制OpenCV DLL: ${OPENCV_WORLD_DLL}")
+        else()
+            message(WARNING "OpenCV DLL未找到: ${OPENCV_WORLD_DLL}")
+        endif()
+    endif()
+
+    # 复制CUDA DLL到输出目录（OpenCV CUDA版本依赖）
+    # 自动检测CUDA Toolkit路径
+    if(DEFINED ENV{CUDA_PATH})
+        set(CUDA_TOOLKIT_ROOT "$ENV{CUDA_PATH}")
+    elseif(EXISTS "D:/Program Files/CUDA12.5")
+        set(CUDA_TOOLKIT_ROOT "D:/Program Files/CUDA12.5")
+    elseif(EXISTS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5")
+        set(CUDA_TOOLKIT_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5")
+    endif()
+
+    if(CUDA_TOOLKIT_ROOT AND EXISTS "${CUDA_TOOLKIT_ROOT}/bin")
+        set(CUDA_BIN_DIR "${CUDA_TOOLKIT_ROOT}/bin")
+
+        # CUDA运行时和NPP库列表
+        set(CUDA_DLLS
+            "cudart64_12.dll"
+            "nppc64_12.dll"
+            "nppial64_12.dll"
+            "nppicc64_12.dll"
+            "nppidei64_12.dll"
+            "nppif64_12.dll"
+            "nppig64_12.dll"
+            "nppim64_12.dll"
+            "nppist64_12.dll"
+            "nppisu64_12.dll"
+            "nppitc64_12.dll"
+            "cufft64_11.dll"
+            "cublas64_12.dll"
+            "cublasLt64_12.dll"
+        )
+
+        foreach(DLL ${CUDA_DLLS})
+            set(DLL_PATH "${CUDA_BIN_DIR}/${DLL}")
+            if(EXISTS "${DLL_PATH}")
+                add_custom_command(TARGET VisionForge POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${DLL_PATH}"
+                        "$<TARGET_FILE_DIR:VisionForge>"
+                )
+            endif()
+        endforeach()
+
+        message(STATUS "将复制CUDA DLL从: ${CUDA_BIN_DIR}")
+    else()
+        message(WARNING "未找到CUDA Toolkit，跳过CUDA DLL复制")
+    endif()
+
+    # 复制cuDNN DLL到输出目录（深度学习推理依赖）
+    # 自动检测cuDNN路径
+    if(EXISTS "D:/Program Files/cuDNN 9.2.0/bin/12.9")
+        set(CUDNN_BIN_DIR "D:/Program Files/cuDNN 9.2.0/bin/12.9")
+    elseif(EXISTS "D:/Program Files/cuDNN/cudnn-windows-x86_64-8.9.7.29_cuda12-archive/bin")
+        set(CUDNN_BIN_DIR "D:/Program Files/cuDNN/cudnn-windows-x86_64-8.9.7.29_cuda12-archive/bin")
+    endif()
+
+    if(CUDNN_BIN_DIR AND EXISTS "${CUDNN_BIN_DIR}")
+        # cuDNN 9.x DLL列表
+        set(CUDNN_DLLS
+            "cudnn64_9.dll"
+            "cudnn_adv64_9.dll"
+            "cudnn_cnn64_9.dll"
+            "cudnn_engines_precompiled64_9.dll"
+            "cudnn_engines_runtime_compiled64_9.dll"
+            "cudnn_graph64_9.dll"
+            "cudnn_heuristic64_9.dll"
+            "cudnn_ops64_9.dll"
+        )
+
+        foreach(DLL ${CUDNN_DLLS})
+            set(DLL_PATH "${CUDNN_BIN_DIR}/${DLL}")
+            if(EXISTS "${DLL_PATH}")
+                add_custom_command(TARGET VisionForge POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${DLL_PATH}"
+                        "$<TARGET_FILE_DIR:VisionForge>"
+                )
+            endif()
+        endforeach()
+
+        message(STATUS "将复制cuDNN DLL从: ${CUDNN_BIN_DIR}")
+    else()
+        message(WARNING "未找到cuDNN，跳过cuDNN DLL复制")
     endif()
 endif()
 

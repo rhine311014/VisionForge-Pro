@@ -266,6 +266,10 @@ private:
 
     // 内存使用跟踪（原子计数器，O(1)查询）
     mutable std::atomic<size_t> currentMemoryUsage_{0};
+
+    // 清理节流控制
+    mutable std::chrono::steady_clock::time_point lastCleanupTime_;
+    static constexpr std::chrono::milliseconds CLEANUP_COOLDOWN{1000};  // 1秒冷却期
 };
 
 } // namespace Base
