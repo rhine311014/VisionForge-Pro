@@ -70,6 +70,10 @@ set(UI_SOURCES
     # 操作员界面组件
     OperatorToolBar.cpp
     InfoBar.cpp
+    # 图像数据源对话框
+    ImageSourceDialog.cpp
+    # 选项设置对话框
+    OptionsDialog.cpp
 )
 
 # 如果启用Halcon，添加HalconImageViewer
@@ -91,6 +95,16 @@ if(USE_HALCON)
         CalibrationWizard.cpp
         # 读码工具对话框
         CodeReadToolDialog.cpp
+        # 搜索工具对话框基类
+        SearchToolDialog.cpp
+        # 图案搜索工具对话框
+        PatternSearchToolDialog.cpp
+        # 角点搜索工具对话框
+        CornerSearchToolDialog.cpp
+        # 快速搜索工具对话框
+        QuickSearchToolDialog.cpp
+        # 虚拟对象计算工具对话框
+        VirtualObjectToolDialog.cpp
     )
 endif()
 
@@ -164,6 +178,10 @@ set(UI_HEADERS
     # 操作员界面组件头文件
     ${CMAKE_SOURCE_DIR}/include/ui/OperatorToolBar.h
     ${CMAKE_SOURCE_DIR}/include/ui/InfoBar.h
+    # 图像数据源对话框头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/ImageSourceDialog.h
+    # 选项设置对话框头文件
+    ${CMAKE_SOURCE_DIR}/include/ui/OptionsDialog.h
 )
 
 # 如果启用Halcon，添加HalconImageViewer头文件
@@ -185,6 +203,16 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/ui/CalibrationWizard.h
         # 读码工具对话框头文件
         ${CMAKE_SOURCE_DIR}/include/ui/CodeReadToolDialog.h
+        # 搜索工具对话框基类头文件
+        ${CMAKE_SOURCE_DIR}/include/ui/SearchToolDialog.h
+        # 图案搜索工具对话框头文件
+        ${CMAKE_SOURCE_DIR}/include/ui/PatternSearchToolDialog.h
+        # 角点搜索工具对话框
+        ${CMAKE_SOURCE_DIR}/include/ui/CornerSearchToolDialog.h
+        # 快速搜索工具对话框
+        ${CMAKE_SOURCE_DIR}/include/ui/QuickSearchToolDialog.h
+        # 虚拟对象计算工具对话框
+        ${CMAKE_SOURCE_DIR}/include/ui/VirtualObjectToolDialog.h
     )
 endif()
 

@@ -84,6 +84,12 @@ set(ALGORITHM_SOURCES
     AlignmentOutputTool.cpp
     # 亚像素边缘检测
     SubPixelEdgeTool.cpp
+    # 角点搜索工具（OpenCV）
+    CornerSearchTool.cpp
+    # 快速搜索工具（OpenCV）
+    QuickSearchTool.cpp
+    # 虚拟对象计算工具（纯几何计算）
+    VirtualObjectTool.cpp
 )
 
 # 如果启用Halcon，添加Halcon相关工具
@@ -93,6 +99,8 @@ if(USE_HALCON)
         ShapeMatchUtils.cpp
         ShapeModelManager.cpp
         CodeReadTool.cpp
+        # 搜索工具
+        PatternSearchTool.cpp
     )
 endif()
 
@@ -137,6 +145,12 @@ set(ALGORITHM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/algorithm/AlignmentOutputTool.h
     # 亚像素边缘检测
     ${CMAKE_SOURCE_DIR}/include/algorithm/SubPixelEdgeTool.h
+    # 角点搜索工具头文件
+    ${CMAKE_SOURCE_DIR}/include/algorithm/CornerSearchTool.h
+    # 快速搜索工具头文件
+    ${CMAKE_SOURCE_DIR}/include/algorithm/QuickSearchTool.h
+    # 虚拟对象计算工具头文件
+    ${CMAKE_SOURCE_DIR}/include/algorithm/VirtualObjectTool.h
 )
 
 # 如果启用Halcon，添加Halcon相关头文件
@@ -147,6 +161,8 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/algorithm/HalconObjectWrapper.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/ShapeModelManager.h
         ${CMAKE_SOURCE_DIR}/include/algorithm/CodeReadTool.h
+        # 搜索工具头文件
+        ${CMAKE_SOURCE_DIR}/include/algorithm/PatternSearchTool.h
     )
 endif()
 

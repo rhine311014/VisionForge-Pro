@@ -11,6 +11,7 @@ set(COMM_SOURCES
     KeyencePCLinkComm.cpp
     PLCManager.cpp
     LightController.cpp
+    LightControllerManager.cpp
     # OPC UA支持（MES对接）
     OPCUAClient.cpp
 )
@@ -24,6 +25,7 @@ set(COMM_HEADERS
     ${CMAKE_SOURCE_DIR}/include/comm/KeyencePCLinkComm.h
     ${CMAKE_SOURCE_DIR}/include/comm/PLCManager.h
     ${CMAKE_SOURCE_DIR}/include/comm/LightController.h
+    ${CMAKE_SOURCE_DIR}/include/comm/LightControllerManager.h
     # OPC UA支持（MES对接）
     ${CMAKE_SOURCE_DIR}/include/comm/OPCUAClient.h
 )
