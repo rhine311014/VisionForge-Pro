@@ -1,6 +1,38 @@
 /**
  * @file ErrorRecovery.cpp
  * @brief 错误恢复机制实现
+ * @author VisionForge Team
+ * @date 2025-12-19
+ *
+ * @details
+ * 本文件实现ErrorRecovery类及相关辅助类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 指数退避算法
+ * calculateDelay()实现指数退避：
+ * delay = min(initialDelay * multiplier^attempt, maxDelay)
+ *
+ * 默认配置：
+ * - 初始延迟：100ms
+ * - 最大延迟：5000ms
+ * - 退避乘数：2.0
+ *
+ * ### 策略确定逻辑
+ * determineStrategy()按以下优先级：
+ * 1. Fatal错误 -> 强制Abort
+ * 2. 特定错误码策略
+ * 3. 根据严重程度的默认策略
+ *
+ * ### 错误历史管理
+ * - 使用QVector存储，FIFO方式
+ * - 超过maxErrorHistory_时自动清理最旧记录
+ * - 默认保留100条历史
+ *
+ * ### ScopedCheckpoint工作原理
+ * - 构造时创建检查点
+ * - commit()标记成功，阻止回滚
+ * - 析构时：未commit则回滚，然后删除检查点
  */
 
 #include "base/ErrorRecovery.h"

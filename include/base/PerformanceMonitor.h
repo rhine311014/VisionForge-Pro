@@ -1,9 +1,64 @@
 /**
  * @file PerformanceMonitor.h
- * @brief 性能监控工具
- * @details 用于性能分析、计时和性能统计
+ * @brief 性能监控工具 - 用于性能分析、计时和性能统计
  * @author VisionForge Team
  * @date 2025-12-15
+ *
+ * @details
+ * 本文件实现了VisionForge项目的性能监控系统，用于追踪和分析代码性能。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的性能监控器实例
+ * - **RAII模式**：ScopedTimer自动记录函数执行时间
+ * - **观察者模式**：收集各处的性能数据进行统计分析
+ *
+ * ## 核心组件
+ *
+ * ### ScopedTimer
+ * RAII风格的计时器，在作用域开始时自动开始计时，
+ * 作用域结束时自动记录耗时到PerformanceMonitor。
+ *
+ * ### PerformanceStats
+ * 统计数据结构，包含：
+ * - 总时间、最小/最大/平均时间
+ * - 调用次数
+ *
+ * ### PerformanceMonitor
+ * 性能监控器单例，提供：
+ * - 性能数据记录和查询
+ * - 统计报告生成和导出
+ * - 启用/禁用控制
+ *
+ * ## 线程安全
+ * - 使用QMutex保护统计数据
+ * - record()方法线程安全
+ * - 可在多线程环境中使用
+ *
+ * ## 性能开销
+ * - 计时开销约0.1微秒
+ * - 可通过setEnabled(false)完全禁用
+ * - 禁用后PERF_TIMER宏几乎无开销
+ *
+ * ## 使用示例
+ * @code
+ * // 使用RAII计时器
+ * void processImage() {
+ *     PERF_TIMER("processImage");
+ *     // ... 处理逻辑 ...
+ * }
+ *
+ * // 手动记录
+ * QElapsedTimer timer;
+ * timer.start();
+ * // ... 操作 ...
+ * PerformanceMonitor::instance().record("操作名", timer.elapsed());
+ *
+ * // 打印性能报告
+ * PerformanceMonitor::instance().printReport(10);  // 打印前10个最慢的
+ *
+ * // 导出到文件
+ * PerformanceMonitor::instance().exportReport("perf_report.csv");
+ * @endcode
  */
 
 #pragma once

@@ -29,7 +29,7 @@ struct PositionCameraBinding;
 }
 
 namespace Algorithm {
-struct CalibrationResult;
+class CalibrationResult;
 }
 
 namespace UI {

@@ -1,6 +1,35 @@
 /**
  * @file ConfigManager.cpp
  * @brief 配置管理器实现
+ * @author VisionForge Team
+ * @date 2025-12-14
+ *
+ * @details
+ * 本文件实现ConfigManager类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 配置文件位置
+ * 默认配置文件存储在系统标准应用数据目录：
+ * - Windows: %APPDATA%/VisionForge Pro/config.ini
+ * - Linux: ~/.local/share/VisionForge Pro/config.ini
+ * - macOS: ~/Library/Application Support/VisionForge Pro/config.ini
+ *
+ * ### INI文件格式
+ * 使用Qt的INI格式，支持分组：
+ * @code
+ * [Camera]
+ * Exposure=1000
+ * Gain=1.5
+ *
+ * [PLC]
+ * IP=192.168.1.100
+ * Port=502
+ * @endcode
+ *
+ * ### 信号机制
+ * - valueChanged：仅在值实际发生变化时发出
+ * - saved/loaded：配置同步完成后发出
  */
 
 #include "base/ConfigManager.h"

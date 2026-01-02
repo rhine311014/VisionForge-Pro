@@ -2,8 +2,52 @@
  * @file RemoteLogCollector.h
  * @brief 远程日志收集器 - 统一收集和管理应用日志
  * @details 支持日志分级、过滤、本地缓存和远程上传
+ *
+ * @section log_overview 日志系统概述
+ * RemoteLogCollector提供统一的日志管理功能，支持:
+ * - 六级日志分类: Trace/Debug/Info/Warn/Error/Fatal
+ * - 分类过滤: 按模块筛选日志
+ * - 本地存储: 文件日志持久化
+ * - 内存缓存: 快速日志查询
+ * - 远程推送: 实时日志上报
+ *
+ * @section log_levels 日志级别说明
+ * | 级别 | 数值 | 用途 | 示例 |
+ * |------|------|------|------|
+ * | Trace | 0 | 详细调试 | 函数进入/退出 |
+ * | Debug | 1 | 开发调试 | 变量值、状态 |
+ * | Info | 2 | 运行信息 | 启动、配置加载 |
+ * | Warn | 3 | 警告信息 | 配置缺失、性能 |
+ * | Error | 4 | 错误信息 | 操作失败、异常 |
+ * | Fatal | 5 | 致命错误 | 系统崩溃、无法恢复 |
+ *
+ * @section log_format 日志格式
+ * @code
+ * [2025-12-20 10:30:45.123] [INFO] [Vision] [MainWindow.cpp:156] 检测完成
+ * @endcode
+ *
+ * @section log_rotation 日志轮转
+ * - 单文件最大10MB
+ * - 超过大小自动重命名为: visionforge.log.20251220_103045
+ * - 创建新的日志文件继续记录
+ *
+ * @section usage_example 使用示例
+ * @code
+ * // 方式1: 直接使用实例
+ * RemoteLogCollector logger;
+ * logger.initialize("./logs/app.log");
+ * logger.info("Vision", "检测完成，耗时100ms");
+ * logger.error("Comm", "连接失败", __FILE__, __LINE__);
+ *
+ * // 方式2: 使用全局宏（需定义USE_REMOTE_LOG_COLLECTOR）
+ * VFLOG_INFO("Vision", "开始检测");
+ * VFLOG_ERROR("Comm", "连接超时");
+ * @endcode
+ *
  * @author VisionForge Team
+ * @version 1.6.0
  * @date 2025-12-20
+ * @copyright Copyright (c) 2025 VisionForge. All rights reserved.
  */
 
 #pragma once

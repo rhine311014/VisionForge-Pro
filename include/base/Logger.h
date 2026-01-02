@@ -1,8 +1,53 @@
 /**
  * @file Logger.h
- * @brief 日志系统
+ * @brief 日志系统 - 多级别日志记录与导出
  * @author VisionForge Team
  * @date 2025-12-14
+ *
+ * @details
+ * 本文件实现了VisionForge项目的核心日志系统，提供统一的日志记录接口。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的日志实例，通过instance()获取
+ * - **模板方法模式**：统一的日志格式化和输出流程
+ *
+ * ## 核心功能
+ * - 多级别日志：Debug、Info、Warning、Error、Critical
+ * - 多输出目标：控制台输出、文件输出
+ * - 日志历史：内存中保留可配置数量的日志记录
+ * - 多格式导出：支持纯文本、CSV、JSON、HTML格式
+ * - 日志筛选：按级别、时间、关键词筛选日志
+ *
+ * ## 线程安全
+ * - 使用QReadWriteLock实现读写锁，优化读多写少场景
+ * - 写操作（记录日志）使用写锁
+ * - 读操作（查询历史、导出）使用读锁
+ * - 多线程环境下可安全使用
+ *
+ * ## 内存管理
+ * - 日志历史使用QVector存储，自动管理内存
+ * - 文件句柄使用std::unique_ptr智能指针管理
+ * - 支持设置最大历史条数，防止内存无限增长
+ *
+ * ## 性能优化
+ * - 批量flush机制：累积多条日志后统一写入磁盘
+ * - 日志级别过滤：低于设定级别的日志直接跳过
+ *
+ * ## 使用示例
+ * @code
+ * // 使用便捷宏记录日志
+ * LOG_INFO("应用程序启动");
+ * LOG_DEBUG("调试信息");
+ * LOG_WARNING("警告消息");
+ * LOG_ERROR("错误信息");
+ *
+ * // 配置日志
+ * Logger::instance().setLogFile("app.log");
+ * Logger::instance().setLogLevel(Logger::Debug);
+ *
+ * // 导出日志
+ * Logger::instance().exportLogs("export.html", LogExportFormat::HTML);
+ * @endcode
  */
 
 #pragma once

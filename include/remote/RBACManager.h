@@ -2,8 +2,48 @@
  * @file RBACManager.h
  * @brief RBAC (Role-Based Access Control) 权限管理器
  * @details 负责用户管理、角色定义和权限检查
+ *
+ * @section rbac_overview RBAC概述
+ * RBAC（基于角色的访问控制）是一种广泛使用的权限管理模型，
+ * 通过将权限分配给角色，再将角色分配给用户来实现权限管理。
+ *
+ * @section role_hierarchy 角色层次
+ * 系统定义了四个预设角色，权限从高到低:
+ * | 角色 | 权限范围 | 适用场景 |
+ * |------|----------|----------|
+ * | Admin | 所有权限 | 系统管理员 |
+ * | Operator | 读写权限（不含配置） | 日常操作人员 |
+ * | Viewer | 只读权限 | 监控查看人员 |
+ * | Guest | 受限只读 | 临时访问人员 |
+ *
+ * @section permission_list 权限列表
+ * - 性能监控: ViewPerformanceMetrics, ExportPerformanceData
+ * - 日志管理: ViewLogs, ExportLogs, ClearLogs
+ * - 系统配置: ViewConfiguration, ModifyConfiguration
+ * - 系统控制: StartStopServices, RestartSystem
+ * - 用户管理: ViewUsers, ManageUsers, ManageRoles
+ * - 数据库: ViewDatabase, ModifyDatabase, ExportDatabase, CleanupDatabase
+ *
+ * @section security_features 安全特性
+ * - 密码哈希: SHA-256 + 盐值存储
+ * - 防暴力破解: 登录尝试限制和账户锁定
+ * - 审计日志: 记录所有安全相关操作
+ *
+ * @section authentication_process 认证流程
+ * @code
+ * 1. 用户提交用户名和密码
+ * 2. 检查用户是否存在
+ * 3. 检查账户是否激活
+ * 4. 检查账户是否被锁定
+ * 5. 验证密码（SHA-256 + 盐值）
+ * 6. 认证成功：重置失败计数，更新登录时间
+ * 7. 认证失败：增加失败计数，超过阈值则锁定账户
+ * @endcode
+ *
  * @author VisionForge Team
+ * @version 1.6.0
  * @date 2025-12-20
+ * @copyright Copyright (c) 2025 VisionForge. All rights reserved.
  */
 
 #pragma once

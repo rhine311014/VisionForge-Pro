@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="22.11.0.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image, 'data/flower') </l>
+<c>*转换为单通道灰色图像</c>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<c>*进行亚像素边缘提取。分别使用了不同的滞后阈值以便进行对比</c>
+<l>edges_sub_pix (GrayImage, Edges1, 'lanser2', 0.5, 40, 50) </l>
+<l>edges_sub_pix (GrayImage, Edges2, 'lanser2', 1, 25, 50) </l>
+<l>edges_sub_pix (GrayImage, Edges3, 'lanser2', 0.5, 5, 25) </l>
+<c>*将提取结果显示在窗口中</c>
+<l>dev_display (Edges1) </l>
+<l>stop()</l>
+<l>dev_display (Edges2)</l>
+<l>stop()</l>
+<l>dev_display (Edges3)</l>
+<c></c>
+<c></c>
+<l>read_image (Image, 'data/flower') </l>
+<c>*使用canny算子进行亚像素边缘提取</c>
+<l>edges_color_sub_pix (Image, Edges1, 'canny', 0.5, 5, 50)</l>
+<c>*使用canny算子进行亚像素边缘提取</c>
+<l>edges_color_sub_pix (Image, Edges2, 'sobel_fast', 0.5, 40, 70)</l>
+<l>dev_clear_window ()</l>
+<l>dev_display (Edges1) </l>
+<l>dev_display (Edges2)</l>
+<c></c>
+<c></c>
+<c></c>
+<l>read_image (Image, 'data/flower') </l>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<l>dev_open_window (0, 512, 512, 512, 'black', WindowHandle1)</l>
+<c>*进行边缘检测</c>
+<l>lines_gauss(GrayImage,Lines,1.5,2,10,'light','true','bar-shaped','true')</l>
+<c>*在窗口将轮廓线条绘制出来</c>
+<l>dev_set_color ('red')</l>
+<l>dev_clear_window()</l>
+<l>dev_display (Lines)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

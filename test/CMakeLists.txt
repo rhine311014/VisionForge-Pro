@@ -98,8 +98,10 @@ if(USE_GTEST)
                 halcon
             )
         endif()
-        # 添加到CTest
-        gtest_discover_tests(${TEST_NAME})
+        # 添加到CTest（使用PRE_TEST模式避免构建时运行测试发现）
+        gtest_discover_tests(${TEST_NAME}
+            DISCOVERY_MODE PRE_TEST
+        )
         set_target_properties(${TEST_NAME} PROPERTIES
             CXX_STANDARD 17
             CXX_STANDARD_REQUIRED ON
@@ -163,7 +165,7 @@ if(USE_GTEST)
         Qt6::Test
         Qt6::Sql
     )
-    gtest_discover_tests(test_SecurityManager_gtest)
+    gtest_discover_tests(test_SecurityManager_gtest DISCOVERY_MODE PRE_TEST)
 
     # TokenAuthManager测试
     add_executable(test_TokenAuthManager_gtest test_TokenAuthManager_gtest.cpp)
@@ -175,7 +177,7 @@ if(USE_GTEST)
         Qt6::Core
         Qt6::Test
     )
-    gtest_discover_tests(test_TokenAuthManager_gtest)
+    gtest_discover_tests(test_TokenAuthManager_gtest DISCOVERY_MODE PRE_TEST)
 
     # RBACManager测试
     add_executable(test_RBACManager_gtest test_RBACManager_gtest.cpp)
@@ -188,7 +190,7 @@ if(USE_GTEST)
         Qt6::Test
         Qt6::Sql
     )
-    gtest_discover_tests(test_RBACManager_gtest)
+    gtest_discover_tests(test_RBACManager_gtest DISCOVERY_MODE PRE_TEST)
 
     # Platform模块测试（P0核心）
     add_executable(test_Platform_gtest test_Platform_gtest.cpp)
@@ -200,7 +202,7 @@ if(USE_GTEST)
         Qt6::Test
         Qt6::Gui
     )
-    gtest_discover_tests(test_Platform_gtest)
+    gtest_discover_tests(test_Platform_gtest DISCOVERY_MODE PRE_TEST)
 
     # Calibration模块测试（P1标定对齐）
     add_executable(test_Calibration_gtest test_Calibration_gtest.cpp)
@@ -213,7 +215,7 @@ if(USE_GTEST)
         Qt6::Test
         Qt6::Gui
     )
-    gtest_discover_tests(test_Calibration_gtest)
+    gtest_discover_tests(test_Calibration_gtest DISCOVERY_MODE PRE_TEST)
 
     # PLC通信模块测试（工业级PLC协议）
     add_executable(test_PLC_gtest test_PLC_gtest.cpp)
@@ -232,7 +234,7 @@ if(USE_GTEST)
         CXX_STANDARD_REQUIRED ON
         AUTOMOC ON
     )
-    gtest_discover_tests(test_PLC_gtest)
+    gtest_discover_tests(test_PLC_gtest DISCOVERY_MODE PRE_TEST)
 
     message(STATUS "  - test_ImageData_gtest (GTest)")
     message(STATUS "  - test_BasicImageProcessing_gtest (GTest)")
@@ -269,7 +271,7 @@ if(USE_GTEST)
         CXX_STANDARD_REQUIRED ON
         AUTOMOC ON
     )
-    gtest_discover_tests(test_Algorithm3D_gtest)
+    gtest_discover_tests(test_Algorithm3D_gtest DISCOVERY_MODE PRE_TEST)
     message(STATUS "  - test_Algorithm3D_gtest (GTest - P5 3D算法)")
 
     # AI深度学习模块测试（P6 AI检测算法）
@@ -290,7 +292,7 @@ if(USE_GTEST)
         CXX_STANDARD_REQUIRED ON
         AUTOMOC ON
     )
-    gtest_discover_tests(test_AI_gtest)
+    gtest_discover_tests(test_AI_gtest DISCOVERY_MODE PRE_TEST)
     message(STATUS "  - test_AI_gtest (GTest - P6 AI深度学习)")
 endif()
 

@@ -1,6 +1,17 @@
 /**
  * @file VisionEngine.cpp
  * @brief 视觉引擎核心类实现
+ * @details 实现VisionEngine类的所有功能，包括：
+ *          - 相机生命周期管理（打开、关闭、采集）
+ *          - 图像管理（加载、保存、序列浏览）
+ *          - 工具链执行（同步/异步）
+ *          - 图像变换处理（旋转、镜像）
+ *
+ * @author VisionForge Team
+ * @version 1.7.0
+ * @date 2026-01-02
+ *
+ * @copyright Copyright (c) 2026 VisionForge
  */
 
 #include "core/VisionEngine.h"
@@ -22,8 +33,14 @@
 namespace VisionForge {
 namespace Core {
 
+/**
+ * @brief 获取VisionEngine单例实例
+ * @details 使用Meyers单例模式，线程安全的懒初始化
+ * @return VisionEngine单例引用
+ */
 VisionEngine& VisionEngine::instance()
 {
+    // 静态局部变量实现线程安全的单例模式（C++11保证）
     static VisionEngine instance;
     return instance;
 }

@@ -1,8 +1,47 @@
 /**
  * @file ConfigManager.h
- * @brief 配置管理器
+ * @brief 配置管理器 - 应用程序配置的集中管理
  * @author VisionForge Team
  * @date 2025-12-14
+ *
+ * @details
+ * 本文件实现了VisionForge项目的配置管理系统，提供统一的配置读写接口。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的配置管理器实例
+ * - **观察者模式 (Observer)**：配置变更时通过Qt信号通知订阅者
+ *
+ * ## 核心功能
+ * - 键值对存储：使用QString作为键，QVariant作为值
+ * - 持久化存储：配置自动保存到INI格式文件
+ * - 类型安全：QVariant支持多种数据类型
+ * - 变更通知：配置变化时发出valueChanged信号
+ * - 分组管理：支持使用"/"分隔的键实现分组
+ *
+ * ## 线程安全
+ * - QSettings内部实现了线程安全
+ * - 配置变更信号可跨线程发送
+ * - 建议在主线程进行配置操作
+ *
+ * ## 内存管理
+ * - QSettings使用std::unique_ptr智能指针管理
+ * - 析构时自动同步配置到磁盘
+ *
+ * ## 使用示例
+ * @code
+ * // 读写配置
+ * ConfigManager::instance().setValue("Camera/Exposure", 1000);
+ * int exposure = ConfigManager::instance().getValue("Camera/Exposure", 500).toInt();
+ *
+ * // 监听配置变化
+ * connect(&ConfigManager::instance(), &ConfigManager::valueChanged,
+ *         [](const QString& key, const QVariant& value) {
+ *             qDebug() << "Config changed:" << key << "=" << value;
+ *         });
+ *
+ * // 保存配置
+ * ConfigManager::instance().save();
+ * @endcode
  */
 
 #pragma once

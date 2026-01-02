@@ -3,6 +3,63 @@
  * @brief 图像内存池 - 预分配、零拷贝、内存压力管理
  * @author VisionForge Team
  * @date 2025-12-14
+ *
+ * @details
+ * 本文件实现了高性能的图像对象池，用于减少频繁的内存分配开销。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的内存池实例
+ * - **对象池模式 (Object Pool)**：预分配对象，复用释放的对象
+ * - **策略模式 (Strategy)**：可选择不同的缓存清理策略
+ *
+ * ## 核心功能
+ * - 对象复用：避免频繁的malloc/free调用
+ * - 自适应内存限制：根据系统内存自动设置上限
+ * - 多种清理策略：LRU、LFU、FIFO、按大小优先
+ * - 内存压力响应：自动清理释放内存
+ * - 统计信息：缓存命中率、内存使用量等
+ *
+ * ## 内存管理策略
+ *
+ * ### 池键设计
+ * 使用{width, height, type}三元组作为池键，相同规格的图像共享池槽位。
+ *
+ * ### 自适应内存限制
+ * - 默认使用系统内存的10%
+ * - 支持配置：绝对值(512MB)、百分比(25%)、自动(auto)
+ * - 限制范围：最小128MB，最大2GB
+ *
+ * ### 清理策略
+ * - LRU (Least Recently Used)：清理最久未使用的对象
+ * - LFU (Least Frequently Used)：清理使用频率最低的对象
+ * - FIFO (First In First Out)：清理最早入池的对象
+ * - Size：优先清理占用内存最大的对象
+ *
+ * ## 线程安全
+ * - 使用QRecursiveMutex保护池操作
+ * - 递归锁避免嵌套调用死锁
+ * - 统计计数器使用std::atomic无锁更新
+ *
+ * ## 性能优化
+ * - O(1)内存使用量查询（原子计数器）
+ * - 清理操作节流：1秒冷却期防止频繁清理
+ * - 池外创建对象：锁持有时间最小化
+ *
+ * ## 使用示例
+ * @code
+ * // 从池中分配图像
+ * auto image = ImageMemoryPool::instance().allocate(1920, 1080, CV_8UC3);
+ *
+ * // 使用完毕后归还（通常自动管理）
+ * ImageMemoryPool::instance().release(image);
+ *
+ * // 预分配常用规格
+ * ImageMemoryPool::instance().preallocate(1920, 1080, CV_8UC3, 10);
+ *
+ * // 查看统计信息
+ * auto stats = ImageMemoryPool::instance().getStatistics();
+ * qDebug() << "命中率:" << stats.hitRate * 100 << "%";
+ * @endcode
  */
 
 #pragma once

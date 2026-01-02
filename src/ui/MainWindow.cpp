@@ -40,6 +40,7 @@
 #include "ui/NinePointCalibDialog.h"
 #include "ui/QRCalibDialog.h"
 #include "ui/SystemSettingsDialog.h"
+#include "ui/OptionsDialog.h"
 // 工具对话框工厂
 #include "ui/ToolDialogFactory.h"
 // 系统对话框
@@ -270,6 +271,27 @@ MainWindow::MainWindow(QWidget* parent)
                 sceneSwitchBar_->refreshScenes(currentStation);
             }
 
+            // 初始化InfoBar的位置和场景列表（从配置加载）
+            if (infoBar_) {
+                // 从当前工位配置加载位置列表
+                QStringList positions;
+                for (const auto& binding : currentStation->positionBindings) {
+                    positions << binding.positionName;
+                }
+                infoBar_->setPositions(positions);
+
+                // 从当前工位配置加载场景列表
+                QStringList scenes;
+                for (const auto& scene : currentStation->scenes) {
+                    scenes << scene.sceneName;
+                }
+                infoBar_->setScenes(scenes);
+                infoBar_->setCurrentScene(currentStation->currentSceneIndex);
+
+                LOG_DEBUG(QString("InfoBar已初始化: %1个位置, %2个场景")
+                         .arg(positions.size()).arg(scenes.size()));
+            }
+
             // 如果位置数量大于1，默认显示多相机视图
             if (currentStation->positionNum > 1) {
                 // 切换到多相机视图模式（使用堆叠容器切换）
@@ -297,14 +319,11 @@ MainWindow::MainWindow(QWidget* parent)
 #endif
 
     // 尝试自动连接已保存的相机配置
+    // 注意：相机设置对话框已在main.cpp中启动时显示，这里只尝试连接
     if (tryAutoConnectCamera()) {
         LOG_INFO("已自动连接保存的相机配置");
     } else {
-        LOG_DEBUG("未能自动连接相机，将弹出相机配置对话框");
-        // 延迟弹出相机配置对话框，确保主窗口构造完成后再弹出
-        QTimer::singleShot(100, this, [this]() {
-            showCameraConfigOnStartup();
-        });
+        LOG_DEBUG("未能自动连接相机，使用模拟相机");
     }
 
     // 更新界面状态
@@ -1568,15 +1587,17 @@ void MainWindow::connectOperatorSignals()
         }
     });
 
-    // 选项按钮 - 打开工具参数面板
+    // 选项按钮 - 打开选项设置对话框
     connect(operatorToolBar_, &OperatorToolBar::optionsClicked, [this]() {
-        if (toolParameterDock_) {
-            toolParameterDock_->setVisible(!toolParameterDock_->isVisible());
-        }
+        OptionsDialog dialog(this);
+        dialog.exec();
     });
 
-    // 图像预览按钮 - 切换图像适应窗口
-    connect(operatorToolBar_, &OperatorToolBar::previewClicked, this, &MainWindow::onFitToWindow);
+    // 帧有效/实时显示二合一按钮
+    connect(operatorToolBar_, &OperatorToolBar::frameValidTriggered, [this]() {
+        onFrameValidToggled(true);  // 触发单帧采集
+    });
+    connect(operatorToolBar_, &OperatorToolBar::liveDisplayToggled, this, &MainWindow::onLiveDisplayToggled);
 
     // 信息栏信号
     connect(infoBar_, &InfoBar::sceneChanged, this, &MainWindow::onSceneSelected);
@@ -2555,6 +2576,24 @@ void MainWindow::onStationSelected(int index)
             sceneSwitchBar_->refreshScenes(station);
         }
 
+        // 更新InfoBar的位置和场景列表
+        if (infoBar_ && station) {
+            // 更新位置列表
+            QStringList positions;
+            for (const auto& binding : station->positionBindings) {
+                positions << binding.positionName;
+            }
+            infoBar_->setPositions(positions);
+
+            // 更新场景列表
+            QStringList scenes;
+            for (const auto& scene : station->scenes) {
+                scenes << scene.sceneName;
+            }
+            infoBar_->setScenes(scenes);
+            infoBar_->setCurrentScene(station->currentSceneIndex);
+        }
+
         statusLabel_->setText(QString("切换到工位: %1").arg(station ? station->name : ""));
         LOG_INFO(QString("切换到工位索引 %1").arg(index));
     }
@@ -2953,6 +2992,55 @@ void MainWindow::connectEngineSignals()
     // 连接状态消息信号
     connect(&engine_, &Core::VisionEngine::statusMessage,
             this, &MainWindow::onEngineStatusMessage);
+
+    // 连接MultiStationManager的工位配置变更信号
+    connect(&Core::MultiStationManager::instance(), &Core::MultiStationManager::stationConfigChanged,
+            this, [this](const QString& stationId) {
+        auto& manager = Core::MultiStationManager::instance();
+        auto* station = manager.getStation(stationId);
+        if (infoBar_ && station && stationId == manager.currentStationId()) {
+            // 更新位置列表
+            QStringList positions;
+            for (const auto& binding : station->positionBindings) {
+                positions << binding.positionName;
+            }
+            infoBar_->setPositions(positions);
+
+            // 更新场景列表
+            QStringList scenes;
+            for (const auto& scene : station->scenes) {
+                scenes << scene.sceneName;
+            }
+            infoBar_->setScenes(scenes);
+            infoBar_->setCurrentScene(station->currentSceneIndex);
+
+            LOG_DEBUG(QString("工位配置已更新: %1").arg(stationId));
+        }
+    });
+
+    // 连接当前工位切换信号
+    connect(&Core::MultiStationManager::instance(), &Core::MultiStationManager::currentStationChanged,
+            this, [this](const QString& stationId, int index) {
+        Q_UNUSED(index);
+        auto& manager = Core::MultiStationManager::instance();
+        auto* station = manager.getStation(stationId);
+        if (infoBar_ && station) {
+            // 更新位置列表
+            QStringList positions;
+            for (const auto& binding : station->positionBindings) {
+                positions << binding.positionName;
+            }
+            infoBar_->setPositions(positions);
+
+            // 更新场景列表
+            QStringList scenes;
+            for (const auto& scene : station->scenes) {
+                scenes << scene.sceneName;
+            }
+            infoBar_->setScenes(scenes);
+            infoBar_->setCurrentScene(station->currentSceneIndex);
+        }
+    });
 }
 
 void MainWindow::onEngineImageUpdated(Base::ImageData::Ptr image)

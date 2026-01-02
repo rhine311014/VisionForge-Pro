@@ -3,6 +3,32 @@
  * @brief 翻译管理器实现
  * @author VisionForge Team
  * @date 2025-12-18
+ *
+ * @details
+ * 本文件实现TranslationManager类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 自动语言检测
+ * 当语言设置为Auto时，根据系统语言自动选择：
+ * - zh_* -> Chinese
+ * - ja_* -> Japanese
+ * - ko_* -> Korean
+ * - 其他 -> English
+ *
+ * ### 翻译文件加载
+ * loadTranslation()加载两类翻译文件：
+ * 1. 应用翻译：visionforge_{lang}.qm
+ * 2. Qt翻译：qt_{lang}.qm（来自Qt安装目录）
+ *
+ * ### 中文处理
+ * 中文(zh_CN)是源语言，不需要加载翻译文件，
+ * loadTranslation()对中文直接返回true。
+ *
+ * ### 语言切换流程
+ * 1. unloadCurrentTranslation() - 卸载当前翻译
+ * 2. loadTranslation() - 加载新翻译
+ * 3. emit languageChanged() - 通知UI刷新
  */
 
 #include "base/TranslationManager.h"

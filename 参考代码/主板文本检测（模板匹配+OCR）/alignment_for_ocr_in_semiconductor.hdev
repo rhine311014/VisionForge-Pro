@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="22.11.2.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* 初始化部分</c>
+<l>dev_update_window ('off')   </l>
+<l>dev_close_window ()         </l>
+<c></c>
+<c>* 加载参考图像并初始化窗口</c>
+<l>read_image (ReferenceImage, 'board/board_01')  </l>
+<l>get_image_size (ReferenceImage, Width, Height)  </l>
+<l>initialize_visualization (Width / 2, Height / 2, WindowHandle, WindowHandleText)  </l>
+<c></c>
+<l>disp_continue_message (WindowHandle, 'black', 'true')  </l>
+<l>disp_description_text (WindowHandleText)  </l>
+<c></c>
+<c>* 定义感兴趣区域（ROI）</c>
+<l>dev_set_window (WindowHandle)  </l>
+<l>dev_display (ReferenceImage)  </l>
+<l>gen_rectangle1 (ROIModel, 60, 535, 185, 900)  </l>
+<c>* 定义模型区域ROI，用于形状匹配</c>
+<l>dev_display (ROIModel)  </l>
+<c></c>
+<l>gen_rectangle1 (ROIText, 445, 585, 590, 765)  </l>
+<c>* 定义文本识别区域ROI，用于OCR</c>
+<l>dev_display (ROIText)  </l>
+<c></c>
+<l>disp_model_message (WindowHandle)  </l>
+<l>stop ()  </l>
+<c></c>
+<c>* 准备形状匹配模型</c>
+<l>reduce_domain (ReferenceImage, ROIModel, ModelImage)  </l>
+<l>create_generic_shape_model (ModelHandle)  </l>
+<c>* 创建通用形状模型</c>
+<l>train_generic_shape_model (ModelImage, ModelHandle)  </l>
+<c>* 使用裁剪后的图像训练形状模型</c>
+<c></c>
+<c>* 准备OCR文本识别模型</c>
+<l>create_text_model_reader ('auto', 'Industrial_0-9A-Z_Rej.omc', TextModel)  </l>
+<c></c>
+<c>* 设置形状匹配参数</c>
+<l>set_generic_shape_model_param (ModelHandle, 'num_matches', 1)  </l>
+<l>set_generic_shape_model_param (ModelHandle, 'min_score', 0.5)  </l>
+<c></c>
+<c>* 在参考图像中匹配模型并获取变换矩阵</c>
+<l>find_generic_shape_model (ReferenceImage, ModelHandle, MatchResultID, Matches)  </l>
+<l>get_generic_shape_model_result (MatchResultID, 'all', 'hom_mat_2d', HomMat2DModel)  </l>
+<c>* 获取参考图像中目标的位置和变换矩阵</c>
+<c></c>
+<c>* 循环处理多张图像</c>
+<l>for i := 1 to 9 by 1  </l>
+<c></c>
+<l>    read_image (SearchImage, 'board/board_' + i$'02')  </l>
+<c></c>
+<l>    find_generic_shape_model (SearchImage, ModelHandle, MatchResultID, Matches)  </l>
+<l>    get_generic_shape_model_result (MatchResultID, 'all', 'hom_mat_2d', HomMat2DMatch)  </l>
+<c></c>
+<l>    hom_mat2d_invert (HomMat2DMatch, HomMat2DMatchInvert)  </l>
+<c>    * 计算逆变换矩阵，用于图像对齐</c>
+<c></c>
+<l>    hom_mat2d_compose (HomMat2DModel, HomMat2DMatchInvert, TransformationMatrix)  </l>
+<l>    affine_trans_image (SearchImage, ImageAffineTrans, TransformationMatrix, 'constant', 'false')  </l>
+<c>    * 对当前图像进行对齐</c>
+<c></c>
+<l>    dev_set_window (WindowHandle)  </l>
+<l>    dev_display (SearchImage)  </l>
+<l>    get_generic_shape_model_result_object (InstanceObject, MatchResultID, 'all', 'contours')  </l>
+<l>    dev_display (InstanceObject)  </l>
+<c>    * 显示模型匹配结果的轮廓</c>
+<c></c>
+<l>    reduce_domain (ImageAffineTrans, ROIText, ImageOCR)  </l>
+<l>    find_text (ImageOCR, TextModel, TextResultID)  </l>
+<c>    * 使用OCR识别对齐图像中的文本</c>
+<c></c>
+<l>    get_text_object (Characters, TextResultID, 'all_lines')  </l>
+<l>    get_text_result (TextResultID, 'class', RecognizedText)  </l>
+<c></c>
+<l>    dev_set_window (WindowHandleText)  </l>
+<l>    dev_display (ImageAffineTrans)  </l>
+<l>    dev_set_colored (12)  </l>
+<l>    dev_display (Characters)  </l>
+<l>    disp_finding_text (Characters, WindowHandle, WindowHandleText, RecognizedText)  </l>
+<c>    * 显示识别的文本结果</c>
+<c></c>
+<l>    wait_seconds (0.5)  </l>
+<c></c>
+<l>endfor  </l>
+<c></c>
+<c>* 程序结束</c>
+<l>disp_end_of_program_message (WindowHandle, 'black', 'true')  </l>
+<l>stop ()  </l>
+<l>dev_close_window ()  </l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="check_for_enumeration">
+<interface>
+<ic>
+<par name="StringComponent" base_type="ctrl" dimension="0"/>
+<par name="TestRoman" base_type="ctrl" dimension="0"/>
+<par name="TestLetters" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="EnumerationAvailable" base_type="ctrl" dimension="0"/>
+<par name="Index" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>tuple_split (StringComponent, ' ', SubStringsCheck)</l>
+<l>tuple_split (SubStringsCheck[0], '.', SubstringsCounter)</l>
+<l>tuple_number (SubstringsCounter, Number)</l>
+<c></c>
+<l>EnumerationAvailable := 0</l>
+<l>for i := 0 to 10 by 1</l>
+<l>    tuple_find (Number, i, IndexNumbers)</l>
+<l>    CheckRoman := TestRoman[i]</l>
+<l>    CheckLetters := TestLetters[i]</l>
+<l>    tuple_find_first (SubstringsCounter, CheckRoman, IndexRoman)</l>
+<l>    tuple_find_first (SubstringsCounter, CheckLetters, IndexLetters)</l>
+<c></c>
+<l>    if (IndexNumbers == 0 or IndexRoman == 0 or IndexLetters == 0)</l>
+<l>        EnumerationAvailable := 1</l>
+<l>        Index := i</l>
+<l>        break</l>
+<l>    endif</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="check_for_enumeration">
+<parameters>
+<parameter id="EnumerationAvailable">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="Index">
+<sem_type>integer</sem_type>
+</parameter>
+<parameter id="StringComponent">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="TestLetters">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="TestRoman">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="write_note">
+<interface>
+<ic>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="String" base_type="ctrl" dimension="0"/>
+<par name="color" base_type="ctrl" dimension="0"/>
+<par name="EnumerationType" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c></c>
+<l>StringOut := String</l>
+<c>* Break into lines such that.</c>
+<c></c>
+<l>SubStringEnumGap := []</l>
+<l>TableAlphabetical := ['a)', 'b)', 'c)', 'd)', 'e)', 'f)', 'e)', 'g)', 'h)', 'i)', 'j)']</l>
+<l>TableRoman := ['i)', 'ii)', 'iii)', 'iv)', 'v)', 'vi)', 'vii)', 'viii)', 'ix)', 'x)', 'xi)']</l>
+<l>GapsRoman := [' ', '', '', '', ' ', '', '', '', '', ' ', '']</l>
+<l>Check := []</l>
+<c></c>
+<l>for k := 0 to |StringOut| - 1 by 1</l>
+<l>    DO := 1</l>
+<c>    * Initialize margin.</c>
+<l>    StringCheck := StringOut[k]</l>
+<l>    tuple_split (StringCheck, ' ', SubStringsTest)</l>
+<l>    check_for_enumeration (SubStringsTest[0], TableRoman, TableAlphabetical, EnumerationAvailable0, Index0)</l>
+<l>    get_window_extents (WindowHandle, Row, Column, WinWidth, WinHeight)</l>
+<l>    if (EnumerationAvailable0 == 1 and EnumerationType == 'roman')</l>
+<l>        Margin := 90</l>
+<l>    elseif (EnumerationAvailable0 == 1 and EnumerationType == 'number')</l>
+<l>        Margin := 48</l>
+<l>    elseif (EnumerationAvailable0 == 1 and EnumerationType == 'alphabetical')</l>
+<l>        Margin := 48</l>
+<l>    else</l>
+<l>        Margin := 24</l>
+<l>    endif</l>
+<c></c>
+<c>    * Break text into lines.</c>
+<l>    StringComponent := StringOut[k]</l>
+<l>    Pos := 0</l>
+<l>    while (Pos &lt; |StringComponent|)</l>
+<l>        get_string_extents (WindowHandle, StringComponent[Pos], Ascent, Descent, Width, Height)</l>
+<l>        if (Width &gt; WinWidth - Margin)</l>
+<c>            * Break this line!</c>
+<l>            tuple_split (StringComponent[Pos], ' ', SubStrings)</l>
+<l>            for Num := |SubStrings| - 1 to 1 by -1</l>
+<l>                CurrTestString := sum(SubStrings[0:Num - 1] + ' ')</l>
+<l>                get_string_extents (WindowHandle, CurrTestString, Ascent, Descent, Width, Height)</l>
+<c></c>
+<l>                if (Width &gt; WinWidth - Margin)</l>
+<l>                    continue</l>
+<l>                else</l>
+<c>                    * Split the line here.</c>
+<c></c>
+<l>                    tuple_split (StringComponent, ' ', SubStringsCheck)</l>
+<l>                    tuple_split (SubStringsCheck[0], '.', SubstringsCounter)</l>
+<l>                    tuple_number (SubstringsCounter, Number)</l>
+<c></c>
+<l>                    if (DO)</l>
+<l>                        if (EnumerationType == 'roman')</l>
+<l>                            for i := 0 to 10 by 1</l>
+<l>                                Check := TableRoman[i]</l>
+<l>                                tuple_find_first (SubstringsCounter, Check, Index1)</l>
+<l>                                if (Index1 == 0)</l>
+<l>                                    SubStringEnumGap := GapsRoman[i]</l>
+<l>                                    if (i == 2 or i == 6 or i == 7)</l>
+<l>                                        SubStrings := [SubStringsCheck[0],SubStringsCheck[1:|SubStringsCheck| - 1]]</l>
+<l>                                    else</l>
+<l>                                        SubStrings := [SubStringsCheck[0],SubStringEnumGap,SubStringsCheck[1:|SubStringsCheck| - 1]]</l>
+<l>                                    endif</l>
+<l>                                    DO := 0</l>
+<l>                                    break</l>
+<l>                                endif</l>
+<l>                            endfor</l>
+<l>                        endif</l>
+<l>                    endif</l>
+<c></c>
+<l>                    StringComponent[Pos] := sum(SubStrings[0:Num - 1] + ' ')</l>
+<l>                    tuple_insert (StringComponent, Pos + 1, sum(SubStrings[Num:|SubStrings| - 1] + ' '), StringComponent)</l>
+<l>                    break</l>
+<l>                endif</l>
+<l>            endfor</l>
+<l>        endif</l>
+<c>        * Check for counter.</c>
+<l>        Mask := 0</l>
+<l>        if (|StringComponent| &gt; 1)</l>
+<l>            for l := 0 to |StringComponent| - 1 by 1</l>
+<l>                if (l == 0)</l>
+<c></c>
+<l>                    j := 0</l>
+<l>                    for i := 0 to 10 by 1</l>
+<l>                        tuple_find (Number, i, Indices)</l>
+<l>                        if (EnumerationType == 'alphabetical')</l>
+<l>                            Check := TableAlphabetical[i]</l>
+<l>                        elseif (EnumerationType == 'roman')</l>
+<l>                            Check := TableRoman[i]</l>
+<l>                        endif</l>
+<l>                        tuple_find_first (SubstringsCounter, Check, Index1)</l>
+<c></c>
+<l>                        if (Indices == 0 or Index1 == 0)</l>
+<l>                            Mask[Pos] := 0</l>
+<l>                            j := 1</l>
+<l>                            break</l>
+<l>                        endif</l>
+<l>                    endfor</l>
+<l>                endif</l>
+<l>                Mask[l + 1] := j</l>
+<l>            endfor</l>
+<l>        endif</l>
+<l>        Pos := Pos + 1</l>
+<l>    endwhile</l>
+<c></c>
+<c>    * Check for enumeration not already done.</c>
+<l>    if (|StringComponent| == 1 and EnumerationType == 'roman')</l>
+<l>        check_for_enumeration (StringComponent, TableRoman, TableAlphabetical, EnumerationAvailable, IndexEnum)</l>
+<c></c>
+<l>        if (EnumerationAvailable)</l>
+<l>            ColumnShift := 108</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>    set_color (WindowHandle, color)</l>
+<l>    get_tposition (WindowHandle, Row, Column)</l>
+<l>    set_tposition (WindowHandle, Row + 12, Column + 12)</l>
+<l>    for Index := 0 to |StringComponent| - 1 by 1</l>
+<l>        MaskCurr := Mask[Index]</l>
+<l>        if (MaskCurr == 1)</l>
+<l>            if (EnumerationType == 'number')</l>
+<l>                get_tposition (WindowHandle, Row, Column)</l>
+<l>                set_tposition (WindowHandle, Row, Column + 30)</l>
+<l>            elseif (EnumerationType == 'alphabetical')</l>
+<l>                get_tposition (WindowHandle, Row, Column)</l>
+<l>                set_tposition (WindowHandle, Row, Column + 30)</l>
+<l>            elseif (EnumerationType == 'roman')</l>
+<l>                get_tposition (WindowHandle, Row, Column)</l>
+<l>                set_tposition (WindowHandle, Row, Column + 50 + ColumnShift)</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>        write_string (WindowHandle, '  ' + StringComponent[Index])</l>
+<l>        new_line (WindowHandle)</l>
+<l>        if (Index != |StringComponent| - 1)</l>
+<l>            get_tposition (WindowHandle, Row, Column)</l>
+<l>            set_tposition (WindowHandle, Row, Column + 12)</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>    ColumnShift := 0</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="write_note">
+<parameters>
+<parameter id="EnumerationType">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="String">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+<parameter id="WindowHandle">
+<default_type>integer</default_type>
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+<parameter id="color">
+<default_type>string</default_type>
+<sem_type>string</sem_type>
+<type_list>
+<item>string</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_description_text">
+<interface>
+<ic>
+<par name="WindowHandle1" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>Text := 'This example program shows'</l>
+<l>Text[|Text|] := 'how text can be read in randomly oriented images.'</l>
+<l>Text[|Text|] := 'To do so, we need to align the images.'</l>
+<l>Text[|Text|] := 'Therefore we determine the rotation of the logo'</l>
+<l>Text[|Text|] := 'using shape-based matching.'</l>
+<l>Text[|Text|] := 'Knowing the relative position of logo and text,'</l>
+<l>Text[|Text|] := 'we can align the search image and'</l>
+<l>Text[|Text|] := 'read the text within the defined area.'</l>
+<c>* </c>
+<l>dev_set_window (WindowHandle1)</l>
+<l>dev_clear_window ()</l>
+<l>write_note (WindowHandle1, Text, 'white', 'roman')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_description_text">
+<parameters>
+<parameter id="WindowHandle1">
+<mixed_type>false</mixed_type>
+<sem_type>window</sem_type>
+<type_list>
+<item>integer</item>
+</type_list>
+</parameter>
+</parameters>
+</docu>
+</procedure>
+<procedure name="initialize_visualization">
+<interface>
+<ic>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="WindowHandle" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleText" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* Initialize visualization</c>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>set_display_font (WindowHandle, 16, 'mono', 'true', 'false')</l>
+<l>dev_set_color ('yellow')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_open_window (0, Width + 10, Width, Height, 'black', WindowHandleText)</l>
+<l>set_display_font (WindowHandleText, 16, 'mono', 'true', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="initialize_visualization">
+<parameters>
+<parameter id="Height"/>
+<parameter id="Width"/>
+<parameter id="WindowHandle"/>
+<parameter id="WindowHandleText"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_finding_text">
+<interface>
+<io>
+<par name="Characters" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="WindowHandleModel" base_type="ctrl" dimension="0"/>
+<par name="WindowHandleText" base_type="ctrl" dimension="0"/>
+<par name="TextResult" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* Display message for found model instance.</c>
+<l>dev_set_window (WindowHandleModel)</l>
+<l>MessageInstance := 'Find instances defined by a model based on an image'</l>
+<l>dev_disp_text (MessageInstance, 'window', 12, 12, 'black', [], [])</l>
+<c>* </c>
+<c>* Display message for further task, in our case</c>
+<c>* reading the text in the aligned image.</c>
+<l>dev_set_window (WindowHandleText)</l>
+<l>MessageText := 'Align the image for further tasks as e.g., OCR reading'</l>
+<l>dev_disp_text (MessageText, 'window', 'top', 'left', 'black', [], [])</l>
+<c>* </c>
+<c>* Display the recognized text.</c>
+<l>area_center (Characters, Area, Row4, Column4)</l>
+<l>dev_disp_text (TextResult, 'window', (Row4 - 200) / 2, (Column4 - 300) * 0.9, 'yellow', 'box', 'false')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_finding_text">
+<parameters>
+<parameter id="Characters"/>
+<parameter id="TextResult"/>
+<parameter id="WindowHandleModel"/>
+<parameter id="WindowHandleText"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="disp_model_message">
+<interface>
+<ic>
+<par name="WindowHandleModel" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<l>dev_set_window (WindowHandleModel)</l>
+<l>Text := 'Reference Image:'</l>
+<l>Text[|Text|] := 'The ROI around the CE Fc Logo'</l>
+<l>Text[|Text|] := 'is used to create the model.'</l>
+<l>dev_disp_text (Text, 'window', 'top', 'left', 'black', [], [])</l>
+<l>disp_continue_message (WindowHandleModel, 'black', 'true')</l>
+<l>return ()</l>
+</body>
+<docu id="disp_model_message">
+<parameters>
+<parameter id="WindowHandleModel"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

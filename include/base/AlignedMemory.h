@@ -3,6 +3,70 @@
  * @brief 对齐内存分配器和辅助工具
  * @author VisionForge Team
  * @date 2025-12-14
+ *
+ * @details
+ * 本文件提供内存对齐分配功能，用于优化SIMD指令集性能。
+ *
+ * ## 设计模式
+ * - **工具类模式**：AlignedMemoryHelper提供静态方法
+ * - **分配器模式 (Allocator)**：AlignedAllocator兼容STL容器
+ *
+ * ## 为什么需要内存对齐
+ *
+ * ### SIMD指令集要求
+ * - SSE: 16字节对齐
+ * - AVX/AVX2: 32字节对齐
+ * - AVX-512: 64字节对齐
+ *
+ * 未对齐的内存访问可能导致：
+ * - 性能下降（需要多次内存访问）
+ * - 某些指令直接崩溃（如_mm256_load_ps）
+ *
+ * ### 缓存行优化
+ * - 现代CPU缓存行通常为64字节
+ * - 对齐分配可减少缓存行分裂
+ * - 提高缓存利用率
+ *
+ * ## 核心组件
+ *
+ * ### AlignedMemoryHelper
+ * 提供基础的对齐内存操作：
+ * - allocate(): 分配对齐内存
+ * - deallocate(): 释放对齐内存
+ * - isAligned(): 检查指针是否对齐
+ * - getAlignedSize(): 计算对齐后的大小
+ * - alignPointer(): 将指针对齐到边界
+ *
+ * ### AlignedAllocator
+ * STL兼容的分配器模板，可用于std::vector等容器：
+ * @code
+ * std::vector<float, AlignedAllocator<float, 32>> alignedVector;
+ * @endcode
+ *
+ * ## 线程安全
+ * - 所有函数都是线程安全的
+ * - 底层使用系统调用，无共享状态
+ *
+ * ## 内存管理
+ * - 必须使用deallocate()释放allocate()分配的内存
+ * - 不能混用标准free()和对齐释放函数
+ *
+ * ## 使用示例
+ * @code
+ * // 分配32字节对齐的内存
+ * void* ptr = AlignedMemoryHelper::allocate(1024, 32);
+ *
+ * // 检查对齐
+ * if (AlignedMemoryHelper::isAligned(ptr, 32)) {
+ *     // 可以安全使用AVX指令
+ * }
+ *
+ * // 释放内存
+ * AlignedMemoryHelper::deallocate(ptr);
+ *
+ * // 使用STL容器
+ * std::vector<float, AlignedAllocator<float, 32>> data(1000);
+ * @endcode
  */
 
 #pragma once

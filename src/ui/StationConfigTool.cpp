@@ -47,6 +47,18 @@ StationConfigTool::StationConfigTool(QWidget* parent)
     , spinAlignToleranceX_(nullptr)
     , spinAlignToleranceY_(nullptr)
     , spinAlignToleranceD_(nullptr)
+    , uvwConfigGroup_(nullptr)
+    , comboUVWStructure_(nullptr)
+    , comboUVWSlider_(nullptr)
+    , comboUVWPrecision_(nullptr)
+    , spinNode1X_(nullptr)
+    , spinNode1Y_(nullptr)
+    , spinNode2X_(nullptr)
+    , spinNode2Y_(nullptr)
+    , spinNode3X_(nullptr)
+    , spinNode3Y_(nullptr)
+    , spinTravelXY_(nullptr)
+    , spinTravelTheta_(nullptr)
     , btnAddPlatform_(nullptr)
     , btnDeletePlatform_(nullptr)
     , btnSaveExit_(nullptr)
@@ -363,6 +375,150 @@ QGroupBox* StationConfigTool::createSettingsArea()
     grid->addWidget(alignmentGroup_, row, 0, 1, 3);
     ++row;
 
+    // ========== UVW节点配置组 ==========
+    uvwConfigGroup_ = new QGroupBox(tr("UVW平台节点配置"), settingsGroup_);
+    QGridLayout* uvwLayout = new QGridLayout(uvwConfigGroup_);
+    uvwLayout->setContentsMargins(10, 15, 10, 10);
+    uvwLayout->setHorizontalSpacing(10);
+    uvwLayout->setVerticalSpacing(8);
+
+    int uvwRow = 0;
+
+    // 结构类型
+    QLabel* labelStructure = new QLabel(tr("结构类型:"), uvwConfigGroup_);
+    comboUVWStructure_ = new QComboBox(uvwConfigGroup_);
+    comboUVWStructure_->addItem(tr("XXY (双X单Y)"), 0);
+    comboUVWStructure_->addItem(tr("XYY (单X双Y)"), 1);
+    comboUVWStructure_->setMinimumWidth(120);
+    comboUVWStructure_->setToolTip(tr("选择UVW平台的机械结构类型\nXXY: 两个X轴+一个Y轴\nXYY: 一个X轴+两个Y轴"));
+    uvwLayout->addWidget(labelStructure, uvwRow, 0);
+    uvwLayout->addWidget(comboUVWStructure_, uvwRow, 1);
+    ++uvwRow;
+
+    // 滑轨类型
+    QLabel* labelSlider = new QLabel(tr("滑轨类型:"), uvwConfigGroup_);
+    comboUVWSlider_ = new QComboBox(uvwConfigGroup_);
+    comboUVWSlider_->addItem(tr("固定滑轨"), 0);
+    comboUVWSlider_->addItem(tr("移动滑轨"), 1);
+    comboUVWSlider_->setMinimumWidth(120);
+    comboUVWSlider_->setToolTip(tr("固定滑轨: 旋转轴连接点固定\n移动滑轨: 旋转轴连接点可移动"));
+    uvwLayout->addWidget(labelSlider, uvwRow, 0);
+    uvwLayout->addWidget(comboUVWSlider_, uvwRow, 1);
+    ++uvwRow;
+
+    // 精度等级
+    QLabel* labelPrecision = new QLabel(tr("精度等级:"), uvwConfigGroup_);
+    comboUVWPrecision_ = new QComboBox(uvwConfigGroup_);
+    comboUVWPrecision_->addItem(tr("P级 (10μm)"), 0);
+    comboUVWPrecision_->addItem(tr("B级 (5μm)"), 1);
+    comboUVWPrecision_->addItem(tr("G级 (2μm)"), 2);
+    comboUVWPrecision_->setMinimumWidth(120);
+    uvwLayout->addWidget(labelPrecision, uvwRow, 0);
+    uvwLayout->addWidget(comboUVWPrecision_, uvwRow, 1);
+    ++uvwRow;
+
+    // 分隔线
+    QFrame* separator = new QFrame(uvwConfigGroup_);
+    separator->setFrameShape(QFrame::HLine);
+    separator->setStyleSheet("QFrame { color: #555555; }");
+    uvwLayout->addWidget(separator, uvwRow, 0, 1, 4);
+    ++uvwRow;
+
+    // 节点位置标题
+    QLabel* labelNodes = new QLabel(tr("节点位置 (mm):"), uvwConfigGroup_);
+    labelNodes->setStyleSheet("font-weight: bold;");
+    uvwLayout->addWidget(labelNodes, uvwRow, 0, 1, 4);
+    ++uvwRow;
+
+    // 节点1
+    QLabel* labelNode1 = new QLabel(tr("节点1 (X1/Y1):"), uvwConfigGroup_);
+    spinNode1X_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinNode1X_->setRange(-500.0, 500.0);
+    spinNode1X_->setSingleStep(0.5);
+    spinNode1X_->setDecimals(1);
+    spinNode1X_->setValue(67.5);
+    spinNode1X_->setPrefix("X: ");
+    spinNode1X_->setMinimumWidth(90);
+    spinNode1Y_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinNode1Y_->setRange(-500.0, 500.0);
+    spinNode1Y_->setSingleStep(0.5);
+    spinNode1Y_->setDecimals(1);
+    spinNode1Y_->setValue(-57.0);
+    spinNode1Y_->setPrefix("Y: ");
+    spinNode1Y_->setMinimumWidth(90);
+    uvwLayout->addWidget(labelNode1, uvwRow, 0);
+    uvwLayout->addWidget(spinNode1X_, uvwRow, 1);
+    uvwLayout->addWidget(spinNode1Y_, uvwRow, 2);
+    ++uvwRow;
+
+    // 节点2
+    QLabel* labelNode2 = new QLabel(tr("节点2 (X2/Y2):"), uvwConfigGroup_);
+    spinNode2X_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinNode2X_->setRange(-500.0, 500.0);
+    spinNode2X_->setSingleStep(0.5);
+    spinNode2X_->setDecimals(1);
+    spinNode2X_->setValue(67.5);
+    spinNode2X_->setPrefix("X: ");
+    spinNode2X_->setMinimumWidth(90);
+    spinNode2Y_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinNode2Y_->setRange(-500.0, 500.0);
+    spinNode2Y_->setSingleStep(0.5);
+    spinNode2Y_->setDecimals(1);
+    spinNode2Y_->setValue(57.0);
+    spinNode2Y_->setPrefix("Y: ");
+    spinNode2Y_->setMinimumWidth(90);
+    uvwLayout->addWidget(labelNode2, uvwRow, 0);
+    uvwLayout->addWidget(spinNode2X_, uvwRow, 1);
+    uvwLayout->addWidget(spinNode2Y_, uvwRow, 2);
+    ++uvwRow;
+
+    // 节点3
+    QLabel* labelNode3 = new QLabel(tr("节点3 (Y/X):"), uvwConfigGroup_);
+    spinNode3X_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinNode3X_->setRange(-500.0, 500.0);
+    spinNode3X_->setSingleStep(0.5);
+    spinNode3X_->setDecimals(1);
+    spinNode3X_->setValue(-57.0);
+    spinNode3X_->setPrefix("X: ");
+    spinNode3X_->setMinimumWidth(90);
+    spinNode3Y_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinNode3Y_->setRange(-500.0, 500.0);
+    spinNode3Y_->setSingleStep(0.5);
+    spinNode3Y_->setDecimals(1);
+    spinNode3Y_->setValue(67.5);
+    spinNode3Y_->setPrefix("Y: ");
+    spinNode3Y_->setMinimumWidth(90);
+    uvwLayout->addWidget(labelNode3, uvwRow, 0);
+    uvwLayout->addWidget(spinNode3X_, uvwRow, 1);
+    uvwLayout->addWidget(spinNode3Y_, uvwRow, 2);
+    ++uvwRow;
+
+    // 行程范围
+    QLabel* labelTravel = new QLabel(tr("行程范围:"), uvwConfigGroup_);
+    spinTravelXY_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinTravelXY_->setRange(0.1, 50.0);
+    spinTravelXY_->setSingleStep(0.5);
+    spinTravelXY_->setDecimals(1);
+    spinTravelXY_->setValue(5.0);
+    spinTravelXY_->setSuffix(" mm");
+    spinTravelXY_->setToolTip(tr("XY方向行程范围 (±mm)"));
+    spinTravelXY_->setMinimumWidth(90);
+    spinTravelTheta_ = new QDoubleSpinBox(uvwConfigGroup_);
+    spinTravelTheta_->setRange(0.1, 10.0);
+    spinTravelTheta_->setSingleStep(0.1);
+    spinTravelTheta_->setDecimals(1);
+    spinTravelTheta_->setValue(2.0);
+    spinTravelTheta_->setSuffix(" °");
+    spinTravelTheta_->setToolTip(tr("θ旋转范围 (±度)"));
+    spinTravelTheta_->setMinimumWidth(90);
+    uvwLayout->addWidget(labelTravel, uvwRow, 0);
+    uvwLayout->addWidget(spinTravelXY_, uvwRow, 1);
+    uvwLayout->addWidget(spinTravelTheta_, uvwRow, 2);
+
+    grid->addWidget(uvwConfigGroup_, row, 0, 1, 3);
+    uvwConfigGroup_->setVisible(false);  // 默认隐藏，仅UVW平台显示
+    ++row;
+
     // 添加弹性空间
     grid->setRowStretch(row, 1);
 
@@ -430,6 +586,85 @@ void StationConfigTool::setupConnections()
     connect(spinAlignToleranceD_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, [this](double) { markAsChanged(); });
 
+    // UVW配置参数变更 - 同步值到platforms_
+    connect(comboUVWStructure_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].uvwStructureType = value;
+                    markAsChanged();
+                }
+            });
+    connect(comboUVWSlider_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].uvwSliderType = value;
+                    markAsChanged();
+                }
+            });
+    connect(comboUVWPrecision_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].uvwPrecisionGrade = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinNode1X_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].node1PosX = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinNode1Y_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].node1PosY = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinNode2X_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].node2PosX = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinNode2Y_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].node2PosY = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinNode3X_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].node3PosX = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinNode3Y_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].node3PosY = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinTravelXY_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].travelXY = value;
+                    markAsChanged();
+                }
+            });
+    connect(spinTravelTheta_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, [this](double value) {
+                if (!isUpdating_ && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
+                    platforms_[currentPlatformIndex_].travelTheta = value;
+                    markAsChanged();
+                }
+            });
+
     // 按钮
     connect(btnAddPlatform_, &QPushButton::clicked,
             this, &StationConfigTool::onAddPlatform);
@@ -478,6 +713,19 @@ void StationConfigTool::loadExistingConfig()
             config.alignmentToleranceY = binding.alignmentToleranceY;
             config.alignmentToleranceD = binding.alignmentToleranceD;
         }
+
+        // UVW平台配置
+        config.uvwStructureType = station->uvwStructureType;
+        config.uvwSliderType = station->uvwSliderType;
+        config.uvwPrecisionGrade = station->uvwPrecisionGrade;
+        config.node1PosX = station->uvwNode1PosX;
+        config.node1PosY = station->uvwNode1PosY;
+        config.node2PosX = station->uvwNode2PosX;
+        config.node2PosY = station->uvwNode2PosY;
+        config.node3PosX = station->uvwNode3PosX;
+        config.node3PosY = station->uvwNode3PosY;
+        config.travelXY = station->uvwTravelXY;
+        config.travelTheta = station->uvwTravelTheta;
 
         platforms_.append(config);
     }
@@ -561,6 +809,19 @@ bool StationConfigTool::saveConfig()
                     station->scenes.append(scene);
                 }
                 station->currentSceneIndex = 0;
+
+                // UVW平台配置
+                station->uvwStructureType = config.uvwStructureType;
+                station->uvwSliderType = config.uvwSliderType;
+                station->uvwPrecisionGrade = config.uvwPrecisionGrade;
+                station->uvwNode1PosX = config.node1PosX;
+                station->uvwNode1PosY = config.node1PosY;
+                station->uvwNode2PosX = config.node2PosX;
+                station->uvwNode2PosY = config.node2PosY;
+                station->uvwNode3PosX = config.node3PosX;
+                station->uvwNode3PosY = config.node3PosY;
+                station->uvwTravelXY = config.travelXY;
+                station->uvwTravelTheta = config.travelTheta;
             }
         }
     }
@@ -707,6 +968,44 @@ void StationConfigTool::updateSettingsPanel(int platformIndex)
     // 根据功能模式更新UI可见性
     updateFunctionModeUI(config.functionMode);
 
+    // UVW节点配置参数
+    if (comboUVWStructure_) {
+        comboUVWStructure_->setCurrentIndex(config.uvwStructureType);
+    }
+    if (comboUVWSlider_) {
+        comboUVWSlider_->setCurrentIndex(config.uvwSliderType);
+    }
+    if (comboUVWPrecision_) {
+        comboUVWPrecision_->setCurrentIndex(config.uvwPrecisionGrade);
+    }
+    if (spinNode1X_) {
+        spinNode1X_->setValue(config.node1PosX);
+    }
+    if (spinNode1Y_) {
+        spinNode1Y_->setValue(config.node1PosY);
+    }
+    if (spinNode2X_) {
+        spinNode2X_->setValue(config.node2PosX);
+    }
+    if (spinNode2Y_) {
+        spinNode2Y_->setValue(config.node2PosY);
+    }
+    if (spinNode3X_) {
+        spinNode3X_->setValue(config.node3PosX);
+    }
+    if (spinNode3Y_) {
+        spinNode3Y_->setValue(config.node3PosY);
+    }
+    if (spinTravelXY_) {
+        spinTravelXY_->setValue(config.travelXY);
+    }
+    if (spinTravelTheta_) {
+        spinTravelTheta_->setValue(config.travelTheta);
+    }
+
+    // 根据平台类型更新UVW配置组可见性
+    updateUVWConfigVisibility(config.platformType);
+
     isUpdating_ = false;
 }
 
@@ -724,11 +1023,16 @@ void StationConfigTool::setSettingsPanelEnabled(bool enabled)
     comboFunctionMode_->setEnabled(enabled);
     detectionGroup_->setEnabled(enabled);
     alignmentGroup_->setEnabled(enabled);
+    if (uvwConfigGroup_) {
+        uvwConfigGroup_->setEnabled(enabled);
+    }
     btnDeletePlatform_->setEnabled(enabled && platforms_.size() > 1);
 
     // 如果启用，根据功能模式更新参数组可见性
     if (enabled && currentPlatformIndex_ >= 0 && currentPlatformIndex_ < platforms_.size()) {
         updateFunctionModeUI(platforms_[currentPlatformIndex_].functionMode);
+        // 根据平台类型更新UVW配置组可见性
+        updateUVWConfigVisibility(platforms_[currentPlatformIndex_].platformType);
     }
 }
 
@@ -791,6 +1095,26 @@ void StationConfigTool::updateFunctionModeUI(int mode)
     alignmentGroup_->setVisible(showAlignment);
 }
 
+bool StationConfigTool::isUVWPlatformType(int platformType) const
+{
+    // 检查是否为UVW系列平台类型
+    return platformType == static_cast<int>(Platform::PlatformType::UVW) ||
+           platformType == static_cast<int>(Platform::PlatformType::UVW_XXY) ||
+           platformType == static_cast<int>(Platform::PlatformType::UVW_XYY) ||
+           platformType == static_cast<int>(Platform::PlatformType::UVW_XXYY) ||
+           platformType == static_cast<int>(Platform::PlatformType::UVW_HOLLOW) ||
+           platformType == static_cast<int>(Platform::PlatformType::UVW_HIGH_PRECISION);
+}
+
+void StationConfigTool::updateUVWConfigVisibility(int platformType)
+{
+    // 根据平台类型显示/隐藏UVW配置组
+    bool isUVW = isUVWPlatformType(platformType);
+    if (uvwConfigGroup_) {
+        uvwConfigGroup_->setVisible(isUVW);
+    }
+}
+
 // ============================================================
 // 参数变更槽函数
 // ============================================================
@@ -824,11 +1148,15 @@ void StationConfigTool::onPlatformIndexChanged(int index)
 
 void StationConfigTool::onPlatformTypeChanged(int index)
 {
+    Q_UNUSED(index);
     if (isUpdating_ || currentPlatformIndex_ < 0) return;
 
     int platformType = comboPlatformType_->currentData().toInt();
     platforms_[currentPlatformIndex_].platformType = platformType;
     markAsChanged();
+
+    // 更新UVW配置组可见性
+    updateUVWConfigVisibility(platformType);
 
     // 更新树形显示
     if (rootItem_ && currentPlatformIndex_ < rootItem_->childCount()) {

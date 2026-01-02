@@ -1,6 +1,31 @@
 /**
  * @file PerformanceMonitor.cpp
  * @brief 性能监控工具实现
+ * @author VisionForge Team
+ * @date 2025-12-15
+ *
+ * @details
+ * 本文件实现PerformanceMonitor和ScopedTimer类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 统计算法
+ * record()方法更新统计数据：
+ * - 累加总时间
+ * - 更新最小/最大值
+ * - 增加调用计数
+ * - 重新计算平均值
+ *
+ * ### 报告格式
+ * printReport()和exportReport()生成的报告包含：
+ * - 按平均时间降序排列
+ * - 包含名称、调用次数、总时间、平均/最小/最大时间
+ * - CSV格式便于Excel分析
+ *
+ * ### ScopedTimer工作原理
+ * - 构造时调用QElapsedTimer::start()
+ * - 析构时调用elapsed()获取耗时
+ * - 自动调用PerformanceMonitor::record()
  */
 
 #include "base/PerformanceMonitor.h"

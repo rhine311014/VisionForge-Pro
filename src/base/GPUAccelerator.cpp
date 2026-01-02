@@ -1,6 +1,41 @@
 /**
  * @file GPUAccelerator.cpp
  * @brief GPU加速管理器实现
+ * @author VisionForge Team
+ * @date 2025-12-15
+ *
+ * @details
+ * 本文件实现GPUAccelerator类和GpuMemoryPool类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### CUDA设备检测
+ * detectDevices()使用多层保护：
+ * 1. Windows: SEH异常保护（sehSafeCudaGetDeviceCount）
+ * 2. 直接CUDA Runtime API调用（directCudaGetDeviceCount）
+ * 3. try-catch捕获OpenCV异常
+ *
+ * ### SEH保护
+ * 在Windows平台，OpenCV的CUDA调用可能触发SEH异常，
+ * 使用__try/__except包装避免程序崩溃。
+ *
+ * ### DLL诊断
+ * printCudaDiagnostics()检查关键CUDA DLL：
+ * - cudart64_12.dll (CUDA Runtime)
+ * - nvcuda.dll (NVIDIA驱动)
+ * - nppc64_12.dll, nppial64_12.dll 等 (NPP库)
+ *
+ * ### GpuMemoryPool实现
+ * 使用{rows, cols, type}三元组作为键：
+ * - allocate()：优先从池中获取，无则新建
+ * - release()：归还到池中（不超过maxPoolSize_）
+ * - preallocate()：批量预分配提升启动性能
+ *
+ * ### 形态学操作优化
+ * morphologyOp()使用双缓冲减少内存分配：
+ * - 从内存池获取两个临时GpuMat
+ * - 乒乓交替进行多次迭代
+ * - 操作完成后归还内存池
  */
 
 #include "base/GPUAccelerator.h"

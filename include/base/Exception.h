@@ -4,16 +4,67 @@
  * @author VisionForge Team
  * @date 2025-12-19
  *
- * 本文件定义了VisionForge项目的异常层次结构，提供统一的错误处理机制。
+ * @details
+ * 本文件定义了VisionForge项目的异常类层次结构，提供统一的错误处理机制。
  *
- * 异常层次:
- * - VisionForgeException (基类)
- *   - AlgorithmException (算法相关)
- *   - CameraException (相机相关)
- *   - CommunicationException (通讯相关)
- *   - ConfigurationException (配置相关)
- *   - FileIOException (文件IO相关)
- *   - ValidationException (参数验证相关)
+ * ## 设计模式
+ * - **模板方法模式**：基类定义异常结构，子类覆盖type()方法
+ * - **工厂模式**：通过VF_THROW宏简化异常创建
+ *
+ * ## 异常层次结构
+ * @code
+ * std::exception
+ *   └── VisionForgeException (基类)
+ *         ├── AlgorithmException (算法相关: 1000-1999)
+ *         ├── CameraException (相机相关: 2000-2999)
+ *         ├── CommunicationException (通讯相关: 3000-3999)
+ *         ├── ConfigurationException (配置相关: 4000-4999)
+ *         ├── FileIOException (文件IO相关: 5000-5999)
+ *         └── ValidationException (参数验证相关: 6000-6999)
+ * @endcode
+ *
+ * ## 错误码分配
+ * 每类异常使用独立的错误码范围，便于日志分析和问题定位：
+ * - 1xxx: 算法错误
+ * - 2xxx: 相机错误
+ * - 3xxx: 通讯错误
+ * - 4xxx: 配置错误
+ * - 5xxx: 文件IO错误
+ * - 6xxx: 验证错误
+ *
+ * ## 线程安全
+ * - 异常对象创建后不可变，线程安全
+ * - what()返回的C字符串生命周期与异常对象相同
+ * - 可跨线程抛出和捕获
+ *
+ * ## 内存管理
+ * - 使用std::string管理字符串，自动释放
+ * - 异常对象遵循RAII原则
+ * - 析构函数标记noexcept，符合异常安全准则
+ *
+ * ## 使用示例
+ * @code
+ * // 使用宏抛出异常（推荐）
+ * VF_THROW_CODE(AlgorithmException, "模板匹配失败", AlgorithmException::MatchFailed);
+ *
+ * // 使用检查宏
+ * VF_CHECK_NULL(imagePtr, "图像指针不能为空");
+ * VF_CHECK_RANGE(threshold, 0, 255, "阈值必须在0-255范围内");
+ *
+ * // 捕获异常
+ * try {
+ *     algorithm->execute();
+ * } catch (const AlgorithmException& e) {
+ *     LOG_ERROR(QString("[%1] %2").arg(e.code()).arg(e.what()));
+ * } catch (const VisionForgeException& e) {
+ *     LOG_ERROR(QString("系统错误: %1").arg(e.what()));
+ * }
+ * @endcode
+ *
+ * ## 最佳实践
+ * - 优先使用VF_THROW宏，自动填充文件和行号
+ * - 捕获时先捕获具体类型，最后捕获基类
+ * - 错误消息使用中文，便于日志分析
  */
 
 #pragma once

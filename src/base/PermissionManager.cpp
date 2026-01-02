@@ -3,6 +3,46 @@
  * @brief 权限管理器实现
  * @author VisionForge Team
  * @date 2025-12-18
+ *
+ * @details
+ * 本文件实现PermissionManager类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 密码哈希算法
+ * hashPassword()使用SHA-256：
+ * hash = SHA256(password + salt)
+ * 默认盐值："VisionForge_Salt_2025"
+ *
+ * ### 默认用户
+ * 系统初始化时创建三个默认账户：
+ * - admin / admin123 (管理员)
+ * - engineer / eng123 (工程师)
+ * - operator / op123 (操作员)
+ *
+ * ### 角色权限初始化
+ * initializeRolePermissions()定义每个角色的权限集：
+ * - Guest: 仅LogView
+ * - Operator: 运行、查看相关权限
+ * - Engineer: 编辑、配置相关权限
+ * - Administrator: 所有权限
+ *
+ * ### 配置文件格式
+ * JSON格式存储用户数据：
+ * @code
+ * {
+ *   "version": "1.0",
+ *   "users": [
+ *     {
+ *       "username": "admin",
+ *       "displayName": "系统管理员",
+ *       "passwordHash": "...",
+ *       "role": 3,
+ *       "enabled": true
+ *     }
+ *   ]
+ * }
+ * @endcode
  */
 
 #include "base/PermissionManager.h"

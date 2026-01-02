@@ -11,7 +11,7 @@
  * - 配置的持久化（JSON序列化）
  *
  * @author VisionForge Team
- * @version 1.2.0
+ * @version 1.6.0
  * @date 2025
  */
 

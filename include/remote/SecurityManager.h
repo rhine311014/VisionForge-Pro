@@ -2,8 +2,68 @@
  * @file SecurityManager.h
  * @brief 安全统一管理器 - 集成所有安全组件
  * @details 提供统一的认证、授权和安全配置接口
+ *
+ * @section security_overview 安全架构概述
+ * SecurityManager是远程诊断系统的安全中枢，整合了以下安全模块:
+ * - SecurityCertificateManager: SSL/TLS证书管理，提供传输层加密
+ * - TokenAuthManager: JWT Token认证管理，实现无状态认证
+ * - RBACManager: 基于角色的访问控制，实现细粒度权限管理
+ *
+ * @section authentication_flow 认证流程
+ * @code
+ * 1. 客户端 --> [用户名/密码] --> SecurityManager
+ * 2. SecurityManager --> RBACManager.authenticate() --> 验证凭据
+ * 3. 验证通过 --> TokenAuthManager.generateTokenPair() --> 生成JWT
+ * 4. SecurityManager --> [Token对] --> 客户端
+ * 5. 客户端 --> [携带AccessToken] --> 后续请求
+ * 6. SecurityManager --> TokenAuthManager.validateToken() --> 验证请求
+ * 7. Token即将过期 --> 使用RefreshToken刷新
+ * @endcode
+ *
+ * @section authorization_flow 授权流程
+ * @code
+ * 1. 请求 --> SecurityManager.authorizeAction(token, permission)
+ * 2. TokenAuthManager.validateToken() --> 获取用户角色
+ * 3. RBACManager.hasPermission(userId, permission) --> 检查权限
+ * 4. 返回允许/拒绝，记录审计日志
+ * @endcode
+ *
+ * @section security_layers 安全层次
+ * | 层次 | 组件 | 功能 |
+ * |------|------|------|
+ * | 传输层 | SecurityCertificateManager | SSL/TLS加密 |
+ * | 认证层 | TokenAuthManager | JWT Token认证 |
+ * | 授权层 | RBACManager | 角色权限控制 |
+ * | 审计层 | RBACManager | 操作日志记录 |
+ *
+ * @section usage_example 使用示例
+ * @code
+ * SecurityManager security;
+ *
+ * // 初始化安全管理器
+ * SecurityConfig config;
+ * config.enableSecurity = true;
+ * config.enableAuditLog = true;
+ * config.tokenConfig.secretKey = "your-secret-key";
+ * config.certificateConfig.enabled = true;
+ * security.initialize(config);
+ *
+ * // 用户认证
+ * auto result = security.authenticateConnection("admin", "password", "192.168.1.1");
+ * if (result.authenticated) {
+ *     QString token = result.accessToken;
+ *
+ *     // 检查权限
+ *     if (security.authorizeAction(token, Permission::ModifyConfiguration)) {
+ *         // 执行操作...
+ *     }
+ * }
+ * @endcode
+ *
  * @author VisionForge Team
+ * @version 1.6.0
  * @date 2025-12-20
+ * @copyright Copyright (c) 2025 VisionForge. All rights reserved.
  */
 
 #pragma once

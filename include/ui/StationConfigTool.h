@@ -171,6 +171,16 @@ private:
      */
     void updateFunctionModeUI(int mode);
 
+    /**
+     * @brief 根据平台类型更新UVW配置组可见性
+     */
+    void updateUVWConfigVisibility(int platformType);
+
+    /**
+     * @brief 检查平台类型是否为UVW系列
+     */
+    bool isUVWPlatformType(int platformType) const;
+
     // ========== 平台配置数据结构 ==========
     struct PlatformConfig {
         int index = 0;              ///< 平台序号 (1-6)
@@ -192,6 +202,19 @@ private:
         double alignmentToleranceX = 0.1;   ///< 对位X容差 (mm)
         double alignmentToleranceY = 0.1;   ///< 对位Y容差 (mm)
         double alignmentToleranceD = 0.1;   ///< 对位角度容差 (度)
+
+        // UVW平台节点配置参数
+        int uvwStructureType = 0;       ///< 结构类型 (0=XXY, 1=XYY)
+        int uvwSliderType = 0;          ///< 滑轨类型 (0=固定, 1=移动)
+        int uvwPrecisionGrade = 0;      ///< 精度等级 (0=P级, 1=B级, 2=G级)
+        double node1PosX = 67.5;        ///< 节点1 X坐标 (mm)
+        double node1PosY = -57.0;       ///< 节点1 Y坐标 (mm)
+        double node2PosX = 67.5;        ///< 节点2 X坐标 (mm)
+        double node2PosY = 57.0;        ///< 节点2 Y坐标 (mm)
+        double node3PosX = -57.0;       ///< 节点3 X坐标 (mm)
+        double node3PosY = 67.5;        ///< 节点3 Y坐标 (mm)
+        double travelXY = 5.0;          ///< XY行程范围 (±mm)
+        double travelTheta = 2.0;       ///< θ旋转范围 (±度)
     };
 
     // ========== UI 组件 ==========
@@ -221,6 +244,20 @@ private:
     QDoubleSpinBox* spinAlignToleranceX_;   ///< X容差
     QDoubleSpinBox* spinAlignToleranceY_;   ///< Y容差
     QDoubleSpinBox* spinAlignToleranceD_;   ///< 角度容差
+
+    // UVW节点配置组
+    QGroupBox* uvwConfigGroup_;         ///< UVW配置分组
+    QComboBox* comboUVWStructure_;      ///< 结构类型 (XXY/XYY)
+    QComboBox* comboUVWSlider_;         ///< 滑轨类型 (固定/移动)
+    QComboBox* comboUVWPrecision_;      ///< 精度等级 (P/B/G)
+    QDoubleSpinBox* spinNode1X_;        ///< 节点1 X坐标
+    QDoubleSpinBox* spinNode1Y_;        ///< 节点1 Y坐标
+    QDoubleSpinBox* spinNode2X_;        ///< 节点2 X坐标
+    QDoubleSpinBox* spinNode2Y_;        ///< 节点2 Y坐标
+    QDoubleSpinBox* spinNode3X_;        ///< 节点3 X坐标
+    QDoubleSpinBox* spinNode3Y_;        ///< 节点3 Y坐标
+    QDoubleSpinBox* spinTravelXY_;      ///< XY行程范围
+    QDoubleSpinBox* spinTravelTheta_;   ///< θ旋转范围
 
     // 底部按钮
     QPushButton* btnAddPlatform_;       ///< 新增平台

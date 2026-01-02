@@ -11,9 +11,11 @@
 #include <QTranslator>
 #include <QLibraryInfo>
 
-// Windows平台UTF-8控制台支持
+// Windows平台UTF-8控制台支持和CUDA环境设置
 #ifdef _WIN32
 #include <windows.h>
+#include <string>   // for std::wstring
+#include <cstdlib>  // for _putenv
 #endif
 
 // 基础设施层
@@ -48,12 +50,83 @@ void setupConsoleEncoding()
 }
 
 /**
+ * @brief 设置CUDA运行时环境
+ *
+ * 在程序启动时将CUDA和OpenCV的DLL路径添加到PATH环境变量
+ * 并预加载关键CUDA DLL，避免后续被Halcon的CUDA 12.1覆盖
+ */
+void setupCudaEnvironment()
+{
+#ifdef _WIN32
+#ifdef USE_CUDA
+    // CUDA 12.5路径 - 必须最先添加，避免加载Halcon的CUDA 12.1
+    const wchar_t* cuda125Path = L"D:\\Program Files\\CUDA12.5\\bin";
+    const wchar_t* opencvCudaPath = L"D:\\Program Files\\OPENCV CUDA\\x64\\vc17\\bin";
+
+    // 步骤1：更新PATH环境变量（CUDA 12.5必须在Halcon之前）
+    DWORD pathLen = GetEnvironmentVariableW(L"PATH", nullptr, 0);
+    if (pathLen > 0) {
+        std::wstring currentPath(pathLen, L'\0');
+        GetEnvironmentVariableW(L"PATH", &currentPath[0], pathLen);
+
+        std::wstring newPath;
+
+        // CUDA 12.5路径放最前面
+        if (GetFileAttributesW(cuda125Path) != INVALID_FILE_ATTRIBUTES) {
+            newPath += cuda125Path;
+            newPath += L";";
+        }
+
+        // OpenCV CUDA路径
+        if (GetFileAttributesW(opencvCudaPath) != INVALID_FILE_ATTRIBUTES) {
+            newPath += opencvCudaPath;
+            newPath += L";";
+        }
+
+        if (!newPath.empty()) {
+            newPath += currentPath;
+            SetEnvironmentVariableW(L"PATH", newPath.c_str());
+
+            // 同时设置C运行时环境变量
+            std::string narrowPath(newPath.begin(), newPath.end());
+            std::string envStr = "PATH=" + narrowPath;
+            _putenv(envStr.c_str());
+        }
+    }
+
+    // 步骤2：预加载关键CUDA DLL，确保使用CUDA 12.5版本
+    // 这会在Halcon加载之前锁定正确版本的CUDA运行时
+    const wchar_t* preloadDlls[] = {
+        L"D:\\Program Files\\CUDA12.5\\bin\\cudart64_12.dll",
+        L"D:\\Program Files\\CUDA12.5\\bin\\cublas64_12.dll",
+        L"D:\\Program Files\\CUDA12.5\\bin\\cublasLt64_12.dll",
+        L"D:\\Program Files\\CUDA12.5\\bin\\cufft64_11.dll",
+        L"D:\\Program Files\\CUDA12.5\\bin\\nppc64_12.dll",
+        L"D:\\Program Files\\CUDA12.5\\bin\\nppial64_12.dll",
+        L"D:\\Program Files\\CUDA12.5\\bin\\nppig64_12.dll",
+        nullptr
+    };
+
+    for (int i = 0; preloadDlls[i] != nullptr; ++i) {
+        if (GetFileAttributesW(preloadDlls[i]) != INVALID_FILE_ATTRIBUTES) {
+            // 使用LOAD_WITH_ALTERED_SEARCH_PATH确保加载指定路径的DLL
+            LoadLibraryExW(preloadDlls[i], NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+        }
+    }
+#endif // USE_CUDA
+#endif // _WIN32
+}
+
+/**
  * @brief 主函数
  */
 int main(int argc, char *argv[])
 {
     // 首先设置控制台UTF-8编码（必须在任何输出之前）
     setupConsoleEncoding();
+
+    // 设置CUDA运行时环境（在任何OpenCV CUDA调用之前）
+    setupCudaEnvironment();
 
     // 设置应用程序信息
     QApplication::setApplicationName("VisionForge Pro");
@@ -101,6 +174,22 @@ int main(int argc, char *argv[])
     LOG_INFO(QString("VisionForge Pro v%1").arg(VISIONFORGE_VERSION));
     LOG_INFO("通用工业视觉检测平台");
     LOG_INFO("========================================");
+
+#ifdef USE_CUDA
+    // 验证CUDA环境设置
+    LOG_INFO("[CUDA] 检查CUDA环境设置...");
+    #ifdef _WIN32
+    wchar_t pathBuf[32768];
+    DWORD len = GetEnvironmentVariableW(L"PATH", pathBuf, 32768);
+    if (len > 0) {
+        std::wstring pathStr(pathBuf, len);
+        bool hasCuda = pathStr.find(L"CUDA12.5") != std::wstring::npos;
+        bool hasOpenCVCuda = pathStr.find(L"OPENCV CUDA") != std::wstring::npos;
+        LOG_INFO(QString("[CUDA] PATH包含CUDA12.5: %1").arg(hasCuda ? "是" : "否"));
+        LOG_INFO(QString("[CUDA] PATH包含OPENCV CUDA: %1").arg(hasOpenCVCuda ? "是" : "否"));
+    }
+    #endif
+#endif
 
     LOG_INFO("[启动] 应用程序初始化...");
 
@@ -153,27 +242,21 @@ int main(int argc, char *argv[])
         LOG_INFO(QString("[配置] 使用现有配置: %1 个工位").arg(stationManager.getStationCount()));
     }
 
-    // 检查相机配置
-    // 条件：没有相机配置文件时显示相机设置对话框
-    bool hasCameraConfig = CameraSetupDialog::hasExistingConfig();
-    if (!hasCameraConfig) {
-        LOG_INFO("[相机] 未检测到相机配置，显示相机设置对话框...");
-        LOG_INFO(QString("[相机] 相机配置文件路径: %1").arg(CameraSetupDialog::configFilePath()));
+    // 显示相机设置对话框（每次启动都显示，在主窗口之前）
+    LOG_INFO("[相机] 显示相机设置对话框...");
 
-        CameraSetupDialog cameraSetup;
-        int cameraResult = cameraSetup.exec();
+    CameraSetupDialog cameraSetup;
+    int cameraResult = cameraSetup.exec();
 
-        if (cameraResult == QDialog::Accepted) {
-            if (cameraSetup.isSaveAndExit()) {
-                LOG_INFO("[相机] 相机配置已保存");
-            } else if (cameraSetup.isSkipped()) {
-                LOG_INFO("[相机] 用户跳过相机配置");
-            }
-        } else {
-            LOG_INFO("[相机] 用户取消相机配置，使用默认设置");
+    if (cameraResult == QDialog::Accepted) {
+        if (cameraSetup.isSaveAndExit()) {
+            LOG_INFO("[相机] 相机配置已保存");
+        } else if (cameraSetup.isSkipped()) {
+            LOG_INFO("[相机] 用户跳过相机配置，进入主界面");
         }
     } else {
-        LOG_INFO("[相机] 已检测到相机配置");
+        LOG_INFO("[相机] 用户取消相机配置，退出程序");
+        return 0;
     }
 
     // 创建主窗口

@@ -301,31 +301,23 @@ void CodeReadTool::deserializeParams(const QJsonObject& json)
 #ifdef _WIN32
 HImage CodeReadTool::imageDataToHImage(const Base::ImageData::Ptr& image)
 {
-    // 零拷贝优化：使用 GenImageInterleaved 直接接受 BGR 交织数据
     const cv::Mat& mat = image->mat();
-    int width = mat.cols;
-    int height = mat.rows;
-    int channels = mat.channels();
-
     HImage hImg;
-
-    if (channels == 1) {
-        hImg.GenImage1("byte", width, height, (void*)mat.data);
+    if (mat.channels() == 1) {
+        hImg.GenImage1("byte", mat.cols, mat.rows, (void*)mat.data);
+    } else if (mat.channels() == 3) {
+        cv::Mat rgb;
+        cv::cvtColor(mat, rgb, cv::COLOR_BGR2RGB);
+        std::vector<cv::Mat> channels(3);
+        cv::split(rgb, channels);
+        hImg.GenImage3("byte", mat.cols, mat.rows, (void*)channels[0].data, (void*)channels[1].data, (void*)channels[2].data);
+    } else if (mat.channels() == 4) {
+        cv::Mat rgb;
+        cv::cvtColor(mat, rgb, cv::COLOR_BGRA2RGB);
+        std::vector<cv::Mat> channels(3);
+        cv::split(rgb, channels);
+        hImg.GenImage3("byte", mat.cols, mat.rows, (void*)channels[0].data, (void*)channels[1].data, (void*)channels[2].data);
     }
-    else if (channels == 3) {
-        // 零拷贝：直接接受BGR数据，避免cvtColor和split
-        hImg.GenImageInterleaved(
-            (void*)mat.data, "bgr",
-            width, height, 0, "byte",
-            width * 3, 0);
-    }
-    else if (channels == 4) {
-        hImg.GenImageInterleaved(
-            (void*)mat.data, "bgrx",
-            width, height, 0, "byte",
-            width * 4, 0);
-    }
-
     return hImg;
 }
 #endif

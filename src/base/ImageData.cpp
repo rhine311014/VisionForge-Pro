@@ -1,6 +1,31 @@
 /**
  * @file ImageData.cpp
  * @brief 图像数据类实现
+ * @author VisionForge Team
+ * @date 2025-12-14
+ *
+ * @details
+ * 本文件实现ImageData类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 内存对齐分配
+ * - Windows: 使用_aligned_malloc/_aligned_free
+ * - Linux/macOS: 使用posix_memalign/free
+ * - 默认对齐32字节，支持AVX2指令集
+ *
+ * ### Qt图像转换
+ * toQImage()根据图像类型选择不同策略：
+ * - CV_8UC1(灰度)：直接零拷贝转换为Format_Grayscale8
+ * - CV_8UC4(RGBA)：直接零拷贝转换为Format_RGBA8888
+ * - CV_8UC3(BGR)：需要颜色空间转换，在QImage内存上直接操作
+ * - 其他格式：先转换类型，再创建QImage副本
+ *
+ * ### CUDA内存管理
+ * GPU相关操作使用条件编译：
+ * - cudaMalloc/cudaFree：GPU内存分配释放
+ * - cudaMemcpy：主机与设备间数据传输
+ * - CUDA_CHECK宏：统一错误检查和日志记录
  */
 
 #include "base/ImageData.h"

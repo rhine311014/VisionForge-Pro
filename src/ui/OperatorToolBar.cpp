@@ -9,6 +9,8 @@
 
 #include <QApplication>
 #include <QStyle>
+#include <QMenu>
+#include <QAction>
 
 namespace VisionForge {
 namespace UI {
@@ -18,6 +20,8 @@ OperatorToolBar::OperatorToolBar(QWidget* parent)
     , layout_(nullptr)
     , iconSize_(48)
     , isRunning_(false)
+    , frameLiveMode_(FrameValid)
+    , isLiveDisplayActive_(false)
 {
     setupStyles();
     setupUI();
@@ -99,6 +103,28 @@ void OperatorToolBar::setupStyles()
             background-color: #c82333;
         }
     )";
+
+    // 激活状态样式（实时显示激活时）
+    activeStyle_ = R"(
+        QPushButton {
+            background-color: #ff9800;
+            color: white;
+            border: 2px solid #f57c00;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 70px;
+            min-height: 70px;
+        }
+        QPushButton:hover {
+            background-color: #ffb74d;
+            border-color: #ff9800;
+        }
+        QPushButton:pressed {
+            background-color: #f57c00;
+        }
+    )";
 }
 
 void OperatorToolBar::setupUI()
@@ -120,7 +146,7 @@ void OperatorToolBar::setupUI()
     buttons_[Product] = createToolButton("product", tr("产品"), Product);
     buttons_[System] = createToolButton("settings", tr("系统"), System);
     buttons_[Options] = createToolButton("options", tr("选项"), Options);
-    buttons_[Preview] = createToolButton("image", tr("图像预览"), Preview);
+    buttons_[FrameLive] = createToolButton("image", tr("帧有效"), FrameLive);  // 帧有效/实时显示二合一
     buttons_[Run] = createToolButton("play", tr("运行"), Run);
     buttons_[Login] = createToolButton("user", tr("登录"), Login);
 
@@ -141,7 +167,30 @@ void OperatorToolBar::setupUI()
     connect(buttons_[Product], &QPushButton::clicked, this, &OperatorToolBar::productClicked);
     connect(buttons_[System], &QPushButton::clicked, this, &OperatorToolBar::systemClicked);
     connect(buttons_[Options], &QPushButton::clicked, this, &OperatorToolBar::optionsClicked);
-    connect(buttons_[Preview], &QPushButton::clicked, this, &OperatorToolBar::previewClicked);
+    connect(buttons_[FrameLive], &QPushButton::clicked, this, &OperatorToolBar::onFrameLiveButtonClicked);
+
+    // 帧有效/实时显示按钮右键菜单 - 切换模式
+    buttons_[FrameLive]->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(buttons_[FrameLive], &QPushButton::customContextMenuRequested, [this](const QPoint& pos) {
+        QMenu menu(this);
+        QAction* frameValidAction = menu.addAction(tr("帧有效模式"));
+        frameValidAction->setCheckable(true);
+        frameValidAction->setChecked(frameLiveMode_ == FrameValid);
+
+        QAction* liveDisplayAction = menu.addAction(tr("实时显示模式"));
+        liveDisplayAction->setCheckable(true);
+        liveDisplayAction->setChecked(frameLiveMode_ == LiveDisplay);
+
+        connect(frameValidAction, &QAction::triggered, [this]() {
+            setFrameLiveMode(FrameValid);
+        });
+        connect(liveDisplayAction, &QAction::triggered, [this]() {
+            setFrameLiveMode(LiveDisplay);
+        });
+
+        menu.exec(buttons_[FrameLive]->mapToGlobal(pos));
+    });
+
     connect(buttons_[Run], &QPushButton::clicked, this, &OperatorToolBar::runClicked);
     connect(buttons_[Login], &QPushButton::clicked, this, &OperatorToolBar::loginClicked);
     connect(buttons_[Exit], &QPushButton::clicked, this, &OperatorToolBar::exitClicked);
@@ -230,6 +279,62 @@ void OperatorToolBar::setLoginState(bool loggedIn, const QString& username)
         } else {
             buttons_[Login]->setText(tr("登录"));
             buttons_[Login]->setStyleSheet(normalStyle_);
+        }
+    }
+}
+
+void OperatorToolBar::setFrameLiveMode(FrameLiveMode mode)
+{
+    if (frameLiveMode_ != mode) {
+        frameLiveMode_ = mode;
+        updateFrameLiveButton();
+        emit frameLiveModeChanged(mode);
+    }
+}
+
+void OperatorToolBar::setLiveDisplayActive(bool active)
+{
+    if (isLiveDisplayActive_ != active) {
+        isLiveDisplayActive_ = active;
+        updateFrameLiveButton();
+    }
+}
+
+void OperatorToolBar::onFrameLiveButtonClicked()
+{
+    emit frameLiveClicked();
+
+    if (frameLiveMode_ == FrameValid) {
+        // 帧有效模式：单击触发一次帧采集
+        emit frameValidTriggered();
+    } else {
+        // 实时显示模式：切换实时显示开关
+        isLiveDisplayActive_ = !isLiveDisplayActive_;
+        updateFrameLiveButton();
+        emit liveDisplayToggled(isLiveDisplayActive_);
+    }
+}
+
+void OperatorToolBar::updateFrameLiveButton()
+{
+    if (!buttons_.contains(FrameLive)) {
+        return;
+    }
+
+    QPushButton* btn = buttons_[FrameLive];
+
+    if (frameLiveMode_ == FrameValid) {
+        // 帧有效模式
+        btn->setText(tr("帧有效"));
+        btn->setStyleSheet(normalStyle_);
+    } else {
+        // 实时显示模式
+        if (isLiveDisplayActive_) {
+            btn->setText(tr("实时显示\n(运行中)"));
+            btn->setStyleSheet(activeStyle_);
+        } else {
+            btn->setText(tr("实时显示"));
+            btn->setStyleSheet(normalStyle_);
         }
     }
 }

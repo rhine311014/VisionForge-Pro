@@ -1,6 +1,6 @@
 {
   "name": "visionforge-remote-monitor",
-  "version": "1.2.0",
+  "version": "1.6.0",
   "description": "VisionForge Pro 远程诊断监控界面",
   "private": true,
   "type": "module",

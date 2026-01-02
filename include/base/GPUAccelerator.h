@@ -1,9 +1,80 @@
 /**
  * @file GPUAccelerator.h
- * @brief GPU加速管理器
- * @details 管理GPU设备，提供GPU加速功能
+ * @brief GPU加速管理器 - CUDA设备管理与GPU图像处理
  * @author VisionForge Team
  * @date 2025-12-15
+ *
+ * @details
+ * 本文件实现了VisionForge项目的GPU加速功能，基于NVIDIA CUDA和OpenCV CUDA模块。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的GPU加速器实例
+ * - **外观模式 (Facade)**：封装OpenCV CUDA的复杂API
+ * - **策略模式 (Strategy)**：支持Disabled/CUDA/Auto三种加速模式
+ *
+ * ## 核心功能
+ *
+ * ### 设备管理
+ * - 自动检测可用CUDA设备
+ * - 支持多GPU设备切换
+ * - 提供设备信息查询
+ *
+ * ### GPU图像处理
+ * 封装常用的GPU加速图像处理操作：
+ * - 颜色空间转换：cvtColor
+ * - 滤波：gaussianBlur, medianFilter, bilateralFilter
+ * - 边缘检测：sobel, canny
+ * - 形态学：erode, dilate
+ * - 几何变换：resize
+ * - 算术运算：add, subtract, absdiff
+ *
+ * ### 异步流处理
+ * - 支持CUDA Stream并发执行
+ * - 异步上传/下载减少CPU等待
+ * - 提供流同步机制
+ *
+ * ### 内存池
+ * - GpuMemoryPool减少GPU内存分配开销
+ * - 自动复用已分配的GpuMat
+ * - 提供命中率统计
+ *
+ * ## 条件编译
+ * 使用USE_CUDA宏控制CUDA相关代码：
+ * - 定义USE_CUDA时：编译CUDA功能
+ * - 未定义时：自动回退到CPU处理
+ *
+ * ## 线程安全
+ * - 设备切换操作非线程安全
+ * - GPU操作应在单线程或带同步的多线程环境使用
+ * - 每个线程建议使用独立的CUDA Stream
+ *
+ * ## 内存管理
+ * - GpuMat使用引用计数自动管理
+ * - defaultStream_使用unique_ptr管理
+ * - 程序结束时自动释放所有GPU资源
+ *
+ * ## 性能优化
+ * - 批量处理时复用GpuMat减少传输开销
+ * - 使用异步Stream隐藏传输延迟
+ * - 对于小图像，CPU处理可能更快
+ *
+ * ## 使用示例
+ * @code
+ * // 检查GPU是否可用
+ * if (GPUAccelerator::instance().isCudaAvailable()) {
+ *     // GPU处理
+ *     cv::cuda::GpuMat gpuSrc, gpuDst;
+ *     GPUAccelerator::upload(cpuMat, gpuSrc);
+ *     GPUAccelerator::gaussianBlur(gpuSrc, gpuDst, cv::Size(5,5), 1.0);
+ *     GPUAccelerator::download(gpuDst, result);
+ * } else {
+ *     // CPU回退
+ *     cv::GaussianBlur(cpuMat, result, cv::Size(5,5), 1.0);
+ * }
+ *
+ * // 设置加速模式
+ * GPUAccelerator::instance().setAccelMode(GPUAccelMode::Auto);
+ * @endcode
  */
 
 #pragma once

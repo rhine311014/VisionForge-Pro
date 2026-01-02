@@ -95,7 +95,7 @@ void InfoBar::setupUI()
             selection-background-color: #0078d4;
         }
     )");
-    positionCombo_->addItem(tr("位置1"));
+    // 不添加默认位置，由外部通过setPositions()设置
     layout_->addWidget(positionCombo_);
 
     // 按钮样式
@@ -149,6 +149,9 @@ void InfoBar::setupUI()
 
 void InfoBar::setScenes(const QStringList& scenes)
 {
+    // 阻止信号发射，避免在初始化时触发不必要的场景切换
+    sceneTabBar_->blockSignals(true);
+
     // 清除现有标签
     while (sceneTabBar_->count() > 0) {
         sceneTabBar_->removeTab(0);
@@ -159,10 +162,10 @@ void InfoBar::setScenes(const QStringList& scenes)
         sceneTabBar_->addTab(scene);
     }
 
-    // 如果没有场景，添加默认
-    if (scenes.isEmpty()) {
-        sceneTabBar_->addTab(tr("边检"));
-    }
+    // 恢复信号
+    sceneTabBar_->blockSignals(false);
+
+    // 不再添加默认场景，场景列表由配置决定
 }
 
 void InfoBar::setCurrentScene(int index)
@@ -179,12 +182,16 @@ int InfoBar::currentScene() const
 
 void InfoBar::setPositions(const QStringList& positions)
 {
+    // 阻止信号发射，避免在初始化时触发不必要的位置切换
+    positionCombo_->blockSignals(true);
+
     positionCombo_->clear();
     positionCombo_->addItems(positions);
 
-    if (positions.isEmpty()) {
-        positionCombo_->addItem(tr("位置1"));
-    }
+    // 恢复信号
+    positionCombo_->blockSignals(false);
+
+    // 不再添加默认位置，位置列表由配置决定
 }
 
 void InfoBar::setCurrentPosition(int index)

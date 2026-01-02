@@ -1,8 +1,80 @@
 /**
  * @file ErrorRecovery.h
- * @brief 错误恢复机制
+ * @brief 错误恢复机制 - 自动重试、检查点回滚、策略化恢复
  * @author VisionForge Team
  * @date 2025-12-19
+ *
+ * @details
+ * 本文件实现了VisionForge项目的错误恢复机制，提供健壮的错误处理能力。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的错误恢复管理器
+ * - **策略模式 (Strategy)**：可配置的恢复策略
+ * - **命令模式 (Command)**：封装重试操作
+ * - **备忘录模式 (Memento)**：检查点状态保存和恢复
+ * - **RAII模式**：ScopedCheckpoint自动管理检查点生命周期
+ *
+ * ## 核心功能
+ *
+ * ### 错误分类
+ * 按严重程度分为四级：
+ * - Warning：警告，可继续运行
+ * - Error：错误，需处理但可恢复
+ * - Critical：严重，可能导致数据丢失
+ * - Fatal：致命，必须停止运行
+ *
+ * ### 恢复策略
+ * - Ignore：忽略错误继续运行
+ * - Retry：自动重试（支持指数退避）
+ * - Rollback：回滚到最近检查点
+ * - Skip：跳过当前操作
+ * - Notify：通知用户决定
+ * - Abort：中止当前任务
+ *
+ * ### 自动重试
+ * - 支持配置最大重试次数
+ * - 指数退避算法避免频繁重试
+ * - 可自定义延迟策略
+ * - 支持进度回调
+ *
+ * ### 检查点系统
+ * - 创建状态快照
+ * - 支持多个命名检查点
+ * - 自动或手动回滚
+ * - RAII风格的ScopedCheckpoint
+ *
+ * ## 线程安全
+ * - recovering_和currentRetry_使用std::atomic
+ * - 信号发射线程安全
+ * - 检查点操作需要外部同步
+ *
+ * ## 内存管理
+ * - 错误历史限制最大条数，防止内存泄漏
+ * - 检查点状态使用QJsonObject，支持序列化
+ * - ScopedCheckpoint使用RAII自动清理
+ *
+ * ## 使用示例
+ * @code
+ * // 报告错误
+ * ERROR_RECOVERY.reportError("CAM_001", "相机连接超时");
+ *
+ * // 带重试的操作
+ * bool success = ERROR_RECOVERY.executeWithRetry([&]() {
+ *     return camera->connect();
+ * }, "CAM_CONNECT");
+ *
+ * // 使用检查点
+ * {
+ *     ScopedCheckpoint cp("before_edit", "编辑前状态", saveState());
+ *     // ... 危险操作 ...
+ *     cp.commit();  // 成功则不回滚
+ * }  // 未commit则自动回滚
+ *
+ * // 自定义恢复处理器
+ * ERROR_RECOVERY.registerRecoveryHandler("PLC_TIMEOUT", [](const ErrorInfo& e) {
+ *     return plc->reconnect();
+ * });
+ * @endcode
  */
 
 #pragma once

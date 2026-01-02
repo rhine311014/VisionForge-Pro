@@ -3,6 +3,95 @@
  * @brief 并行处理器 - OpenMP多线程优化
  * @author VisionForge Team
  * @date 2025-12-19
+ *
+ * @details
+ * 本文件实现了VisionForge项目的CPU并行处理功能，基于OpenMP多线程框架。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的并行处理器实例
+ * - **策略模式 (Strategy)**：根据任务规模自动选择串行或并行
+ * - **模板方法模式**：parallelTransform、parallelReduce等通用算法
+ *
+ * ## 核心功能
+ *
+ * ### 批量处理
+ * - processBatch()：并行处理多张图像
+ * - processBatchIndexed()：带索引的批量处理
+ * - processBatchFiles()：并行处理文件列表
+ *
+ * ### 分块处理
+ * - processTiles()：将大图分块并行处理
+ * - processTilesReadOnly()：只读分块处理
+ * - 支持设置重叠区域
+ *
+ * ### ROI并行
+ * - processROIs()：并行处理多个ROI区域
+ *
+ * ### 像素级并行
+ * - forEachPixel()：并行遍历所有像素
+ * - forEachRow()：并行处理每一行
+ *
+ * ### 归约操作
+ * - parallelSum()：并行求和
+ * - parallelMax/Min()：并行求最值
+ * - parallelReduce()：通用归约
+ *
+ * ### 高级算法
+ * - parallelTransform()：并行变换
+ * - parallelFilter()：并行过滤
+ * - parallelHistogram()：并行直方图
+ * - parallelConvolution()：并行卷积
+ *
+ * ## 条件编译
+ * 使用_OPENMP宏控制OpenMP相关代码：
+ * - 定义_OPENMP时：使用OpenMP并行
+ * - 未定义时：自动回退到串行执行
+ *
+ * ## 线程安全
+ * - 处理函数内部应避免共享状态
+ * - 使用reduction子句处理归约操作
+ * - 进度回调使用critical section保护
+ *
+ * ## 性能优化
+ *
+ * ### 自适应并行
+ * - 任务数少于2时自动串行执行
+ * - 根据任务数调整实际线程数
+ *
+ * ### 进度节流
+ * processBatchFiles()使用节流机制：
+ * - 计算报告间隔（至少1%或10个文件）
+ * - 使用atomic+CAS避免重复报告
+ *
+ * ### 调度策略
+ * - 默认使用static调度
+ * - 文件处理使用dynamic调度（负载均衡）
+ *
+ * ## 内存管理
+ * - 无动态内存分配（使用栈上对象）
+ * - 统计计数器使用std::atomic
+ *
+ * ## 使用示例
+ * @code
+ * // 并行处理图像批量
+ * std::vector<ImageData::Ptr> images = ...;
+ * ParallelProcessor::instance().processBatch(images, [](ImageData::Ptr& img) {
+ *     // 处理每张图像
+ *     cv::GaussianBlur(img->mat(), img->mat(), cv::Size(5,5), 1.0);
+ * });
+ *
+ * // 分块处理大图
+ * ParallelProcessor::instance().processTiles(largeImage, cv::Size(256,256), 10,
+ *     [](cv::Mat& tile, const cv::Rect& rect) {
+ *         // 处理每个分块
+ *     });
+ *
+ * // 使用便捷宏
+ * VF_PARALLEL_FOR
+ * for (int i = 0; i < n; ++i) {
+ *     // 并行循环体
+ * }
+ * @endcode
  */
 
 #pragma once

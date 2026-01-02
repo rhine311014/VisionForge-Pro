@@ -1,9 +1,26 @@
 /**
  * @file LineTool.h
- * @brief 线检测工具
- * @details 检测图像中的直线，支持Halcon和OpenCV双后端
+ * @brief 直线检测工具头文件
+ * @details 实现图像中直线目标的检测与定位，支持霍夫变换、轮廓拟合、
+ *          边缘拟合等多种算法，并提供OpenCV和Halcon双后端支持。
+ *
  * @author VisionForge Team
+ * @version 1.0.0
  * @date 2025-12-18
+ * @copyright Copyright (c) 2025 VisionForge. All rights reserved.
+ *
+ * @par 功能特性:
+ * - 标准霍夫变换检测
+ * - 概率霍夫变换检测
+ * - 轮廓拟合检测
+ * - 边缘拟合检测
+ * - OpenCV/Halcon双后端
+ *
+ * @par 应用场景:
+ * - 边缘检测与测量
+ * - 平行度/垂直度测量
+ * - 引导线检测
+ * - 基准线定位
  */
 
 #pragma once
@@ -19,8 +36,8 @@ namespace VisionForge {
 namespace Algorithm {
 
 /**
- * @brief 检测到的线特征
- * @note 为保持向后兼容，保留此结构体
+ * @brief 直线检测结果结构体
+ * @details 存储单条检测到的直线的完整信息，包括端点、角度、直线方程等
  */
 struct LineResult {
     int id;                     // 线ID

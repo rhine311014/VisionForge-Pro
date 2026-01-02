@@ -1,6 +1,6 @@
 /**
  * @file PLCConfigDialog.cpp
- * @brief PLC配置对话框实现
+ * @brief PLC通信配置对话框实现
  * @author VisionForge Team
  * @date 2025-12-17
  */
@@ -11,263 +11,481 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
-#include <QSplitter>
-#include <QMessageBox>
-#include <QInputDialog>
-#include <QFileDialog>
-#include <QDateTime>
+#include <QFormLayout>
 #include <QHeaderView>
+#include <QMessageBox>
 
 namespace VisionForge {
 
 PLCConfigDialog::PLCConfigDialog(QWidget* parent)
     : QDialog(parent)
 {
-    setWindowTitle("PLC通信配置");
-    setMinimumSize(900, 600);
+    setWindowTitle("通信配置");
+    setMinimumSize(1400, 800);
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
+    setupStyles();
     setupUI();
     setupConnections();
-    updateConnectionList();
+
+    // 初始化数据表格
+    updateDataTable();
 }
 
 PLCConfigDialog::~PLCConfigDialog()
 {
 }
 
+void PLCConfigDialog::setupStyles()
+{
+    // 使用系统原生风格，仅做轻微调整
+    // GroupBox样式 - 简洁边框
+    groupBoxStyle_ = R"(
+        QGroupBox {
+            font-weight: bold;
+            border: 1px solid #c0c0c0;
+            border-radius: 2px;
+            margin-top: 12px;
+            padding-top: 8px;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
+            left: 8px;
+            padding: 0 4px;
+        }
+    )";
+
+    // 普通按钮样式 - 使用系统默认
+    buttonStyle_ = R"(
+        QPushButton {
+            min-height: 22px;
+            padding: 3px 12px;
+        }
+    )";
+
+    // 大按钮样式（确定/取消）
+    largeButtonStyle_ = R"(
+        QPushButton {
+            min-width: 70px;
+            min-height: 60px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+    )";
+}
+
 void PLCConfigDialog::setupUI()
 {
-    auto* mainLayout = new QHBoxLayout(this);
+    auto* mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(10);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
 
-    // 左侧：连接列表
-    QWidget* listPanel = createConnectionListPanel();
-    listPanel->setFixedWidth(200);
+    // 主内容区域
+    auto* contentLayout = new QHBoxLayout();
+    contentLayout->setSpacing(10);
 
-    // 中间：配置面板
-    QWidget* configPanel = createConfigPanel();
+    // 左侧面板
+    QWidget* leftPanel = createLeftPanel();
+    leftPanel->setFixedWidth(380);
+    contentLayout->addWidget(leftPanel);
 
-    // 右侧：测试面板
-    QWidget* testPanel = createTestPanel();
+    // 中间面板
+    QWidget* middlePanel = createMiddlePanel();
+    contentLayout->addWidget(middlePanel, 1);
 
-    // 使用分割器
-    auto* splitter = new QSplitter(Qt::Horizontal);
-    splitter->addWidget(listPanel);
-    splitter->addWidget(configPanel);
-    splitter->addWidget(testPanel);
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-    splitter->setStretchFactor(2, 1);
+    // 右侧面板
+    QWidget* rightPanel = createRightPanel();
+    rightPanel->setFixedWidth(280);
+    contentLayout->addWidget(rightPanel);
 
-    mainLayout->addWidget(splitter);
+    mainLayout->addLayout(contentLayout, 1);
+
+    // 底部状态栏
+    auto* bottomLayout = new QHBoxLayout();
+
+    // 状态指示灯和文本
+    auto* statusLayout = new QHBoxLayout();
+    QLabel* statusIcon = new QLabel();
+    statusIcon->setFixedSize(12, 12);
+    statusIcon->setStyleSheet("background-color: #cc0000; border-radius: 6px; border: 1px solid #990000;");
+    statusLayout->addWidget(statusIcon);
+
+    statusLabel_ = new QLabel("网络连接打开失败");
+    statusLayout->addWidget(statusLabel_);
+    statusLayout->addStretch();
+
+    bottomLayout->addLayout(statusLayout);
+    bottomLayout->addStretch();
+
+    // 确定/取消按钮（大图标样式）
+    auto* btnLayout = new QVBoxLayout();
+    btnLayout->setSpacing(10);
+
+    confirmBtn_ = new QPushButton("确定");
+    confirmBtn_->setStyleSheet(largeButtonStyle_);
+    btnLayout->addWidget(confirmBtn_);
+
+    cancelBtn_ = new QPushButton("取消");
+    cancelBtn_->setStyleSheet(largeButtonStyle_);
+    btnLayout->addWidget(cancelBtn_);
+
+    bottomLayout->addLayout(btnLayout);
+
+    mainLayout->addLayout(bottomLayout);
 }
 
-QWidget* PLCConfigDialog::createConnectionListPanel()
+QWidget* PLCConfigDialog::createLeftPanel()
 {
     auto* panel = new QWidget();
     auto* layout = new QVBoxLayout(panel);
+    layout->setSpacing(10);
+    layout->setContentsMargins(0, 0, 0, 0);
 
-    // 连接列表
-    connectionList_ = new QListWidget();
-    layout->addWidget(new QLabel("PLC连接列表:"));
-    layout->addWidget(connectionList_);
+    // ===== 通信参数 =====
+    auto* paramGroup = new QGroupBox("通信参数");
+    paramGroup->setStyleSheet(groupBoxStyle_);
+    auto* paramLayout = new QFormLayout(paramGroup);
+    paramLayout->setSpacing(8);
 
-    // 按钮
-    auto* btnLayout = new QHBoxLayout();
-    addBtn_ = new QPushButton("添加");
-    removeBtn_ = new QPushButton("删除");
-    btnLayout->addWidget(addBtn_);
-    btnLayout->addWidget(removeBtn_);
-    layout->addLayout(btnLayout);
+    commTypeCombo_ = new QComboBox();
+    commTypeCombo_->addItems({"网口通信", "串口通信"});
+    paramLayout->addRow("通信类型：", commTypeCombo_);
 
-    // 保存/加载按钮
-    auto* fileLayout = new QHBoxLayout();
-    saveConfigBtn_ = new QPushButton("保存配置");
-    loadConfigBtn_ = new QPushButton("加载配置");
-    fileLayout->addWidget(saveConfigBtn_);
-    fileLayout->addWidget(loadConfigBtn_);
-    layout->addLayout(fileLayout);
+    commProtocolCombo_ = new QComboBox();
+    commProtocolCombo_->addItems({
+        "三菱Q_网口ASCII协议",
+        "三菱Q_网口二进制协议",
+        "三菱FX_网口ASCII协议",
+        "Modbus TCP",
+        "欧姆龙FINS TCP",
+        "西门子S7"
+    });
+    paramLayout->addRow("通信协议：", commProtocolCombo_);
 
-    return panel;
-}
+    commDataCombo_ = new QComboBox();
+    commDataCombo_->addItems({"单字", "双字"});
+    commDataCombo_->setCurrentIndex(1);
+    paramLayout->addRow("通信数据：", commDataCombo_);
 
-QWidget* PLCConfigDialog::createConfigPanel()
-{
-    auto* panel = new QWidget();
-    auto* layout = new QVBoxLayout(panel);
+    commStorageCombo_ = new QComboBox();
+    commStorageCombo_->addItems({"D寄存器", "W寄存器", "R寄存器"});
+    paramLayout->addRow("通信存储：", commStorageCombo_);
 
-    // 基本配置
-    auto* basicGroup = new QGroupBox("基本配置");
-    auto* basicLayout = new QGridLayout(basicGroup);
+    layout->addWidget(paramGroup);
 
-    basicLayout->addWidget(new QLabel("连接名称:"), 0, 0);
-    nameEdit_ = new QLineEdit();
-    basicLayout->addWidget(nameEdit_, 0, 1);
+    // ===== 通信指令 =====
+    auto* cmdGroup = new QGroupBox("通信指令");
+    cmdGroup->setStyleSheet(groupBoxStyle_);
+    auto* cmdLayout = new QGridLayout(cmdGroup);
+    cmdLayout->setSpacing(8);
 
-    basicLayout->addWidget(new QLabel("通信协议:"), 1, 0);
-    protocolCombo_ = new QComboBox();
-    protocolCombo_->addItem("Modbus TCP", static_cast<int>(Comm::PLCProtocol::ModbusTCP));
-    protocolCombo_->addItem("Modbus RTU", static_cast<int>(Comm::PLCProtocol::ModbusRTU));
-    protocolCombo_->addItem("三菱MC协议(TCP)", static_cast<int>(Comm::PLCProtocol::MitsubishiMC_TCP));
-    protocolCombo_->addItem("基恩士PC-LINK上位链路", static_cast<int>(Comm::PLCProtocol::KeyencePCLink));
-    protocolCombo_->addItem("欧姆龙FINS(TCP)", static_cast<int>(Comm::PLCProtocol::OmronFINS_TCP));
-    protocolCombo_->addItem("西门子S7", static_cast<int>(Comm::PLCProtocol::SiemensS7));
-    basicLayout->addWidget(protocolCombo_, 1, 1);
+    cmdLayout->addWidget(new QLabel("PLC指令基地址："), 0, 0);
+    plcCmdAddrEdit_ = new QLineEdit("20500");
+    plcCmdAddrEdit_->setFixedWidth(80);
+    cmdLayout->addWidget(plcCmdAddrEdit_, 0, 1);
+    cmdLayout->addWidget(new QLabel("长度："), 0, 2);
+    plcCmdLenSpin_ = new QSpinBox();
+    plcCmdLenSpin_->setRange(1, 100);
+    plcCmdLenSpin_->setValue(10);
+    plcCmdLenSpin_->setFixedWidth(60);
+    cmdLayout->addWidget(plcCmdLenSpin_, 0, 3);
 
-    basicLayout->addWidget(new QLabel("超时时间(ms):"), 2, 0);
-    timeoutSpin_ = new QSpinBox();
-    timeoutSpin_->setRange(100, 30000);
-    timeoutSpin_->setValue(3000);
-    basicLayout->addWidget(timeoutSpin_, 2, 1);
+    cmdLayout->addWidget(new QLabel("视觉指令基地址："), 1, 0);
+    visionCmdAddrEdit_ = new QLineEdit("20550");
+    visionCmdAddrEdit_->setFixedWidth(80);
+    cmdLayout->addWidget(visionCmdAddrEdit_, 1, 1);
 
-    basicLayout->addWidget(new QLabel("重试次数:"), 3, 0);
+    layout->addWidget(cmdGroup);
+
+    // ===== 通信数据 =====
+    auto* dataGroup = new QGroupBox("通信数据");
+    dataGroup->setStyleSheet(groupBoxStyle_);
+    auto* dataLayout = new QGridLayout(dataGroup);
+    dataLayout->setSpacing(8);
+
+    dataLayout->addWidget(new QLabel("PLC数据基地址："), 0, 0);
+    plcDataAddrEdit_ = new QLineEdit("20500");
+    plcDataAddrEdit_->setFixedWidth(80);
+    dataLayout->addWidget(plcDataAddrEdit_, 0, 1);
+    dataLayout->addWidget(new QLabel("长度："), 0, 2);
+    plcDataLenSpin_ = new QSpinBox();
+    plcDataLenSpin_->setRange(1, 100);
+    plcDataLenSpin_->setValue(10);
+    plcDataLenSpin_->setFixedWidth(60);
+    dataLayout->addWidget(plcDataLenSpin_, 0, 3);
+
+    dataLayout->addWidget(new QLabel("视觉数据基地址："), 1, 0);
+    visionDataAddrEdit_ = new QLineEdit("20580");
+    visionDataAddrEdit_->setFixedWidth(80);
+    dataLayout->addWidget(visionDataAddrEdit_, 1, 1);
+
+    layout->addWidget(dataGroup);
+
+    // ===== 通信设置 =====
+    auto* settingsGroup = new QGroupBox("通信设置");
+    settingsGroup->setStyleSheet(groupBoxStyle_);
+    auto* settingsLayout = new QGridLayout(settingsGroup);
+    settingsLayout->setSpacing(8);
+
+    int row = 0;
+    settingsLayout->addWidget(new QLabel("接收延时："), row, 0);
+    recvDelaySpin_ = new QSpinBox();
+    recvDelaySpin_->setRange(0, 10000);
+    recvDelaySpin_->setValue(0);
+    recvDelaySpin_->setFixedWidth(80);
+    settingsLayout->addWidget(recvDelaySpin_, row, 1);
+    settingsLayout->addWidget(new QLabel("ms"), row, 2);
+
+    row++;
+    settingsLayout->addWidget(new QLabel("发送延时："), row, 0);
+    sendDelaySpin_ = new QSpinBox();
+    sendDelaySpin_->setRange(0, 10000);
+    sendDelaySpin_->setValue(0);
+    sendDelaySpin_->setFixedWidth(80);
+    settingsLayout->addWidget(sendDelaySpin_, row, 1);
+    settingsLayout->addWidget(new QLabel("ms"), row, 2);
+
+    row++;
+    settingsLayout->addWidget(new QLabel("通信超时："), row, 0);
+    commTimeoutSpin_ = new QSpinBox();
+    commTimeoutSpin_->setRange(1, 60000);
+    commTimeoutSpin_->setValue(30);
+    commTimeoutSpin_->setFixedWidth(80);
+    settingsLayout->addWidget(commTimeoutSpin_, row, 1);
+    settingsLayout->addWidget(new QLabel("ms"), row, 2);
+
+    row++;
+    settingsLayout->addWidget(new QLabel("重发次数："), row, 0);
     retryCountSpin_ = new QSpinBox();
     retryCountSpin_->setRange(0, 10);
     retryCountSpin_->setValue(3);
-    basicLayout->addWidget(retryCountSpin_, 3, 1);
+    retryCountSpin_->setFixedWidth(80);
+    settingsLayout->addWidget(retryCountSpin_, row, 1);
 
-    layout->addWidget(basicGroup);
+    row++;
+    settingsLayout->addWidget(new QLabel("X单位幂："), row, 0);
+    xUnitPowerSpin_ = new QSpinBox();
+    xUnitPowerSpin_->setRange(-6, 6);
+    xUnitPowerSpin_->setValue(1);
+    xUnitPowerSpin_->setFixedWidth(80);
+    settingsLayout->addWidget(xUnitPowerSpin_, row, 1);
 
-    // 网络配置
-    networkGroup_ = new QGroupBox("网络配置");
-    auto* networkLayout = new QGridLayout(networkGroup_);
+    row++;
+    settingsLayout->addWidget(new QLabel("Y单位幂："), row, 0);
+    yUnitPowerSpin_ = new QSpinBox();
+    yUnitPowerSpin_->setRange(-6, 6);
+    yUnitPowerSpin_->setValue(3);
+    yUnitPowerSpin_->setFixedWidth(80);
+    settingsLayout->addWidget(yUnitPowerSpin_, row, 1);
 
-    networkLayout->addWidget(new QLabel("IP地址:"), 0, 0);
-    ipEdit_ = new QLineEdit();
-    ipEdit_->setText("127.0.0.1");
-    ipEdit_->setPlaceholderText("127.0.0.1");
-    networkLayout->addWidget(ipEdit_, 0, 1);
+    row++;
+    settingsLayout->addWidget(new QLabel("θ单位幂："), row, 0);
+    thetaUnitPowerSpin_ = new QSpinBox();
+    thetaUnitPowerSpin_->setRange(-6, 6);
+    thetaUnitPowerSpin_->setValue(1);
+    thetaUnitPowerSpin_->setFixedWidth(80);
+    settingsLayout->addWidget(thetaUnitPowerSpin_, row, 1);
 
-    networkLayout->addWidget(new QLabel("端口号:"), 1, 0);
-    portSpin_ = new QSpinBox();
-    portSpin_->setRange(1, 65535);
-    portSpin_->setValue(20007);
-    networkLayout->addWidget(portSpin_, 1, 1);
+    row++;
+    settingsLayout->addWidget(new QLabel("数据长度类型："), row, 0);
+    dataLenTypeCombo_ = new QComboBox();
+    dataLenTypeCombo_->addItems({"实际长度", "固定长度"});
+    settingsLayout->addWidget(dataLenTypeCombo_, row, 1, 1, 2);
 
-    layout->addWidget(networkGroup_);
-
-    // 串口配置
-    serialGroup_ = new QGroupBox("串口配置");
-    auto* serialLayout = new QGridLayout(serialGroup_);
-
-    serialLayout->addWidget(new QLabel("串口:"), 0, 0);
-    portCombo_ = new QComboBox();
-    for (int i = 1; i <= 16; ++i) {
-        portCombo_->addItem(QString("COM%1").arg(i));
-    }
-    serialLayout->addWidget(portCombo_, 0, 1);
-
-    serialLayout->addWidget(new QLabel("波特率:"), 1, 0);
-    baudRateCombo_ = new QComboBox();
-    baudRateCombo_->addItems({"9600", "19200", "38400", "57600", "115200"});
-    serialLayout->addWidget(baudRateCombo_, 1, 1);
-
-    serialLayout->addWidget(new QLabel("数据位:"), 2, 0);
-    dataBitsCombo_ = new QComboBox();
-    dataBitsCombo_->addItems({"7", "8"});
-    dataBitsCombo_->setCurrentText("8");
-    serialLayout->addWidget(dataBitsCombo_, 2, 1);
-
-    serialLayout->addWidget(new QLabel("停止位:"), 3, 0);
-    stopBitsCombo_ = new QComboBox();
-    stopBitsCombo_->addItems({"1", "2"});
-    serialLayout->addWidget(stopBitsCombo_, 3, 1);
-
-    serialLayout->addWidget(new QLabel("校验:"), 4, 0);
-    parityCombo_ = new QComboBox();
-    parityCombo_->addItems({"无", "奇校验", "偶校验"});
-    serialLayout->addWidget(parityCombo_, 4, 1);
-
-    serialGroup_->setVisible(false);
-    layout->addWidget(serialGroup_);
-
-    // Modbus配置
-    modbusGroup_ = new QGroupBox("Modbus配置");
-    auto* modbusLayout = new QGridLayout(modbusGroup_);
-
-    modbusLayout->addWidget(new QLabel("从站地址:"), 0, 0);
-    slaveIdSpin_ = new QSpinBox();
-    slaveIdSpin_->setRange(1, 247);
-    slaveIdSpin_->setValue(1);
-    modbusLayout->addWidget(slaveIdSpin_, 0, 1);
-
-    layout->addWidget(modbusGroup_);
-
-    // 按钮
-    auto* btnLayout = new QHBoxLayout();
-    applyBtn_ = new QPushButton("应用配置");
-    testBtn_ = new QPushButton("测试连接");
-    btnLayout->addStretch();
-    btnLayout->addWidget(applyBtn_);
-    btnLayout->addWidget(testBtn_);
-    layout->addLayout(btnLayout);
-
-    // 状态
-    statusLabel_ = new QLabel("未连接");
-    statusLabel_->setStyleSheet("color: gray;");
-    layout->addWidget(statusLabel_);
+    layout->addWidget(settingsGroup);
 
     layout->addStretch();
 
     return panel;
 }
 
-QWidget* PLCConfigDialog::createTestPanel()
+QWidget* PLCConfigDialog::createMiddlePanel()
 {
     auto* panel = new QWidget();
     auto* layout = new QVBoxLayout(panel);
+    layout->setSpacing(10);
+    layout->setContentsMargins(0, 0, 0, 0);
 
-    // 读写测试
+    // ===== 网络设置 =====
+    auto* networkGroup = new QGroupBox("网络设置");
+    networkGroup->setStyleSheet(groupBoxStyle_);
+    auto* networkLayout = new QGridLayout(networkGroup);
+    networkLayout->setSpacing(8);
+
+    int row = 0;
+    networkLayout->addWidget(new QLabel("类型"), row, 0);
+    serverRadio_ = new QRadioButton("服务端");
+    clientRadio_ = new QRadioButton("客户端");
+    clientRadio_->setChecked(true);
+    modeGroup_ = new QButtonGroup(this);
+    modeGroup_->addButton(serverRadio_, 0);
+    modeGroup_->addButton(clientRadio_, 1);
+    auto* modeLayout = new QHBoxLayout();
+    modeLayout->addWidget(serverRadio_);
+    modeLayout->addWidget(clientRadio_);
+    modeLayout->addStretch();
+    networkLayout->addLayout(modeLayout, row, 1, 1, 4);
+
+    row++;
+    networkLayout->addWidget(new QLabel("IP"), row, 0);
+    auto* ipLayout = new QHBoxLayout();
+    ipEdit1_ = new QLineEdit("192");
+    ipEdit1_->setFixedWidth(45);
+    ipEdit1_->setAlignment(Qt::AlignCenter);
+    ipEdit2_ = new QLineEdit("168");
+    ipEdit2_->setFixedWidth(45);
+    ipEdit2_->setAlignment(Qt::AlignCenter);
+    ipEdit3_ = new QLineEdit("20");
+    ipEdit3_->setFixedWidth(45);
+    ipEdit3_->setAlignment(Qt::AlignCenter);
+    ipEdit4_ = new QLineEdit("1");
+    ipEdit4_->setFixedWidth(45);
+    ipEdit4_->setAlignment(Qt::AlignCenter);
+    ipLayout->addWidget(ipEdit1_);
+    ipLayout->addWidget(new QLabel("."));
+    ipLayout->addWidget(ipEdit2_);
+    ipLayout->addWidget(new QLabel("."));
+    ipLayout->addWidget(ipEdit3_);
+    ipLayout->addWidget(new QLabel("."));
+    ipLayout->addWidget(ipEdit4_);
+    ipLayout->addStretch();
+    networkLayout->addLayout(ipLayout, row, 1, 1, 4);
+
+    row++;
+    networkLayout->addWidget(new QLabel("端口"), row, 0);
+    portSpin_ = new QSpinBox();
+    portSpin_->setRange(1, 65535);
+    portSpin_->setValue(7110);
+    portSpin_->setFixedWidth(100);
+    networkLayout->addWidget(portSpin_, row, 1);
+
+    row++;
+    networkLayout->addWidget(new QLabel("命令终止符"), row, 0);
+    cmdTermCombo_ = new QComboBox();
+    cmdTermCombo_->addItems({"无", "CR", "LF", "CR+LF"});
+    cmdTermCombo_->setFixedWidth(100);
+    networkLayout->addWidget(cmdTermCombo_, row, 1);
+
+    row++;
+    networkLayout->addWidget(new QLabel("通讯终止符"), row, 0);
+    commTermCombo_ = new QComboBox();
+    commTermCombo_->addItems({"无", "CR", "LF", "CR+LF"});
+    commTermCombo_->setFixedWidth(100);
+    networkLayout->addWidget(commTermCombo_, row, 1);
+
+    row++;
+    auto* netBtnLayout = new QHBoxLayout();
+    moreSettingsBtn_ = new QPushButton("更多设置");
+    moreSettingsBtn_->setStyleSheet(buttonStyle_);
+    netBtnLayout->addWidget(moreSettingsBtn_);
+    netBtnLayout->addStretch();
+    networkLayout->addLayout(netBtnLayout, row, 0, 1, 2);
+
+    row++;
+    openBtn_ = new QPushButton("打开");
+    openBtn_->setStyleSheet(buttonStyle_);
+    openBtn_->setFixedWidth(100);
+    networkLayout->addWidget(openBtn_, row, 0, 1, 2, Qt::AlignCenter);
+
+    layout->addWidget(networkGroup);
+
+    // ===== 读写测试 =====
     auto* testGroup = new QGroupBox("读写测试");
-    auto* testLayout = new QGridLayout(testGroup);
+    testGroup->setStyleSheet(groupBoxStyle_);
+    auto* testLayout = new QVBoxLayout(testGroup);
+    testLayout->setSpacing(8);
 
-    testLayout->addWidget(new QLabel("地址:"), 0, 0);
-    testAddressSpin_ = new QSpinBox();
-    testAddressSpin_->setRange(0, 65535);
-    testAddressSpin_->setValue(0);
-    testLayout->addWidget(testAddressSpin_, 0, 1);
+    // 测试控制行
+    auto* testCtrlLayout = new QHBoxLayout();
+    testCtrlLayout->addWidget(new QLabel("通信数据："));
+    testDataTypeCombo_ = new QComboBox();
+    testDataTypeCombo_->addItems({"单字", "双字"});
+    testDataTypeCombo_->setFixedWidth(80);
+    testCtrlLayout->addWidget(testDataTypeCombo_);
+    testCtrlLayout->addWidget(new QLabel("数据地址："));
+    testAddrEdit_ = new QLineEdit("100");
+    testAddrEdit_->setFixedWidth(80);
+    testCtrlLayout->addWidget(testAddrEdit_);
+    testCtrlLayout->addStretch();
+    readBtn_ = new QPushButton("读");
+    readBtn_->setStyleSheet(buttonStyle_);
+    readBtn_->setFixedWidth(60);
+    testCtrlLayout->addWidget(readBtn_);
+    writeBtn_ = new QPushButton("写");
+    writeBtn_->setStyleSheet(buttonStyle_);
+    writeBtn_->setFixedWidth(60);
+    testCtrlLayout->addWidget(writeBtn_);
+    testLayout->addLayout(testCtrlLayout);
 
-    testLayout->addWidget(new QLabel("数量:"), 1, 0);
-    testCountSpin_ = new QSpinBox();
-    testCountSpin_->setRange(1, 125);
-    testCountSpin_->setValue(10);
-    testLayout->addWidget(testCountSpin_, 1, 1);
+    // 数据表格
+    dataTable_ = new QTableWidget();
+    dataTable_->setColumnCount(8);
+    dataTable_->setHorizontalHeaderLabels({"地址", "值", "地址", "值", "地址", "值", "地址", "值"});
+    dataTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    dataTable_->verticalHeader()->setVisible(false);
+    dataTable_->setAlternatingRowColors(true);
+    testLayout->addWidget(dataTable_);
 
-    testLayout->addWidget(new QLabel("写入值:"), 2, 0);
-    testValueEdit_ = new QLineEdit();
-    testValueEdit_->setPlaceholderText("多个值用逗号分隔");
-    testLayout->addWidget(testValueEdit_, 2, 1);
+    layout->addWidget(testGroup, 1);
 
-    auto* btnLayout1 = new QHBoxLayout();
-    readRegBtn_ = new QPushButton("读寄存器");
-    writeRegBtn_ = new QPushButton("写寄存器");
-    btnLayout1->addWidget(readRegBtn_);
-    btnLayout1->addWidget(writeRegBtn_);
-    testLayout->addLayout(btnLayout1, 3, 0, 1, 2);
+    return panel;
+}
 
-    auto* btnLayout2 = new QHBoxLayout();
-    readCoilBtn_ = new QPushButton("读线圈");
-    writeCoilBtn_ = new QPushButton("写线圈");
-    btnLayout2->addWidget(readCoilBtn_);
-    btnLayout2->addWidget(writeCoilBtn_);
-    testLayout->addLayout(btnLayout2, 4, 0, 1, 2);
+QWidget* PLCConfigDialog::createRightPanel()
+{
+    auto* panel = new QWidget();
+    auto* layout = new QVBoxLayout(panel);
+    layout->setSpacing(10);
+    layout->setContentsMargins(0, 0, 0, 0);
 
-    layout->addWidget(testGroup);
+    // 右上角图标按钮
+    auto* iconLayout = new QHBoxLayout();
+    iconLayout->addStretch();
+    iconBtn_ = new QPushButton("边检");
+    iconBtn_->setFixedSize(60, 60);
+    iconBtn_->setToolTip("边检");
+    iconLayout->addWidget(iconBtn_);
+    layout->addLayout(iconLayout);
 
-    // 结果表格
-    layout->addWidget(new QLabel("读取结果:"));
-    resultTable_ = new QTableWidget();
-    resultTable_->setColumnCount(2);
-    resultTable_->setHorizontalHeaderLabels({"地址", "值"});
-    resultTable_->horizontalHeader()->setStretchLastSection(true);
-    resultTable_->setMaximumHeight(150);
-    layout->addWidget(resultTable_);
+    // ===== 发送数据 =====
+    auto* sendGroup = new QGroupBox("发送数据");
+    sendGroup->setStyleSheet(groupBoxStyle_);
+    auto* sendLayout = new QVBoxLayout(sendGroup);
 
-    // 日志
-    layout->addWidget(new QLabel("通信日志:"));
-    logText_ = new QTextEdit();
-    logText_->setReadOnly(true);
-    logText_->setMaximumHeight(150);
-    layout->addWidget(logText_);
+    sendDataEdit_ = new QTextEdit();
+    sendDataEdit_->setMaximumHeight(80);
+    sendLayout->addWidget(sendDataEdit_);
+
+    auto* sendBtnLayout = new QHBoxLayout();
+    sendBtn_ = new QPushButton("发送");
+    sendBtn_->setStyleSheet(buttonStyle_);
+    clearSendBtn_ = new QPushButton("清空");
+    clearSendBtn_->setStyleSheet(buttonStyle_);
+    sendBtnLayout->addWidget(sendBtn_);
+    sendBtnLayout->addWidget(clearSendBtn_);
+    sendLayout->addLayout(sendBtnLayout);
+
+    layout->addWidget(sendGroup);
+
+    // ===== 接收数据 =====
+    auto* recvGroup = new QGroupBox("接收数据");
+    recvGroup->setStyleSheet(groupBoxStyle_);
+    auto* recvLayout = new QVBoxLayout(recvGroup);
+
+    recvDataEdit_ = new QTextEdit();
+    recvDataEdit_->setReadOnly(true);
+    recvDataEdit_->setMaximumHeight(100);
+    recvLayout->addWidget(recvDataEdit_);
+
+    auto* recvBtnLayout = new QHBoxLayout();
+    recvBtnLayout->addStretch();
+    clearRecvBtn_ = new QPushButton("清空");
+    clearRecvBtn_->setStyleSheet(buttonStyle_);
+    recvBtnLayout->addWidget(clearRecvBtn_);
+    recvLayout->addLayout(recvBtnLayout);
+
+    layout->addWidget(recvGroup);
 
     layout->addStretch();
 
@@ -276,449 +494,218 @@ QWidget* PLCConfigDialog::createTestPanel()
 
 void PLCConfigDialog::setupConnections()
 {
-    // 连接列表
-    connect(addBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onAddConnection);
-    connect(removeBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onRemoveConnection);
-    connect(connectionList_, &QListWidget::currentRowChanged, this, &PLCConfigDialog::onConnectionSelected);
+    // 网络操作
+    connect(openBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onOpenConnection);
+    connect(moreSettingsBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onMoreSettings);
 
-    // 协议切换
-    connect(protocolCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &PLCConfigDialog::onProtocolChanged);
-
-    // 配置
-    connect(applyBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onApplyConfig);
-    connect(testBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onTestConnection);
+    // 数据操作
+    connect(sendBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onSendData);
+    connect(clearSendBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onClearSendData);
+    connect(clearRecvBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onClearRecvData);
 
     // 读写测试
-    connect(readRegBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onReadRegister);
-    connect(writeRegBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onWriteRegister);
-    connect(readCoilBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onReadCoil);
-    connect(writeCoilBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onWriteCoil);
+    connect(readBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onReadData);
+    connect(writeBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onWriteData);
 
-    // 保存/加载
-    connect(saveConfigBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onSaveConfig);
-    connect(loadConfigBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onLoadConfig);
-
-    // 管理器信号
-    connect(&Comm::PLCManager::instance(), &Comm::PLCManager::connectionStatusChanged,
-            this, [this](const QString& name, bool connected) {
-                if (name == currentConnection_) {
-                    statusLabel_->setText(connected ? "已连接" : "未连接");
-                    statusLabel_->setStyleSheet(connected ? "color: green;" : "color: gray;");
-                }
-                appendLog(QString("[%1] %2").arg(name).arg(connected ? "已连接" : "已断开"));
-            });
-
-    connect(&Comm::PLCManager::instance(), &Comm::PLCManager::errorOccurred,
-            this, [this](const QString& name, const QString& error) {
-                appendLog(QString("[%1] 错误: %2").arg(name).arg(error));
-            });
-
-    connect(&Comm::PLCManager::instance(), &Comm::PLCManager::connectionsChanged,
-            this, &PLCConfigDialog::updateConnectionList);
+    // 对话框按钮
+    connect(confirmBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onConfirm);
+    connect(cancelBtn_, &QPushButton::clicked, this, &PLCConfigDialog::onCancel);
 }
 
-void PLCConfigDialog::updateConnectionList()
+void PLCConfigDialog::updateDataTable()
 {
-    connectionList_->clear();
-    QStringList names = Comm::PLCManager::instance().getConnectionNames();
-    connectionList_->addItems(names);
+    // 初始化数据表格 D100-D129
+    int startAddr = testAddrEdit_->text().toInt();
+    int rowCount = 10;
+    dataTable_->setRowCount(rowCount);
 
-    if (!currentConnection_.isEmpty()) {
-        for (int i = 0; i < connectionList_->count(); ++i) {
-            if (connectionList_->item(i)->text() == currentConnection_) {
-                connectionList_->setCurrentRow(i);
-                break;
-            }
+    for (int row = 0; row < rowCount; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            int addr = startAddr + row + col * rowCount;
+            QString addrStr = QString("D%1").arg(addr);
+
+            // 地址列
+            auto* addrItem = new QTableWidgetItem(addrStr);
+            addrItem->setFlags(addrItem->flags() & ~Qt::ItemIsEditable);
+            addrItem->setTextAlignment(Qt::AlignCenter);
+            dataTable_->setItem(row, col * 2, addrItem);
+
+            // 值列
+            auto* valueItem = new QTableWidgetItem("0");
+            valueItem->setTextAlignment(Qt::AlignCenter);
+            dataTable_->setItem(row, col * 2 + 1, valueItem);
         }
     }
 }
 
-void PLCConfigDialog::onAddConnection()
+void PLCConfigDialog::updateConnectionStatus(bool connected, const QString& message)
 {
-    bool ok;
-    QString name = QInputDialog::getText(this, "添加连接", "连接名称:",
-                                         QLineEdit::Normal, "PLC1", &ok);
-    if (ok && !name.isEmpty()) {
-        Comm::PLCConfig config;
-        config.name = name;
-        config.protocol = Comm::PLCProtocol::ModbusTCP;
-
-        auto socketConfig = std::make_shared<Comm::SocketConfig>();
-        socketConfig->ipAddress = "127.0.0.1";
-        socketConfig->port = 20007;
-        config.commConfig = socketConfig;
-
-        if (Comm::PLCManager::instance().addConnection(name, config)) {
-            currentConnection_ = name;
-            loadConnectionConfig(name);
-            appendLog(QString("添加连接: %1").arg(name));
-        }
-    }
-}
-
-void PLCConfigDialog::onRemoveConnection()
-{
-    if (currentConnection_.isEmpty()) {
-        return;
-    }
-
-    if (QMessageBox::question(this, "确认删除",
-                              QString("确定要删除连接'%1'吗?").arg(currentConnection_),
-                              QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
-        Comm::PLCManager::instance().removeConnection(currentConnection_);
-        currentConnection_.clear();
-        clearConfigFields();
-        appendLog(QString("删除连接: %1").arg(currentConnection_));
-    }
-}
-
-void PLCConfigDialog::onConnectionSelected(int row)
-{
-    if (row < 0) {
-        currentConnection_.clear();
-        clearConfigFields();
-        return;
-    }
-
-    currentConnection_ = connectionList_->item(row)->text();
-    loadConnectionConfig(currentConnection_);
-
-    // 更新连接状态
-    bool connected = Comm::PLCManager::instance().isConnected(currentConnection_);
-    statusLabel_->setText(connected ? "已连接" : "未连接");
-    statusLabel_->setStyleSheet(connected ? "color: green;" : "color: gray;");
-}
-
-void PLCConfigDialog::loadConnectionConfig(const QString& name)
-{
-    Comm::PLCConfig config = Comm::PLCManager::instance().getConfig(name);
-
-    nameEdit_->setText(config.name);
-
-    // 设置协议
-    for (int i = 0; i < protocolCombo_->count(); ++i) {
-        if (protocolCombo_->itemData(i).toInt() == static_cast<int>(config.protocol)) {
-            protocolCombo_->setCurrentIndex(i);
-            break;
-        }
-    }
-
-    // 设置通信配置
-    if (config.commConfig) {
-        timeoutSpin_->setValue(config.commConfig->timeout);
-        retryCountSpin_->setValue(config.commConfig->retryCount);
-
-        if (config.commConfig->type == Comm::CommType::Socket) {
-            auto socketConfig = std::dynamic_pointer_cast<Comm::SocketConfig>(config.commConfig);
-            if (socketConfig) {
-                ipEdit_->setText(socketConfig->ipAddress);
-                portSpin_->setValue(socketConfig->port);
-            }
-        } else if (config.commConfig->type == Comm::CommType::Serial) {
-            auto serialConfig = std::dynamic_pointer_cast<Comm::SerialConfig>(config.commConfig);
-            if (serialConfig) {
-                portCombo_->setCurrentText(serialConfig->portName);
-                baudRateCombo_->setCurrentText(QString::number(serialConfig->baudRate));
-                dataBitsCombo_->setCurrentText(QString::number(serialConfig->dataBits));
-                stopBitsCombo_->setCurrentText(QString::number(serialConfig->stopBits));
-                parityCombo_->setCurrentIndex(serialConfig->parity);
-            }
-        }
-    }
-
-    // Modbus配置
-    slaveIdSpin_->setValue(config.slaveId);
-
-    onProtocolChanged(protocolCombo_->currentIndex());
-}
-
-void PLCConfigDialog::clearConfigFields()
-{
-    nameEdit_->clear();
-    ipEdit_->clear();
-    statusLabel_->setText("未连接");
-    statusLabel_->setStyleSheet("color: gray;");
-}
-
-void PLCConfigDialog::onProtocolChanged(int index)
-{
-    int protocol = protocolCombo_->itemData(index).toInt();
-
-    // 根据协议显示/隐藏配置组
-    bool isModbus = (protocol >= static_cast<int>(Comm::PLCProtocol::ModbusTCP) &&
-                     protocol <= static_cast<int>(Comm::PLCProtocol::ModbusASCII));
-    bool isSerial = (protocol == static_cast<int>(Comm::PLCProtocol::ModbusRTU) ||
-                     protocol == static_cast<int>(Comm::PLCProtocol::ModbusASCII) ||
-                     protocol == static_cast<int>(Comm::PLCProtocol::MitsubishiFX_Serial));
-
-    networkGroup_->setVisible(!isSerial);
-    serialGroup_->setVisible(isSerial);
-    modbusGroup_->setVisible(isModbus);
-
-    // 设置默认端口 (统一使用20007)
-    if (!isSerial) {
-        portSpin_->setValue(20007);
-    }
-}
-
-void PLCConfigDialog::onApplyConfig()
-{
-    if (currentConnection_.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请先选择或创建一个连接");
-        return;
-    }
-
-    Comm::PLCConfig config = getCurrentConfig();
-
-    // 先断开再重新配置
-    Comm::PLCManager::instance().disconnectPLC(currentConnection_);
-    Comm::PLCManager::instance().removeConnection(currentConnection_);
-
-    if (Comm::PLCManager::instance().addConnection(config.name, config)) {
-        currentConnection_ = config.name;
-        appendLog(QString("配置已应用: %1").arg(config.name));
+    if (connected) {
+        statusLabel_->setText(message.isEmpty() ? "网络连接已打开" : message);
     } else {
-        QMessageBox::warning(this, "错误", "应用配置失败");
-    }
-}
-
-Comm::PLCConfig PLCConfigDialog::getCurrentConfig() const
-{
-    Comm::PLCConfig config;
-    config.name = nameEdit_->text();
-    config.protocol = static_cast<Comm::PLCProtocol>(protocolCombo_->currentData().toInt());
-    config.slaveId = slaveIdSpin_->value();
-    // 三菱MC协议使用固定默认值
-    config.networkNo = 0;            // 网络号
-    config.pcNo = 0xFF;              // PC号
-    config.destModuleIo = 0x03FF;    // 请求目标模块IO号
-    config.destModuleStation = 0;     // 请求目标模块站号
-
-    if (serialGroup_->isVisible()) {
-        auto serialConfig = std::make_shared<Comm::SerialConfig>();
-        serialConfig->timeout = timeoutSpin_->value();
-        serialConfig->retryCount = retryCountSpin_->value();
-        serialConfig->portName = portCombo_->currentText();
-        serialConfig->baudRate = baudRateCombo_->currentText().toInt();
-        serialConfig->dataBits = dataBitsCombo_->currentText().toInt();
-        serialConfig->stopBits = stopBitsCombo_->currentText().toInt();
-        serialConfig->parity = parityCombo_->currentIndex();
-        config.commConfig = serialConfig;
-    } else {
-        auto socketConfig = std::make_shared<Comm::SocketConfig>();
-        socketConfig->timeout = timeoutSpin_->value();
-        socketConfig->retryCount = retryCountSpin_->value();
-        socketConfig->ipAddress = ipEdit_->text();
-        socketConfig->port = static_cast<quint16>(portSpin_->value());
-        config.commConfig = socketConfig;
-    }
-
-    return config;
-}
-
-void PLCConfigDialog::onTestConnection()
-{
-    if (currentConnection_.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请先选择一个连接");
-        return;
-    }
-
-    appendLog(QString("正在测试连接: %1").arg(currentConnection_));
-
-    if (Comm::PLCManager::instance().connectPLC(currentConnection_)) {
-        QMessageBox::information(this, "成功", "连接成功");
-        appendLog("连接测试成功");
-    } else {
-        QMessageBox::warning(this, "失败", "连接失败");
-        appendLog("连接测试失败");
-    }
-}
-
-void PLCConfigDialog::onReadRegister()
-{
-    if (currentConnection_.isEmpty() || !Comm::PLCManager::instance().isConnected(currentConnection_)) {
-        QMessageBox::warning(this, "警告", "请先连接PLC");
-        return;
-    }
-
-    int address = testAddressSpin_->value();
-    int count = testCountSpin_->value();
-
-    appendLog(QString("读取寄存器: 地址=%1, 数量=%2").arg(address).arg(count));
-
-    // 打印预期帧格式供调试
-    QByteArray debugFrame;
-    debugFrame.append(static_cast<char>(0x50)); // 子头
-    debugFrame.append(static_cast<char>(0x00));
-    debugFrame.append(static_cast<char>(0x00)); // 网络号
-    debugFrame.append(static_cast<char>(0xFF)); // PC号
-    debugFrame.append(static_cast<char>(0xFF)); // 目标IO低
-    debugFrame.append(static_cast<char>(0x03)); // 目标IO高
-    debugFrame.append(static_cast<char>(0x00)); // 站号
-    quint16 dataLen = 2 + 2 + 2 + 6; // 监视定时器+命令+子命令+数据(地址3+设备1+点数2)
-    debugFrame.append(static_cast<char>(dataLen & 0xFF));
-    debugFrame.append(static_cast<char>((dataLen >> 8) & 0xFF));
-    debugFrame.append(static_cast<char>(0x10)); // 监视定时器
-    debugFrame.append(static_cast<char>(0x00));
-    debugFrame.append(static_cast<char>(0x01)); // 命令0x0401
-    debugFrame.append(static_cast<char>(0x04));
-    debugFrame.append(static_cast<char>(0x00)); // 子命令
-    debugFrame.append(static_cast<char>(0x00));
-    debugFrame.append(static_cast<char>(address & 0xFF)); // 地址
-    debugFrame.append(static_cast<char>((address >> 8) & 0xFF));
-    debugFrame.append(static_cast<char>((address >> 16) & 0xFF));
-    debugFrame.append(static_cast<char>(0xA8)); // D寄存器设备代码
-    debugFrame.append(static_cast<char>(count & 0xFF)); // 点数
-    debugFrame.append(static_cast<char>((count >> 8) & 0xFF));
-    appendLog(QString("预期发送: %1").arg(QString(debugFrame.toHex(' ').toUpper())));
-
-    auto result = Comm::PLCManager::instance().readRegisters(currentConnection_, address, count);
-
-    if (result.isSuccess()) {
-        resultTable_->setRowCount(static_cast<int>(result.intValues.size()));
-        for (size_t i = 0; i < result.intValues.size(); ++i) {
-            resultTable_->setItem(static_cast<int>(i), 0, new QTableWidgetItem(QString::number(address + static_cast<int>(i))));
-            resultTable_->setItem(static_cast<int>(i), 1, new QTableWidgetItem(QString::number(result.intValues[i])));
-        }
-        appendLog(QString("读取成功, 返回%1个值").arg(result.intValues.size()));
-    } else {
-        appendLog(QString("读取失败: %1").arg(result.errorMessage));
-    }
-}
-
-void PLCConfigDialog::onWriteRegister()
-{
-    if (currentConnection_.isEmpty() || !Comm::PLCManager::instance().isConnected(currentConnection_)) {
-        QMessageBox::warning(this, "警告", "请先连接PLC");
-        return;
-    }
-
-    int address = testAddressSpin_->value();
-    QString valueStr = testValueEdit_->text();
-
-    if (valueStr.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请输入写入值");
-        return;
-    }
-
-    std::vector<int> values;
-    QStringList parts = valueStr.split(',', Qt::SkipEmptyParts);
-    for (const QString& part : parts) {
-        values.push_back(part.trimmed().toInt());
-    }
-
-    appendLog(QString("写入寄存器: 地址=%1, 值=%2").arg(address).arg(valueStr));
-
-    auto result = Comm::PLCManager::instance().writeRegisters(currentConnection_, address, values);
-
-    if (result.isSuccess()) {
-        appendLog("写入成功");
-        QMessageBox::information(this, "成功", "写入成功");
-    } else {
-        appendLog(QString("写入失败: %1").arg(result.errorMessage));
-        QMessageBox::warning(this, "写入失败", result.errorMessage);
-    }
-}
-
-void PLCConfigDialog::onReadCoil()
-{
-    if (currentConnection_.isEmpty() || !Comm::PLCManager::instance().isConnected(currentConnection_)) {
-        QMessageBox::warning(this, "警告", "请先连接PLC");
-        return;
-    }
-
-    int address = testAddressSpin_->value();
-    int count = testCountSpin_->value();
-
-    appendLog(QString("读取线圈: 地址=%1, 数量=%2").arg(address).arg(count));
-
-    auto result = Comm::PLCManager::instance().readCoils(currentConnection_, address, count);
-
-    if (result.isSuccess()) {
-        resultTable_->setRowCount(qMin(static_cast<int>(result.boolValues.size()), count));
-        for (int i = 0; i < qMin(static_cast<int>(result.boolValues.size()), count); ++i) {
-            resultTable_->setItem(i, 0, new QTableWidgetItem(QString::number(address + i)));
-            resultTable_->setItem(i, 1, new QTableWidgetItem(result.boolValues[i] ? "ON" : "OFF"));
-        }
-        appendLog(QString("读取成功, 返回%1个值").arg(result.boolValues.size()));
-    } else {
-        appendLog(QString("读取失败: %1").arg(result.errorMessage));
-        QMessageBox::warning(this, "读取失败", result.errorMessage);
-    }
-}
-
-void PLCConfigDialog::onWriteCoil()
-{
-    if (currentConnection_.isEmpty() || !Comm::PLCManager::instance().isConnected(currentConnection_)) {
-        QMessageBox::warning(this, "警告", "请先连接PLC");
-        return;
-    }
-
-    int address = testAddressSpin_->value();
-    QString valueStr = testValueEdit_->text();
-
-    if (valueStr.isEmpty()) {
-        QMessageBox::warning(this, "警告", "请输入写入值 (1/0 或 ON/OFF)");
-        return;
-    }
-
-    std::vector<bool> values;
-    QStringList parts = valueStr.split(',', Qt::SkipEmptyParts);
-    for (const QString& part : parts) {
-        QString v = part.trimmed().toUpper();
-        values.push_back(v == "1" || v == "ON" || v == "TRUE");
-    }
-
-    appendLog(QString("写入线圈: 地址=%1, 值=%2").arg(address).arg(valueStr));
-
-    auto result = Comm::PLCManager::instance().writeCoils(currentConnection_, address, values);
-
-    if (result.isSuccess()) {
-        appendLog("写入成功");
-        QMessageBox::information(this, "成功", "写入成功");
-    } else {
-        appendLog(QString("写入失败: %1").arg(result.errorMessage));
-        QMessageBox::warning(this, "写入失败", result.errorMessage);
-    }
-}
-
-void PLCConfigDialog::onSaveConfig()
-{
-    QString filePath = QFileDialog::getSaveFileName(this, "保存配置",
-                                                    QString(), "JSON文件 (*.json)");
-    if (filePath.isEmpty()) {
-        return;
-    }
-
-    if (Comm::PLCManager::instance().saveConfig(filePath)) {
-        appendLog(QString("配置已保存到: %1").arg(filePath));
-        QMessageBox::information(this, "成功", "配置保存成功");
-    } else {
-        QMessageBox::warning(this, "失败", "配置保存失败");
-    }
-}
-
-void PLCConfigDialog::onLoadConfig()
-{
-    QString filePath = QFileDialog::getOpenFileName(this, "加载配置",
-                                                    QString(), "JSON文件 (*.json)");
-    if (filePath.isEmpty()) {
-        return;
-    }
-
-    if (Comm::PLCManager::instance().loadConfig(filePath)) {
-        appendLog(QString("配置已从%1加载").arg(filePath));
-        QMessageBox::information(this, "成功", "配置加载成功");
-    } else {
-        QMessageBox::warning(this, "失败", "配置加载失败");
+        statusLabel_->setText(message.isEmpty() ? "网络连接打开失败" : message);
     }
 }
 
 void PLCConfigDialog::appendLog(const QString& message)
 {
-    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
-    logText_->append(QString("[%1] %2").arg(timestamp).arg(message));
+    recvDataEdit_->append(message);
+}
+
+void PLCConfigDialog::onOpenConnection()
+{
+    // 构建IP地址
+    QString ip = QString("%1.%2.%3.%4")
+        .arg(ipEdit1_->text())
+        .arg(ipEdit2_->text())
+        .arg(ipEdit3_->text())
+        .arg(ipEdit4_->text());
+    int port = portSpin_->value();
+
+    LOG_INFO(QString("尝试连接: %1:%2").arg(ip).arg(port));
+
+    // 创建连接配置
+    Comm::PLCConfig config;
+    config.name = "DefaultPLC";
+
+    // 根据协议选择
+    int protocolIndex = commProtocolCombo_->currentIndex();
+    switch (protocolIndex) {
+        case 0:  // 三菱Q_网口ASCII协议
+        case 1:  // 三菱Q_网口二进制协议
+        case 2:  // 三菱FX_网口ASCII协议
+            config.protocol = Comm::PLCProtocol::MitsubishiMC_TCP;
+            break;
+        case 3:  // Modbus TCP
+            config.protocol = Comm::PLCProtocol::ModbusTCP;
+            break;
+        case 4:  // 欧姆龙FINS TCP
+            config.protocol = Comm::PLCProtocol::OmronFINS_TCP;
+            break;
+        case 5:  // 西门子S7
+            config.protocol = Comm::PLCProtocol::SiemensS7;
+            break;
+        default:
+            config.protocol = Comm::PLCProtocol::MitsubishiMC_TCP;
+    }
+
+    auto socketConfig = std::make_shared<Comm::SocketConfig>();
+    socketConfig->ipAddress = ip;
+    socketConfig->port = static_cast<quint16>(port);
+    socketConfig->timeout = commTimeoutSpin_->value();
+    socketConfig->retryCount = retryCountSpin_->value();
+    config.commConfig = socketConfig;
+
+    // 移除旧连接并添加新连接
+    Comm::PLCManager::instance().removeConnection("DefaultPLC");
+    if (Comm::PLCManager::instance().addConnection("DefaultPLC", config)) {
+        if (Comm::PLCManager::instance().connectPLC("DefaultPLC")) {
+            updateConnectionStatus(true);
+            appendLog(QString("连接成功: %1:%2").arg(ip).arg(port));
+        } else {
+            updateConnectionStatus(false);
+            appendLog(QString("连接失败: %1:%2").arg(ip).arg(port));
+        }
+    } else {
+        updateConnectionStatus(false, "创建连接失败");
+    }
+}
+
+void PLCConfigDialog::onMoreSettings()
+{
+    QMessageBox::information(this, "更多设置", "更多设置功能待实现");
+}
+
+void PLCConfigDialog::onSendData()
+{
+    QString data = sendDataEdit_->toPlainText();
+    if (data.isEmpty()) {
+        return;
+    }
+
+    appendLog(QString("发送: %1").arg(data));
+    // TODO: 实际发送数据
+}
+
+void PLCConfigDialog::onClearSendData()
+{
+    sendDataEdit_->clear();
+}
+
+void PLCConfigDialog::onClearRecvData()
+{
+    recvDataEdit_->clear();
+}
+
+void PLCConfigDialog::onReadData()
+{
+    if (!Comm::PLCManager::instance().isConnected("DefaultPLC")) {
+        QMessageBox::warning(this, "警告", "请先连接PLC");
+        return;
+    }
+
+    int addr = testAddrEdit_->text().toInt();
+    bool isDoubleWord = (testDataTypeCombo_->currentIndex() == 1);
+    int count = isDoubleWord ? 20 : 40;  // 读取40个字或20个双字
+
+    auto result = Comm::PLCManager::instance().readRegisters("DefaultPLC", addr, count);
+
+    if (result.isSuccess()) {
+        // 更新表格
+        for (int row = 0; row < dataTable_->rowCount(); ++row) {
+            for (int col = 0; col < 4; ++col) {
+                int idx = row + col * 10;
+                if (idx < static_cast<int>(result.intValues.size())) {
+                    auto* item = dataTable_->item(row, col * 2 + 1);
+                    if (item) {
+                        item->setText(QString::number(result.intValues[idx]));
+                    }
+                }
+            }
+        }
+        appendLog(QString("读取成功: %1个寄存器").arg(result.intValues.size()));
+    } else {
+        appendLog(QString("读取失败: %1").arg(result.errorMessage));
+    }
+}
+
+void PLCConfigDialog::onWriteData()
+{
+    if (!Comm::PLCManager::instance().isConnected("DefaultPLC")) {
+        QMessageBox::warning(this, "警告", "请先连接PLC");
+        return;
+    }
+
+    int addr = testAddrEdit_->text().toInt();
+
+    // 从表格收集数据
+    std::vector<int> values;
+    for (int row = 0; row < dataTable_->rowCount(); ++row) {
+        for (int col = 0; col < 4; ++col) {
+            auto* item = dataTable_->item(row, col * 2 + 1);
+            if (item) {
+                values.push_back(item->text().toInt());
+            }
+        }
+    }
+
+    auto result = Comm::PLCManager::instance().writeRegisters("DefaultPLC", addr, values);
+
+    if (result.isSuccess()) {
+        appendLog(QString("写入成功: %1个寄存器").arg(values.size()));
+    } else {
+        appendLog(QString("写入失败: %1").arg(result.errorMessage));
+    }
+}
+
+void PLCConfigDialog::onConfirm()
+{
+    accept();
+}
+
+void PLCConfigDialog::onCancel()
+{
+    reject();
 }
 
 } // namespace VisionForge

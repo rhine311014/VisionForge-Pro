@@ -1,6 +1,37 @@
 /**
  * @file ImageMemoryPool.cpp
  * @brief 图像内存池实现
+ * @author VisionForge Team
+ * @date 2025-12-14
+ *
+ * @details
+ * 本文件实现ImageMemoryPool类的所有成员函数。
+ *
+ * ## 实现细节
+ *
+ * ### 系统内存检测
+ * 使用平台特定API获取系统总物理内存：
+ * - Windows: GlobalMemoryStatusEx
+ * - Linux: sysinfo
+ * - macOS: sysctlbyname("hw.memsize")
+ *
+ * ### 内存限制解析
+ * parseMemoryLimit()支持多种格式：
+ * - "auto"：自动检测系统内存的10%
+ * - "25%"：系统内存的百分比
+ * - "512MB"、"1GB"：绝对值
+ * - 结果限制在128MB-2GB范围内
+ *
+ * ### 清理策略实现
+ * selectKeysForCleanup()根据策略选择清理目标：
+ * - LRU：按lastAccess时间排序
+ * - LFU：按accessCount排序
+ * - FIFO：使用插入顺序
+ * - Size：按memorySize降序排序
+ *
+ * ### 节流控制
+ * triggerMemoryPressureCleanup()使用CLEANUP_COOLDOWN(1秒)冷却期，
+ * 防止在高压力场景下频繁触发清理导致性能抖动。
  */
 
 #include "base/ImageMemoryPool.h"

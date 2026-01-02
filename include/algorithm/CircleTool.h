@@ -1,9 +1,27 @@
 /**
  * @file CircleTool.h
- * @brief 圆检测工具
- * @details 检测图像中的圆形，通过抽象接口支持OpenCV和Halcon双后端
+ * @brief 圆检测工具头文件
+ * @details 实现图像中圆形目标的检测与定位，支持多种检测算法和双后端架构。
+ *          圆检测是机器视觉中重要的几何测量工具，广泛应用于孔位检测、
+ *          圆形零件定位、瓶盖检测等场景。
+ *
  * @author VisionForge Team
+ * @version 1.0.0
  * @date 2025-12-18
+ * @copyright Copyright (c) 2025 VisionForge. All rights reserved.
+ *
+ * @par 功能特性:
+ * - 霍夫圆检测（OpenCV）
+ * - 轮廓拟合检测（通用）
+ * - 边缘拟合检测（Halcon）
+ * - 亚像素精度圆拟合
+ * - OpenCV/Halcon双后端
+ *
+ * @par 应用场景:
+ * - 孔位检测与测量
+ * - 圆形零件定位
+ * - 瓶盖/瓶口检测
+ * - 轴承内外径测量
  */
 
 #pragma once
@@ -19,31 +37,46 @@ namespace VisionForge {
 namespace Algorithm {
 
 /**
- * @brief 检测到的圆特征
- * @note 为保持向后兼容，保留此结构体，内部使用 Backend::CircleDetectResult
+ * @brief 圆检测结果结构体
+ * @details 存储单个检测到的圆的完整信息，包括位置、尺寸、置信度等
+ * @note 为保持向后兼容性保留此结构体，内部可从Backend::CircleDetectResult转换
  */
 struct CircleResult {
-    int id;                     // 圆ID
-    QPointF center;             // 圆心坐标
-    double radius;              // 半径
-    double score;               // 匹配得分/置信度
-    double circularity;         // 圆度（1.0为完美圆）
-    double area;                // 面积
-    bool isSubPixel;            // 是否为亚像素精度
-    double fitResidual;         // 拟合残差
+    int id;                     ///< 圆唯一标识ID
+    QPointF center;             ///< 圆心坐标(像素)
+    double radius;              ///< 半径(像素)
+    double score;               ///< 匹配得分/置信度 [0,1]
+    double circularity;         ///< 圆度 - 1.0为完美圆
+    double area;                ///< 面积(像素^2) = PI * r^2
+    bool isSubPixel;            ///< 是否为亚像素精度定位
+    double fitResidual;         ///< 拟合残差(RMS误差)
 
+    /**
+     * @brief 默认构造函数
+     */
     CircleResult()
         : id(0), radius(0), score(0), circularity(0), area(0),
           isSubPixel(false), fitResidual(0) {}
 
+    /**
+     * @brief 带参数构造函数
+     * @param i 圆ID
+     * @param c 圆心坐标
+     * @param r 半径
+     * @param s 分数，默认1.0
+     */
     CircleResult(int i, const QPointF& c, double r, double s = 1.0)
         : id(i), center(c), radius(r), score(s), circularity(1.0),
           isSubPixel(false), fitResidual(0)
     {
-        area = M_PI * r * r;
+        area = M_PI * r * r;  // 计算面积
     }
 
-    // 从后端结果转换
+    /**
+     * @brief 从后端结果转换
+     * @param br 后端检测结果
+     * @return CircleResult对象
+     */
     static CircleResult fromBackendResult(const Backend::CircleDetectResult& br) {
         CircleResult r;
         r.id = br.id;
@@ -59,35 +92,52 @@ struct CircleResult {
 };
 
 /**
- * @brief 圆检测工具
+ * @brief 圆检测工具类
+ * @details 实现图像中圆形目标的检测与定位功能。支持霍夫变换、轮廓拟合、
+ *          边缘拟合等多种检测算法，并提供亚像素精度的圆拟合能力。
  *
- * 支持多种圆检测算法，可使用Halcon或OpenCV后端
+ * @par 算法原理:
+ * - 霍夫圆检测：基于边缘点投票机制，适合检测标准圆
+ * - 轮廓拟合：从轮廓点最小二乘拟合圆
+ * - 边缘拟合：沿径向扫描边缘点进行拟合
+ *
+ * @par 典型流程:
+ * 1. 设置半径范围和检测参数
+ * 2. 调用process()执行检测
+ * 3. 从circles()获取检测结果
+ *
+ * @see VisionTool, CircleResult
  */
 class CircleTool : public VisionTool {
     Q_OBJECT
 
 public:
     /**
-     * @brief 后端类型
+     * @brief 后端类型枚举
      */
     enum BackendType {
-        Auto,           // 自动选择（优先Halcon）
-        OpenCV,         // OpenCV后端
-        Halcon          // Halcon后端
+        Auto,           ///< 自动选择（优先Halcon）
+        OpenCV,         ///< OpenCV后端
+        Halcon          ///< Halcon后端
     };
     Q_ENUM(BackendType)
 
     /**
-     * @brief 检测方法
+     * @brief 检测方法枚举
+     * @details 定义圆检测使用的算法类型
      */
     enum DetectionMethod {
-        HoughCircle,        // 霍夫圆检测（OpenCV）
-        ContourFit,         // 轮廓拟合（通用）
-        EdgeFit,            // 边缘拟合（Halcon）
-        BlobFit             // Blob区域拟合（Halcon）
+        HoughCircle,        ///< 霍夫圆检测 - 基于边缘点投票
+        ContourFit,         ///< 轮廓拟合 - 从轮廓点拟合圆
+        EdgeFit,            ///< 边缘拟合 - 沿径向扫描边缘
+        BlobFit             ///< Blob区域拟合 - 从区域边界拟合
     };
     Q_ENUM(DetectionMethod)
 
+    /**
+     * @brief 构造函数
+     * @param parent 父对象指针
+     */
     explicit CircleTool(QObject* parent = nullptr);
 
     // ========== VisionTool接口实现 ==========

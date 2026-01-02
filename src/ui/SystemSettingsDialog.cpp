@@ -1,29 +1,57 @@
 /**
  * @file SystemSettingsDialog.cpp
- * @brief 系统设置对话框实现
- * @details 包含平台类型配置、轴参数、相机配置和GPU加速设置
+ * @brief 系统设置对话框实现 - VisionASM风格
  */
 
 #include "ui/SystemSettingsDialog.h"
+#include "ui/ImageSourceDialog.h"
 #include "base/Logger.h"
+#include "base/ConfigManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QGridLayout>
+#include <QFileDialog>
 #include <QMessageBox>
-#include <QScrollArea>
 
 namespace VisionForge {
 namespace UI {
 
 SystemSettingsDialog::SystemSettingsDialog(QWidget* parent)
     : QDialog(parent)
-    , selectedMode_(Base::GPUAccelMode::Auto)
-    , selectedPlatformType_(Platform::PlatformType::XYD)
 {
     setWindowTitle("系统设置");
-    setMinimumSize(650, 550);
+    setMinimumSize(900, 700);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+    // 初始化按钮样式
+    toolBtnNormalStyle_ = R"(
+        QPushButton {
+            background-color: #e0e0e0;
+            border: 1px solid #b0b0b0;
+            border-radius: 5px;
+            padding: 8px;
+            min-width: 70px;
+            min-height: 70px;
+            font-size: 12px;
+        }
+        QPushButton:hover {
+            background-color: #d0d0d0;
+        }
+    )";
+
+    toolBtnSelectedStyle_ = R"(
+        QPushButton {
+            background-color: #0078d4;
+            border: 1px solid #005a9e;
+            border-radius: 5px;
+            padding: 8px;
+            min-width: 70px;
+            min-height: 70px;
+            font-size: 12px;
+            color: white;
+        }
+    )";
 
     setupUI();
     loadSettings();
@@ -33,803 +61,874 @@ void SystemSettingsDialog::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
 
-    // 创建标签页
-    tabWidget_ = new QTabWidget(this);
+    // 顶部工具栏
+    setupToolBar();
+    mainLayout->addWidget(toolBar_);
 
-    // 平台类型标签页
-    QWidget* platformTab = new QWidget();
-    setupPlatformTab(platformTab);
-    tabWidget_->addTab(platformTab, "平台类型");
+    // 页面切换区域
+    stackedWidget_ = new QStackedWidget(this);
 
-    // 轴参数标签页
-    QWidget* axisTab = new QWidget();
-    setupAxisTab(axisTab);
-    tabWidget_->addTab(axisTab, "轴参数");
+    // 创建各个页面
+    setupImagePage();
+    setupLogPage();
+    setupLayoutPage();
+    setupPlatformPage();
 
-    // 相机配置标签页
-    QWidget* cameraTab = new QWidget();
-    setupCameraTab(cameraTab);
-    tabWidget_->addTab(cameraTab, "相机配置");
+    stackedWidget_->addWidget(imagePage_);
+    stackedWidget_->addWidget(logPage_);
+    stackedWidget_->addWidget(layoutPage_);
+    stackedWidget_->addWidget(platformPage_);
 
-    // GPU加速标签页
-    QWidget* gpuTab = new QWidget();
-    setupGPUTab(gpuTab);
-    tabWidget_->addTab(gpuTab, "GPU加速");
+    mainLayout->addWidget(stackedWidget_, 1);
 
-    mainLayout->addWidget(tabWidget_);
+    // 底部按钮区域
+    QHBoxLayout* bottomLayout = new QHBoxLayout();
+    bottomLayout->addStretch();
 
-    // ========== 按钮区域 ==========
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-    buttonLayout->addStretch();
-
-    okButton_ = new QPushButton("确定", this);
-    okButton_->setFixedWidth(80);
+    // 确定按钮
+    okButton_ = new QPushButton(this);
+    okButton_->setFixedSize(80, 80);
+    okButton_->setText("确定");
+    okButton_->setStyleSheet(R"(
+        QPushButton {
+            background-color: #4fc3f7;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: #29b6f6;
+        }
+    )");
     connect(okButton_, &QPushButton::clicked, this, &SystemSettingsDialog::onOkClicked);
-    buttonLayout->addWidget(okButton_);
+    bottomLayout->addWidget(okButton_);
 
-    cancelButton_ = new QPushButton("取消", this);
-    cancelButton_->setFixedWidth(80);
+    // 取消按钮
+    cancelButton_ = new QPushButton(this);
+    cancelButton_->setFixedSize(80, 80);
+    cancelButton_->setText("取消");
+    cancelButton_->setStyleSheet(R"(
+        QPushButton {
+            background-color: #ef5350;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+        }
+        QPushButton:hover {
+            background-color: #e53935;
+        }
+    )");
     connect(cancelButton_, &QPushButton::clicked, this, &SystemSettingsDialog::onCancelClicked);
-    buttonLayout->addWidget(cancelButton_);
+    bottomLayout->addWidget(cancelButton_);
 
-    mainLayout->addLayout(buttonLayout);
+    mainLayout->addLayout(bottomLayout);
+
+    // 默认选中图像页面
+    onToolButtonClicked(0);
 }
 
-void SystemSettingsDialog::setupPlatformTab(QWidget* tab)
+void SystemSettingsDialog::setupToolBar()
 {
-    QVBoxLayout* layout = new QVBoxLayout(tab);
-    layout->setSpacing(15);
+    toolBar_ = new QWidget(this);
+    QHBoxLayout* toolLayout = new QHBoxLayout(toolBar_);
+    toolLayout->setSpacing(10);
+    toolLayout->setContentsMargins(0, 0, 0, 0);
 
-    // ========== 平台类型选择 ==========
-    platformGroupBox_ = new QGroupBox("平台类型选择", tab);
-    QFormLayout* formLayout = new QFormLayout(platformGroupBox_);
-    formLayout->setSpacing(10);
+    toolButtonGroup_ = new QButtonGroup(this);
 
-    // 平台类型下拉框
-    platformTypeCombo_ = new QComboBox(this);
+    // 图像按钮
+    btnImage_ = new QPushButton("图像", this);
+    btnImage_->setStyleSheet(toolBtnNormalStyle_);
+    toolButtonGroup_->addButton(btnImage_, 0);
+    toolLayout->addWidget(btnImage_);
 
-    // 阻止信号，避免在items添加过程中触发槽函数
-    platformTypeCombo_->blockSignals(true);
+    // 日志按钮
+    btnLog_ = new QPushButton("日志", this);
+    btnLog_->setStyleSheet(toolBtnNormalStyle_);
+    toolButtonGroup_->addButton(btnLog_, 1);
+    toolLayout->addWidget(btnLog_);
 
-    // 添加所有支持的平台类型
-    QList<Platform::PlatformType> types = Platform::getSupportedPlatformTypes();
-    for (Platform::PlatformType type : types) {
-        QString name = Platform::getPlatformTypeName(type);
-        platformTypeCombo_->addItem(name, static_cast<int>(type));
+    // 布局按钮
+    btnLayout_ = new QPushButton("布局", this);
+    btnLayout_->setStyleSheet(toolBtnNormalStyle_);
+    toolButtonGroup_->addButton(btnLayout_, 2);
+    toolLayout->addWidget(btnLayout_);
+
+    // 平台按钮
+    btnPlatform_ = new QPushButton("平台", this);
+    btnPlatform_->setStyleSheet(toolBtnNormalStyle_);
+    toolButtonGroup_->addButton(btnPlatform_, 3);
+    toolLayout->addWidget(btnPlatform_);
+
+    toolLayout->addStretch();
+
+    // 右上角边检按钮
+    btnBianJian_ = new QPushButton("边检", this);
+    btnBianJian_->setFixedSize(70, 70);
+    btnBianJian_->setStyleSheet(R"(
+        QPushButton {
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        QPushButton:hover {
+            background-color: #bbdefb;
+        }
+    )");
+    toolLayout->addWidget(btnBianJian_);
+
+    connect(toolButtonGroup_, QOverload<int>::of(&QButtonGroup::idClicked),
+            this, &SystemSettingsDialog::onToolButtonClicked);
+}
+
+void SystemSettingsDialog::setupImagePage()
+{
+    imagePage_ = new QWidget(this);
+    QHBoxLayout* pageLayout = new QHBoxLayout(imagePage_);
+    pageLayout->setSpacing(15);
+
+    // 左侧列
+    QVBoxLayout* leftColumn = new QVBoxLayout();
+    leftColumn->setSpacing(10);
+
+    // ===== 存储模式 =====
+    storageModeGroup_ = new QGroupBox("存储模式", imagePage_);
+    QVBoxLayout* storageModeLayout = new QVBoxLayout(storageModeGroup_);
+
+    QHBoxLayout* saveModeLayout = new QHBoxLayout();
+    radioFlowSave_ = new QRadioButton("流程保存", this);
+    radioThreadSave_ = new QRadioButton("线程保存", this);
+    radioThreadSave_->setChecked(true);
+    saveModeLayout->addWidget(radioFlowSave_);
+    saveModeLayout->addWidget(radioThreadSave_);
+    saveModeLayout->addStretch();
+    storageModeLayout->addLayout(saveModeLayout);
+
+    QHBoxLayout* diskLayout = new QHBoxLayout();
+    diskLayout->addWidget(new QLabel("磁盘使用百分比:", this));
+    diskUsageSpin_ = new QSpinBox(this);
+    diskUsageSpin_->setRange(1, 100);
+    diskUsageSpin_->setValue(90);
+    diskUsageSpin_->setFixedWidth(80);
+    diskLayout->addWidget(diskUsageSpin_);
+    diskLayout->addWidget(new QLabel("%", this));
+    diskLayout->addStretch();
+    storageModeLayout->addLayout(diskLayout);
+
+    leftColumn->addWidget(storageModeGroup_);
+
+    // ===== 存图路径 =====
+    savePathGroup_ = new QGroupBox("存图路径", imagePage_);
+    savePathGroup_->setCheckable(true);
+    savePathGroup_->setChecked(true);
+    QHBoxLayout* pathLayout = new QHBoxLayout(savePathGroup_);
+
+    btnBrowsePath_ = new QPushButton("路径设置", this);
+    connect(btnBrowsePath_, &QPushButton::clicked, this, &SystemSettingsDialog::onBrowsePath);
+    pathLayout->addWidget(btnBrowsePath_);
+
+    savePathEdit_ = new QLineEdit("E:\\VSImage\\WS0", this);
+    savePathEdit_->setReadOnly(true);
+    pathLayout->addWidget(savePathEdit_);
+
+    leftColumn->addWidget(savePathGroup_);
+
+    // ===== 时刻存图 =====
+    timeSaveGroup_ = new QGroupBox("时刻存图", imagePage_);
+    timeSaveGroup_->setCheckable(true);
+    timeSaveGroup_->setChecked(true);
+    QVBoxLayout* timeSaveLayout = new QVBoxLayout(timeSaveGroup_);
+
+    QHBoxLayout* timeTypeLayout = new QHBoxLayout();
+    radioHourSave_ = new QRadioButton("小时保存", this);
+    radioDaySave_ = new QRadioButton("按天保存", this);
+    radioDaySave_->setChecked(true);
+    timeTypeLayout->addWidget(radioHourSave_);
+    timeTypeLayout->addWidget(radioDaySave_);
+    timeTypeLayout->addStretch();
+    timeSaveLayout->addLayout(timeTypeLayout);
+
+    QHBoxLayout* dailyStartLayout = new QHBoxLayout();
+    dailyStartLayout->addWidget(new QLabel("每天记录起始时间(24H):", this));
+    dailyStartTimeSpin_ = new QSpinBox(this);
+    dailyStartTimeSpin_->setRange(0, 23);
+    dailyStartTimeSpin_->setValue(8);
+    dailyStartTimeSpin_->setFixedWidth(60);
+    dailyStartLayout->addWidget(dailyStartTimeSpin_);
+    dailyStartLayout->addWidget(new QLabel("h", this));
+    dailyStartLayout->addStretch();
+    timeSaveLayout->addLayout(dailyStartLayout);
+
+    QHBoxLayout* maxFoldersLayout = new QHBoxLayout();
+    maxFoldersLayout->addWidget(new QLabel("时间记录最大文件夹数量:", this));
+    maxFoldersSpin_ = new QSpinBox(this);
+    maxFoldersSpin_->setRange(1, 1000);
+    maxFoldersSpin_->setValue(48);
+    maxFoldersSpin_->setFixedWidth(60);
+    maxFoldersLayout->addWidget(maxFoldersSpin_);
+    maxFoldersLayout->addStretch();
+    timeSaveLayout->addLayout(maxFoldersLayout);
+
+    leftColumn->addWidget(timeSaveGroup_);
+
+    // ===== 图像文件 =====
+    imageFileGroup_ = new QGroupBox("图像文件", imagePage_);
+    imageFileGroup_->setCheckable(true);
+    imageFileGroup_->setChecked(true);
+    QVBoxLayout* imageFileLayout = new QVBoxLayout(imageFileGroup_);
+
+    chkProductIdNaming_ = new QCheckBox("产品ID命名存图", this);
+    chkProductIdNaming_->setChecked(true);
+    imageFileLayout->addWidget(chkProductIdNaming_);
+
+    QHBoxLayout* failedLayout = new QHBoxLayout();
+    chkSaveFailedImages_ = new QCheckBox("保存失败图像", this);
+    chkSaveFailedImages_->setChecked(true);
+    failedLayout->addWidget(chkSaveFailedImages_);
+    failedLayout->addWidget(new QLabel("存储数量:", this));
+    failedImageCountSpin_ = new QSpinBox(this);
+    failedImageCountSpin_->setRange(1, 10000);
+    failedImageCountSpin_->setValue(50);
+    failedImageCountSpin_->setFixedWidth(60);
+    failedLayout->addWidget(failedImageCountSpin_);
+    failedLayout->addStretch();
+    imageFileLayout->addLayout(failedLayout);
+
+    QHBoxLayout* allLayout = new QHBoxLayout();
+    chkSaveAllImages_ = new QCheckBox("保存所有图像", this);
+    chkSaveAllImages_->setChecked(true);
+    allLayout->addWidget(chkSaveAllImages_);
+    allLayout->addWidget(new QLabel("存储数量:", this));
+    allImageCountSpin_ = new QSpinBox(this);
+    allImageCountSpin_->setRange(1, 10000);
+    allImageCountSpin_->setValue(30);
+    allImageCountSpin_->setFixedWidth(60);
+    allLayout->addWidget(allImageCountSpin_);
+    allLayout->addStretch();
+    imageFileLayout->addLayout(allLayout);
+
+    QHBoxLayout* formatLayout = new QHBoxLayout();
+    formatLayout->addWidget(new QLabel("存储格式:", this));
+    imageFormatCombo_ = new QComboBox(this);
+    imageFormatCombo_->addItems({"BMP", "JPEG", "PNG", "TIFF"});
+    imageFormatCombo_->setFixedWidth(80);
+    formatLayout->addWidget(imageFormatCombo_);
+    formatLayout->addStretch();
+    imageFileLayout->addLayout(formatLayout);
+
+    leftColumn->addWidget(imageFileGroup_);
+    leftColumn->addStretch();
+
+    pageLayout->addLayout(leftColumn);
+
+    // 右侧列
+    QVBoxLayout* rightColumn = new QVBoxLayout();
+    rightColumn->setSpacing(10);
+
+    // ===== VDB文件 =====
+    vdbFileGroup_ = new QGroupBox("VDB文件", imagePage_);
+    chkVdbEnabled_ = new QCheckBox("", this);
+    chkVdbEnabled_->setChecked(true);
+    vdbFileGroup_->setCheckable(true);
+    vdbFileGroup_->setChecked(true);
+    QVBoxLayout* vdbLayout = new QVBoxLayout(vdbFileGroup_);
+
+    chkVdbProductIdNaming_ = new QCheckBox("产品ID命名存图", this);
+    chkVdbProductIdNaming_->setChecked(true);
+    vdbLayout->addWidget(chkVdbProductIdNaming_);
+
+    QHBoxLayout* vdbFailedLayout = new QHBoxLayout();
+    chkVdbSaveFailedImages_ = new QCheckBox("保存失败图像", this);
+    chkVdbSaveFailedImages_->setChecked(true);
+    vdbFailedLayout->addWidget(chkVdbSaveFailedImages_);
+    vdbFailedLayout->addWidget(new QLabel("存储数量:", this));
+    vdbFailedImageCountSpin_ = new QSpinBox(this);
+    vdbFailedImageCountSpin_->setRange(1, 10000);
+    vdbFailedImageCountSpin_->setValue(40);
+    vdbFailedImageCountSpin_->setFixedWidth(60);
+    vdbFailedLayout->addWidget(vdbFailedImageCountSpin_);
+    vdbFailedLayout->addStretch();
+    vdbLayout->addLayout(vdbFailedLayout);
+
+    QHBoxLayout* vdbAllLayout = new QHBoxLayout();
+    chkVdbSaveAllImages_ = new QCheckBox("保存所有图像", this);
+    chkVdbSaveAllImages_->setChecked(true);
+    vdbAllLayout->addWidget(chkVdbSaveAllImages_);
+    vdbAllLayout->addWidget(new QLabel("存储数量:", this));
+    vdbAllImageCountSpin_ = new QSpinBox(this);
+    vdbAllImageCountSpin_->setRange(1, 10000);
+    vdbAllImageCountSpin_->setValue(40);
+    vdbAllImageCountSpin_->setFixedWidth(60);
+    vdbAllLayout->addWidget(vdbAllImageCountSpin_);
+    vdbAllLayout->addStretch();
+    vdbLayout->addLayout(vdbAllLayout);
+
+    QHBoxLayout* vdbFormatLayout = new QHBoxLayout();
+    vdbFormatLayout->addWidget(new QLabel("存储格式:", this));
+    vdbFormatCombo_ = new QComboBox(this);
+    vdbFormatCombo_->addItems({"JPEG", "BMP", "PNG"});
+    vdbFormatCombo_->setFixedWidth(80);
+    vdbFormatLayout->addWidget(vdbFormatCombo_);
+    vdbFormatLayout->addStretch();
+    vdbLayout->addLayout(vdbFormatLayout);
+
+    QHBoxLayout* compressionLayout = new QHBoxLayout();
+    compressionLayout->addWidget(new QLabel("压缩比例:", this));
+    vdbCompressionSpin_ = new QSpinBox(this);
+    vdbCompressionSpin_->setRange(1, 100);
+    vdbCompressionSpin_->setValue(50);
+    vdbCompressionSpin_->setFixedWidth(60);
+    compressionLayout->addWidget(vdbCompressionSpin_);
+    compressionLayout->addWidget(new QLabel("%", this));
+    compressionLayout->addStretch();
+    vdbLayout->addLayout(compressionLayout);
+
+    rightColumn->addWidget(vdbFileGroup_);
+
+    // ===== 自定义参数 =====
+    customParamsGroup_ = new QGroupBox("自定义参数", imagePage_);
+    customParamsGroup_->setCheckable(true);
+    customParamsGroup_->setChecked(false);
+    QVBoxLayout* customLayout = new QVBoxLayout(customParamsGroup_);
+
+    QHBoxLayout* lineWidthLayout = new QHBoxLayout();
+    lineWidthLayout->addWidget(new QLabel("线宽(1~5):", this));
+    lineWidthSpin_ = new QSpinBox(this);
+    lineWidthSpin_->setRange(1, 5);
+    lineWidthSpin_->setValue(1);
+    lineWidthSpin_->setFixedWidth(60);
+    lineWidthLayout->addWidget(lineWidthSpin_);
+    lineWidthLayout->addStretch();
+    customLayout->addLayout(lineWidthLayout);
+
+    QHBoxLayout* fontSizeLayout = new QHBoxLayout();
+    fontSizeLayout->addWidget(new QLabel("字体(5~30):", this));
+    fontSizeSpin_ = new QSpinBox(this);
+    fontSizeSpin_->setRange(5, 30);
+    fontSizeSpin_->setValue(12);
+    fontSizeSpin_->setFixedWidth(60);
+    fontSizeLayout->addWidget(fontSizeSpin_);
+    fontSizeLayout->addStretch();
+    customLayout->addLayout(fontSizeLayout);
+
+    QHBoxLayout* labelLayout = new QHBoxLayout();
+    labelLayout->addWidget(new QLabel("Label(1~12):", this));
+    labelSizeSpin_ = new QSpinBox(this);
+    labelSizeSpin_->setRange(1, 12);
+    labelSizeSpin_->setValue(12);
+    labelSizeSpin_->setFixedWidth(60);
+    labelLayout->addWidget(labelSizeSpin_);
+    labelLayout->addStretch();
+    customLayout->addLayout(labelLayout);
+
+    rightColumn->addWidget(customParamsGroup_);
+    rightColumn->addStretch();
+
+    pageLayout->addLayout(rightColumn);
+}
+
+void SystemSettingsDialog::setupLogPage()
+{
+    logPage_ = new QWidget(this);
+    QHBoxLayout* pageLayout = new QHBoxLayout(logPage_);
+    pageLayout->setSpacing(15);
+
+    // 左侧列
+    QVBoxLayout* leftColumn = new QVBoxLayout();
+    leftColumn->setSpacing(10);
+
+    // ===== 日志设置 =====
+    QGroupBox* logSettingsGroup = new QGroupBox("日志设置", logPage_);
+    QVBoxLayout* logSettingsLayout = new QVBoxLayout(logSettingsGroup);
+
+    QHBoxLayout* row1Layout = new QHBoxLayout();
+    QCheckBox* chkCommCmd = new QCheckBox("通信指令", this);
+    chkCommCmd->setChecked(true);
+    row1Layout->addWidget(chkCommCmd);
+    QCheckBox* chkTimeStats = new QCheckBox("耗时统计", this);
+    chkTimeStats->setChecked(true);
+    row1Layout->addWidget(chkTimeStats);
+    row1Layout->addStretch();
+    logSettingsLayout->addLayout(row1Layout);
+
+    QCheckBox* chkDetectionLog = new QCheckBox("检测流程日志", this);
+    chkDetectionLog->setChecked(true);
+    logSettingsLayout->addWidget(chkDetectionLog);
+
+    QCheckBox* chkCsvData = new QCheckBox("检测数据文件(csv格式)", this);
+    chkCsvData->setChecked(true);
+    logSettingsLayout->addWidget(chkCsvData);
+
+    leftColumn->addWidget(logSettingsGroup);
+
+    // ===== 模拟运行 =====
+    QGroupBox* simRunGroup = new QGroupBox("模拟运行", logPage_);
+    QVBoxLayout* simRunLayout = new QVBoxLayout(simRunGroup);
+
+    QHBoxLayout* simEnableLayout = new QHBoxLayout();
+    QCheckBox* chkSimEnable = new QCheckBox("启用模拟运行", this);
+    simEnableLayout->addWidget(chkSimEnable);
+    QPushButton* btnImageSource = new QPushButton("图像数据源", this);
+    connect(btnImageSource, &QPushButton::clicked, this, [this]() {
+        ImageSourceDialog dialog(this);
+        dialog.exec();
+    });
+    simEnableLayout->addWidget(btnImageSource);
+    simEnableLayout->addStretch();
+    simRunLayout->addLayout(simEnableLayout);
+
+    QCheckBox* chkLoopData = new QCheckBox("循环使用数据", this);
+    simRunLayout->addWidget(chkLoopData);
+
+    QCheckBox* chkImageMatch = new QCheckBox("图像——对应", this);
+    simRunLayout->addWidget(chkImageMatch);
+
+    leftColumn->addWidget(simRunGroup);
+    leftColumn->addStretch();
+
+    pageLayout->addLayout(leftColumn);
+
+    // 右侧列
+    QVBoxLayout* rightColumn = new QVBoxLayout();
+    rightColumn->setSpacing(10);
+
+    // ===== 平台通信设置 =====
+    QGroupBox* platformCommGroup = new QGroupBox("平台通信设置", logPage_);
+    QVBoxLayout* platformCommLayout = new QVBoxLayout(platformCommGroup);
+
+    QCheckBox* chkVisionCommStatus = new QCheckBox("视觉通信链接状态(寄存器通信)", this);
+    chkVisionCommStatus->setChecked(true);
+    platformCommLayout->addWidget(chkVisionCommStatus);
+
+    rightColumn->addWidget(platformCommGroup);
+    rightColumn->addStretch();
+
+    pageLayout->addLayout(rightColumn);
+    pageLayout->addStretch();
+}
+
+void SystemSettingsDialog::setupLayoutPage()
+{
+    layoutPage_ = new QWidget(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout(layoutPage_);
+    mainLayout->setSpacing(15);
+
+    // ===== 视图布局 =====
+    QGroupBox* viewLayoutGroup = new QGroupBox("视图布局", layoutPage_);
+    QVBoxLayout* viewLayoutGroupLayout = new QVBoxLayout(viewLayoutGroup);
+    viewLayoutGroupLayout->setSpacing(10);
+
+    // 创建布局类型按钮组
+    QButtonGroup* layoutTypeGroup = new QButtonGroup(this);
+
+    // 3x2 网格布局
+    QGridLayout* gridLayout = new QGridLayout();
+    gridLayout->setSpacing(15);
+
+    // 预览框样式
+    QString previewStyle = R"(
+        QFrame {
+            background-color: #f0f0f0;
+            border: 1px solid #c0c0c0;
+            border-radius: 3px;
+        }
+    )";
+
+    // 创建6种布局类型
+    for (int i = 0; i < 6; ++i) {
+        int row = i / 3;  // 0 或 1
+        int col = i % 3;  // 0, 1, 2
+
+        // 单个类型的容器
+        QVBoxLayout* typeLayout = new QVBoxLayout();
+        typeLayout->setSpacing(5);
+
+        // 单选按钮
+        QRadioButton* radio = new QRadioButton(QString("类型%1").arg(i + 1), this);
+        if (i == 0) radio->setChecked(true);
+        layoutTypeGroup->addButton(radio, i);
+        typeLayout->addWidget(radio);
+
+        // 预览区域
+        QFrame* previewFrame = new QFrame(this);
+        previewFrame->setFixedSize(180, 120);
+        previewFrame->setStyleSheet(previewStyle);
+        previewFrame->setFrameShape(QFrame::StyledPanel);
+
+        // 预览区域内的布局示意
+        QVBoxLayout* previewLayout = new QVBoxLayout(previewFrame);
+        previewLayout->setContentsMargins(5, 5, 5, 5);
+        previewLayout->setSpacing(3);
+
+        // 根据类型创建不同的预览布局
+        if (i == 0) {
+            // 类型1: 单个位置1
+            QLabel* pos1 = new QLabel("位置1", previewFrame);
+            pos1->setAlignment(Qt::AlignCenter);
+            pos1->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0;");
+            previewLayout->addWidget(pos1);
+        } else if (i == 1) {
+            // 类型2: 上下两个位置
+            QLabel* pos1 = new QLabel("位置1", previewFrame);
+            pos1->setAlignment(Qt::AlignCenter);
+            pos1->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0;");
+            previewLayout->addWidget(pos1);
+
+            QLabel* pos2 = new QLabel("位置2", previewFrame);
+            pos2->setAlignment(Qt::AlignCenter);
+            pos2->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0;");
+            previewLayout->addWidget(pos2);
+        } else if (i == 2) {
+            // 类型3: 左右两个位置
+            QHBoxLayout* hLayout = new QHBoxLayout();
+            hLayout->setSpacing(3);
+
+            QLabel* pos1 = new QLabel("位置1", previewFrame);
+            pos1->setAlignment(Qt::AlignCenter);
+            pos1->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0;");
+            hLayout->addWidget(pos1);
+
+            QLabel* pos2 = new QLabel("位置2", previewFrame);
+            pos2->setAlignment(Qt::AlignCenter);
+            pos2->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0;");
+            hLayout->addWidget(pos2);
+
+            previewLayout->addLayout(hLayout);
+        } else if (i == 3) {
+            // 类型4: 2x2四个位置
+            QGridLayout* grid = new QGridLayout();
+            grid->setSpacing(3);
+
+            for (int p = 0; p < 4; ++p) {
+                QLabel* pos = new QLabel(QString("位置%1").arg(p + 1), previewFrame);
+                pos->setAlignment(Qt::AlignCenter);
+                pos->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0; font-size: 9px;");
+                grid->addWidget(pos, p / 2, p % 2);
+            }
+            previewLayout->addLayout(grid);
+        } else if (i == 4) {
+            // 类型5: 左大右两小
+            QHBoxLayout* hLayout = new QHBoxLayout();
+            hLayout->setSpacing(3);
+
+            QLabel* pos1 = new QLabel("位置1", previewFrame);
+            pos1->setAlignment(Qt::AlignCenter);
+            pos1->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0;");
+            hLayout->addWidget(pos1, 2);
+
+            QVBoxLayout* rightLayout = new QVBoxLayout();
+            rightLayout->setSpacing(3);
+
+            QLabel* pos2 = new QLabel("位置2", previewFrame);
+            pos2->setAlignment(Qt::AlignCenter);
+            pos2->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0; font-size: 9px;");
+            rightLayout->addWidget(pos2);
+
+            QLabel* pos3 = new QLabel("位置3", previewFrame);
+            pos3->setAlignment(Qt::AlignCenter);
+            pos3->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0; font-size: 9px;");
+            rightLayout->addWidget(pos3);
+
+            hLayout->addLayout(rightLayout, 1);
+            previewLayout->addLayout(hLayout);
+        } else if (i == 5) {
+            // 类型6: 3x2六个位置
+            QGridLayout* grid = new QGridLayout();
+            grid->setSpacing(2);
+
+            for (int p = 0; p < 6; ++p) {
+                QLabel* pos = new QLabel(QString("位置%1").arg(p + 1), previewFrame);
+                pos->setAlignment(Qt::AlignCenter);
+                pos->setStyleSheet("background-color: #e8e8e8; border: 1px solid #b0b0b0; font-size: 8px;");
+                grid->addWidget(pos, p / 3, p % 3);
+            }
+            previewLayout->addLayout(grid);
+        }
+
+        typeLayout->addWidget(previewFrame);
+
+        // 添加到网格
+        QWidget* typeWidget = new QWidget(this);
+        typeWidget->setLayout(typeLayout);
+        gridLayout->addWidget(typeWidget, row, col);
     }
 
-    platformTypeCombo_->blockSignals(false);
+    viewLayoutGroupLayout->addLayout(gridLayout);
+    mainLayout->addWidget(viewLayoutGroup);
 
-    connect(platformTypeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &SystemSettingsDialog::onPlatformTypeChanged);
-    formLayout->addRow("平台类型:", platformTypeCombo_);
+    // ===== 检测高度 =====
+    QHBoxLayout* heightLayout = new QHBoxLayout();
+    heightLayout->addWidget(new QLabel("检测高度：（↑。↓）", this));
 
-    // 平台描述标签
-    platformDescLabel_ = new QLabel(this);
-    platformDescLabel_->setWordWrap(true);
-    platformDescLabel_->setStyleSheet("color: #666; font-size: 11px; padding: 5px; background: #f5f5f5; border-radius: 3px;");
-    formLayout->addRow("", platformDescLabel_);
+    QSpinBox* heightSpin = new QSpinBox(this);
+    heightSpin->setRange(0, 1000);
+    heightSpin->setValue(260);
+    heightSpin->setFixedWidth(80);
+    heightLayout->addWidget(heightSpin);
 
-    // 相机数量
-    cameraNumSpin_ = new QSpinBox(this);
-    cameraNumSpin_->setRange(1, 8);
-    cameraNumSpin_->setValue(2);
-    cameraNumSpin_->setToolTip("系统使用的相机数量");
-    formLayout->addRow("相机数量:", cameraNumSpin_);
+    heightLayout->addStretch();
+    mainLayout->addLayout(heightLayout);
 
-    // 对位点数量
-    positionNumSpin_ = new QSpinBox(this);
-    positionNumSpin_->setRange(1, 8);
-    positionNumSpin_->setValue(2);
-    positionNumSpin_->setToolTip("对位点数量（通常与相机数量一致）");
-    formLayout->addRow("对位点数:", positionNumSpin_);
-
-    layout->addWidget(platformGroupBox_);
-
-    // ========== 平台说明 ==========
-    QGroupBox* infoBox = new QGroupBox("平台类型说明", tab);
-    QVBoxLayout* infoLayout = new QVBoxLayout(infoBox);
-
-    QLabel* infoLabel = new QLabel(
-        "<b>常用平台类型：</b><br>"
-        "• <b>XYD</b> - 标准三轴平台：X轴+Y轴+旋转D轴<br>"
-        "• <b>X1X2Y</b> - 龙门双X轴：适用于大幅面对位<br>"
-        "• <b>XY1Y2</b> - 双Y平台：X轴+双Y轴结构<br>"
-        "• <b>XY</b> - 简化双轴：仅XY平移，无旋转<br>"
-        "• <b>DXY</b> - 旋转优先：先D轴旋转，再XY平移<br>"
-        "<br>"
-        "<b>注意：</b>切换平台类型后需重新标定！", this);
-    infoLabel->setWordWrap(true);
-    infoLabel->setStyleSheet("font-size: 11px;");
-    infoLayout->addWidget(infoLabel);
-
-    layout->addWidget(infoBox);
-    layout->addStretch();
+    mainLayout->addStretch();
 }
 
-void SystemSettingsDialog::setupAxisTab(QWidget* tab)
+void SystemSettingsDialog::setupPlatformPage()
 {
-    QScrollArea* scrollArea = new QScrollArea(tab);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setFrameShape(QFrame::NoFrame);
+    platformPage_ = new QWidget(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout(platformPage_);
+    mainLayout->setSpacing(15);
 
-    QWidget* scrollContent = new QWidget();
-    QVBoxLayout* layout = new QVBoxLayout(scrollContent);
-    layout->setSpacing(15);
+    // ===== 平台类型选择 =====
+    QHBoxLayout* typeLayout = new QHBoxLayout();
+    typeLayout->addWidget(new QLabel("平台类型：", this));
 
-    // ========== X轴配置 ==========
-    QGroupBox* xAxisBox = new QGroupBox("X轴配置", scrollContent);
-    QFormLayout* xLayout = new QFormLayout(xAxisBox);
+    QComboBox* platformTypeCombo = new QComboBox(this);
+    platformTypeCombo->addItems({"XYΘ", "XY", "XΘ", "YΘ", "X1X2Y", "XY1Y2"});
+    platformTypeCombo->setFixedWidth(100);
+    typeLayout->addWidget(platformTypeCombo);
+    typeLayout->addStretch();
+    mainLayout->addLayout(typeLayout);
 
-    xRangeSpin_ = new QDoubleSpinBox(this);
-    xRangeSpin_->setRange(0.1, 10000.0);
-    xRangeSpin_->setValue(1000.0);
-    xRangeSpin_->setSuffix(" mm");
-    xRangeSpin_->setDecimals(1);
-    xLayout->addRow("行程:", xRangeSpin_);
+    // ===== 主内容区域（左右布局） =====
+    QHBoxLayout* contentLayout = new QHBoxLayout();
+    contentLayout->setSpacing(30);
 
-    xPulseSpin_ = new QDoubleSpinBox(this);
-    xPulseSpin_->setRange(1, 1000000);
-    xPulseSpin_->setValue(1000.0);
-    xPulseSpin_->setSuffix(" 脉冲/mm");
-    xPulseSpin_->setDecimals(2);
-    xLayout->addRow("脉冲当量:", xPulseSpin_);
+    // ===== 左侧：XYΘ平台方向 =====
+    QGroupBox* xyqDirectionGroup = new QGroupBox("XYΘ平台方向", platformPage_);
+    QFormLayout* xyqFormLayout = new QFormLayout(xyqDirectionGroup);
+    xyqFormLayout->setSpacing(10);
 
-    xDirectionCombo_ = new QComboBox(this);
-    xDirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    xDirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    xLayout->addRow("运动方向:", xDirectionCombo_);
+    QComboBox* xDirCombo = new QComboBox(this);
+    xDirCombo->addItems({"向右", "向左"});
+    xDirCombo->setFixedWidth(100);
+    xyqFormLayout->addRow("X轴正方向：", xDirCombo);
 
-    layout->addWidget(xAxisBox);
+    QComboBox* yDirCombo = new QComboBox(this);
+    yDirCombo->addItems({"向下", "向上"});
+    yDirCombo->setFixedWidth(100);
+    xyqFormLayout->addRow("Y轴正方向：", yDirCombo);
 
-    // ========== X2轴配置（龙门结构专用） ==========
-    x2AxisWidget_ = new QGroupBox("X2轴配置 (龙门结构)", scrollContent);
-    QFormLayout* x2Layout = new QFormLayout(static_cast<QGroupBox*>(x2AxisWidget_));
+    QComboBox* qDirCombo = new QComboBox(this);
+    qDirCombo->addItems({"顺时针", "逆时针"});
+    qDirCombo->setFixedWidth(100);
+    xyqFormLayout->addRow("Θ轴正方向：", qDirCombo);
 
-    x2RangeSpin_ = new QDoubleSpinBox(this);
-    x2RangeSpin_->setRange(0.1, 10000.0);
-    x2RangeSpin_->setValue(1000.0);
-    x2RangeSpin_->setSuffix(" mm");
-    x2RangeSpin_->setDecimals(1);
-    x2Layout->addRow("行程:", x2RangeSpin_);
+    contentLayout->addWidget(xyqDirectionGroup);
 
-    x2PulseSpin_ = new QDoubleSpinBox(this);
-    x2PulseSpin_->setRange(1, 1000000);
-    x2PulseSpin_->setValue(1000.0);
-    x2PulseSpin_->setSuffix(" 脉冲/mm");
-    x2PulseSpin_->setDecimals(2);
-    x2Layout->addRow("脉冲当量:", x2PulseSpin_);
+    // ===== 右侧：X1X2Y平台设置（动态显示） =====
+    QWidget* x1x2yPanel = new QWidget(this);
+    QVBoxLayout* x1x2yLayout = new QVBoxLayout(x1x2yPanel);
+    x1x2yLayout->setSpacing(10);
+    x1x2yLayout->setContentsMargins(0, 0, 0, 0);
 
-    x2DirectionCombo_ = new QComboBox(this);
-    x2DirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    x2DirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    x2Layout->addRow("运动方向:", x2DirectionCombo_);
+    // X1X2Y平台结构类型
+    QGroupBox* structTypeGroup = new QGroupBox("X1X2Y平台结构类型", x1x2yPanel);
+    QFormLayout* structFormLayout = new QFormLayout(structTypeGroup);
 
-    layout->addWidget(x2AxisWidget_);
+    QComboBox* structTypeCombo = new QComboBox(this);
+    structTypeCombo->addItems({"固定滑块", "活动滑块"});
+    structTypeCombo->setFixedWidth(120);
+    structFormLayout->addRow("结构类型", structTypeCombo);
 
-    // ========== Y轴配置 ==========
-    QGroupBox* yAxisBox = new QGroupBox("Y轴配置", scrollContent);
-    QFormLayout* yLayout = new QFormLayout(yAxisBox);
+    x1x2yLayout->addWidget(structTypeGroup);
 
-    yRangeSpin_ = new QDoubleSpinBox(this);
-    yRangeSpin_->setRange(0.1, 10000.0);
-    yRangeSpin_->setValue(1000.0);
-    yRangeSpin_->setSuffix(" mm");
-    yRangeSpin_->setDecimals(1);
-    yLayout->addRow("行程:", yRangeSpin_);
+    // X1X2Y平台方向
+    QGroupBox* x1x2yDirGroup = new QGroupBox("X1X2Y平台方向", x1x2yPanel);
+    QFormLayout* x1x2yDirFormLayout = new QFormLayout(x1x2yDirGroup);
 
-    yPulseSpin_ = new QDoubleSpinBox(this);
-    yPulseSpin_->setRange(1, 1000000);
-    yPulseSpin_->setValue(1000.0);
-    yPulseSpin_->setSuffix(" 脉冲/mm");
-    yPulseSpin_->setDecimals(2);
-    yLayout->addRow("脉冲当量:", yPulseSpin_);
+    QComboBox* x1DirCombo = new QComboBox(this);
+    x1DirCombo->addItems({"向右", "向左"});
+    x1DirCombo->setFixedWidth(100);
+    x1x2yDirFormLayout->addRow("X1轴正方向", x1DirCombo);
 
-    yDirectionCombo_ = new QComboBox(this);
-    yDirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    yDirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    yLayout->addRow("运动方向:", yDirectionCombo_);
+    QComboBox* x2DirCombo = new QComboBox(this);
+    x2DirCombo->addItems({"向右", "向左"});
+    x2DirCombo->setFixedWidth(100);
+    x1x2yDirFormLayout->addRow("X2轴正方向", x2DirCombo);
 
-    layout->addWidget(yAxisBox);
+    QComboBox* y1DirCombo = new QComboBox(this);
+    y1DirCombo->addItems({"向下", "向上"});
+    y1DirCombo->setFixedWidth(100);
+    x1x2yDirFormLayout->addRow("Y轴正方向", y1DirCombo);
 
-    // ========== Y2轴配置（双Y结构专用） ==========
-    y2AxisWidget_ = new QGroupBox("Y2轴配置 (双Y结构)", scrollContent);
-    QFormLayout* y2Layout = new QFormLayout(static_cast<QGroupBox*>(y2AxisWidget_));
+    x1x2yLayout->addWidget(x1x2yDirGroup);
 
-    y2RangeSpin_ = new QDoubleSpinBox(this);
-    y2RangeSpin_->setRange(0.1, 10000.0);
-    y2RangeSpin_->setValue(1000.0);
-    y2RangeSpin_->setSuffix(" mm");
-    y2RangeSpin_->setDecimals(1);
-    y2Layout->addRow("行程:", y2RangeSpin_);
+    // X1X2Y平台参数
+    QGroupBox* x1x2yParamsGroup = new QGroupBox("X1X2Y平台参数", x1x2yPanel);
+    QGridLayout* paramsGridLayout = new QGridLayout(x1x2yParamsGroup);
+    paramsGridLayout->setSpacing(8);
 
-    y2PulseSpin_ = new QDoubleSpinBox(this);
-    y2PulseSpin_->setRange(1, 1000000);
-    y2PulseSpin_->setValue(1000.0);
-    y2PulseSpin_->setSuffix(" 脉冲/mm");
-    y2PulseSpin_->setDecimals(2);
-    y2Layout->addRow("脉冲当量:", y2PulseSpin_);
+    // X1轴连接点坐标
+    paramsGridLayout->addWidget(new QLabel("X1轴连接点坐标：", this), 0, 0);
+    paramsGridLayout->addWidget(new QLabel("X", this), 0, 1);
+    QDoubleSpinBox* x1CoordX = new QDoubleSpinBox(this);
+    x1CoordX->setRange(-1000, 1000);
+    x1CoordX->setValue(67.5);
+    x1CoordX->setFixedWidth(70);
+    paramsGridLayout->addWidget(x1CoordX, 0, 2);
+    paramsGridLayout->addWidget(new QLabel("mm  Y", this), 0, 3);
+    QDoubleSpinBox* x1CoordY = new QDoubleSpinBox(this);
+    x1CoordY->setRange(-1000, 1000);
+    x1CoordY->setValue(-57);
+    x1CoordY->setFixedWidth(70);
+    paramsGridLayout->addWidget(x1CoordY, 0, 4);
+    paramsGridLayout->addWidget(new QLabel("mm", this), 0, 5);
 
-    y2DirectionCombo_ = new QComboBox(this);
-    y2DirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    y2DirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    y2Layout->addRow("运动方向:", y2DirectionCombo_);
+    // X2轴连接点坐标
+    paramsGridLayout->addWidget(new QLabel("X2轴连接点坐标：", this), 1, 0);
+    paramsGridLayout->addWidget(new QLabel("X", this), 1, 1);
+    QDoubleSpinBox* x2CoordX = new QDoubleSpinBox(this);
+    x2CoordX->setRange(-1000, 1000);
+    x2CoordX->setValue(67.5);
+    x2CoordX->setFixedWidth(70);
+    paramsGridLayout->addWidget(x2CoordX, 1, 2);
+    paramsGridLayout->addWidget(new QLabel("mm  Y", this), 1, 3);
+    QDoubleSpinBox* x2CoordY = new QDoubleSpinBox(this);
+    x2CoordY->setRange(-1000, 1000);
+    x2CoordY->setValue(57);
+    x2CoordY->setFixedWidth(70);
+    paramsGridLayout->addWidget(x2CoordY, 1, 4);
+    paramsGridLayout->addWidget(new QLabel("mm", this), 1, 5);
 
-    layout->addWidget(y2AxisWidget_);
+    // Y轴连接点坐标
+    paramsGridLayout->addWidget(new QLabel("Y轴连接点坐标：", this), 2, 0);
+    paramsGridLayout->addWidget(new QLabel("X", this), 2, 1);
+    QDoubleSpinBox* yCoordX = new QDoubleSpinBox(this);
+    yCoordX->setRange(-1000, 1000);
+    yCoordX->setValue(-57);
+    yCoordX->setFixedWidth(70);
+    paramsGridLayout->addWidget(yCoordX, 2, 2);
+    paramsGridLayout->addWidget(new QLabel("mm  Y", this), 2, 3);
+    QDoubleSpinBox* yCoordY = new QDoubleSpinBox(this);
+    yCoordY->setRange(-1000, 1000);
+    yCoordY->setValue(67.5);
+    yCoordY->setFixedWidth(70);
+    paramsGridLayout->addWidget(yCoordY, 2, 4);
+    paramsGridLayout->addWidget(new QLabel("mm", this), 2, 5);
 
-    // ========== D轴配置（旋转轴） ==========
-    dAxisWidget_ = new QGroupBox("D轴配置 (旋转轴)", scrollContent);
-    QFormLayout* dLayout = new QFormLayout(static_cast<QGroupBox*>(dAxisWidget_));
+    x1x2yLayout->addWidget(x1x2yParamsGroup);
+    x1x2yLayout->addStretch();
 
-    dRangeSpin_ = new QDoubleSpinBox(this);
-    dRangeSpin_->setRange(0.1, 360.0);
-    dRangeSpin_->setValue(360.0);
-    dRangeSpin_->setSuffix(" °");
-    dRangeSpin_->setDecimals(1);
-    dLayout->addRow("旋转范围:", dRangeSpin_);
+    // 默认隐藏X1X2Y面板
+    x1x2yPanel->setVisible(false);
 
-    dPulseSpin_ = new QDoubleSpinBox(this);
-    dPulseSpin_->setRange(1, 1000000);
-    dPulseSpin_->setValue(1000.0);
-    dPulseSpin_->setSuffix(" 脉冲/°");
-    dPulseSpin_->setDecimals(2);
-    dLayout->addRow("脉冲当量:", dPulseSpin_);
+    contentLayout->addWidget(x1x2yPanel);
+    contentLayout->addStretch();
 
-    dDirectionCombo_ = new QComboBox(this);
-    dDirectionCombo_->addItem("正向 (顺时针)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    dDirectionCombo_->addItem("负向 (逆时针)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    dLayout->addRow("旋转方向:", dDirectionCombo_);
+    mainLayout->addLayout(contentLayout);
+    mainLayout->addStretch();
 
-    dDriveTypeCombo_ = new QComboBox(this);
-    dDriveTypeCombo_->addItem("直接驱动 (DD马达)", static_cast<int>(Platform::DDriveType::Direct));
-    dDriveTypeCombo_->addItem("直线驱动 (连杆)", static_cast<int>(Platform::DDriveType::Linear));
-    dLayout->addRow("驱动类型:", dDriveTypeCombo_);
+    // 连接平台类型切换信号
+    connect(platformTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [x1x2yPanel, xyqDirectionGroup](int index) {
+        // X1X2Y = 4, XY1Y2 = 5
+        bool showX1X2Y = (index == 4 || index == 5);
+        x1x2yPanel->setVisible(showX1X2Y);
 
-    rotationLengthSpin_ = new QDoubleSpinBox(this);
-    rotationLengthSpin_->setRange(1.0, 1000.0);
-    rotationLengthSpin_->setValue(100.0);
-    rotationLengthSpin_->setSuffix(" mm");
-    rotationLengthSpin_->setDecimals(2);
-    rotationLengthSpin_->setToolTip("直线驱动时的旋转臂长度");
-    dLayout->addRow("旋转臂长:", rotationLengthSpin_);
-
-    layout->addWidget(dAxisWidget_);
-
-    layout->addStretch();
-    scrollArea->setWidget(scrollContent);
-
-    QVBoxLayout* tabLayout = new QVBoxLayout(tab);
-    tabLayout->setContentsMargins(0, 0, 0, 0);
-    tabLayout->addWidget(scrollArea);
+        // 更新XYΘ平台方向的标题
+        if (index == 4) {
+            // X1X2Y模式保持原标题
+        } else if (index == 5) {
+            // XY1Y2模式
+        }
+    });
 }
 
-void SystemSettingsDialog::setupCameraTab(QWidget* tab)
+void SystemSettingsDialog::onToolButtonClicked(int index)
 {
-    QVBoxLayout* layout = new QVBoxLayout(tab);
-    layout->setSpacing(15);
+    // 更新按钮样式
+    btnImage_->setStyleSheet(index == 0 ? toolBtnSelectedStyle_ : toolBtnNormalStyle_);
+    btnLog_->setStyleSheet(index == 1 ? toolBtnSelectedStyle_ : toolBtnNormalStyle_);
+    btnLayout_->setStyleSheet(index == 2 ? toolBtnSelectedStyle_ : toolBtnNormalStyle_);
+    btnPlatform_->setStyleSheet(index == 3 ? toolBtnSelectedStyle_ : toolBtnNormalStyle_);
 
-    // ========== 相机平台配置 ==========
-    cameraGroupBox_ = new QGroupBox("相机平台配置", tab);
-    QFormLayout* formLayout = new QFormLayout(cameraGroupBox_);
-    formLayout->setSpacing(10);
-
-    cameraPlatformTypeCombo_ = new QComboBox(this);
-    cameraPlatformTypeCombo_->addItem("独立固定安装", static_cast<int>(Platform::CameraPlatformType::SeparateFix));
-    cameraPlatformTypeCombo_->addItem("安装在独立X轴", static_cast<int>(Platform::CameraPlatformType::SeparateX));
-    cameraPlatformTypeCombo_->addItem("安装在独立XY轴", static_cast<int>(Platform::CameraPlatformType::SeparateXY));
-    cameraPlatformTypeCombo_->addItem("共享平台X轴", static_cast<int>(Platform::CameraPlatformType::ShareX));
-    formLayout->addRow("安装方式:", cameraPlatformTypeCombo_);
-
-    layout->addWidget(cameraGroupBox_);
-
-    // ========== 相机1方向 ==========
-    QGroupBox* cam1Box = new QGroupBox("相机1 方向配置", tab);
-    QFormLayout* cam1Layout = new QFormLayout(cam1Box);
-
-    cam1XDirectionCombo_ = new QComboBox(this);
-    cam1XDirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    cam1XDirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    cam1Layout->addRow("X方向:", cam1XDirectionCombo_);
-
-    cam1YDirectionCombo_ = new QComboBox(this);
-    cam1YDirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    cam1YDirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    cam1Layout->addRow("Y方向:", cam1YDirectionCombo_);
-
-    layout->addWidget(cam1Box);
-
-    // ========== 相机2方向 ==========
-    QGroupBox* cam2Box = new QGroupBox("相机2 方向配置", tab);
-    QFormLayout* cam2Layout = new QFormLayout(cam2Box);
-
-    cam2XDirectionCombo_ = new QComboBox(this);
-    cam2XDirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    cam2XDirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    cam2Layout->addRow("X方向:", cam2XDirectionCombo_);
-
-    cam2YDirectionCombo_ = new QComboBox(this);
-    cam2YDirectionCombo_->addItem("正向 (+)", static_cast<int>(Platform::AxisDirectionType::Positive));
-    cam2YDirectionCombo_->addItem("负向 (-)", static_cast<int>(Platform::AxisDirectionType::Negative));
-    cam2Layout->addRow("Y方向:", cam2YDirectionCombo_);
-
-    layout->addWidget(cam2Box);
-
-    layout->addStretch();
+    // 切换页面
+    stackedWidget_->setCurrentIndex(index);
 }
 
-void SystemSettingsDialog::setupGPUTab(QWidget* tab)
+void SystemSettingsDialog::onBrowsePath()
 {
-    QVBoxLayout* layout = new QVBoxLayout(tab);
-    layout->setSpacing(15);
+    QString dir = QFileDialog::getExistingDirectory(this, "选择存图路径",
+        savePathEdit_->text(),
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-    // ========== GPU加速设置组 ==========
-    gpuGroupBox_ = new QGroupBox("GPU加速设置", tab);
-    QVBoxLayout* gpuLayout = new QVBoxLayout(gpuGroupBox_);
-    gpuLayout->setSpacing(10);
-
-    // 加速模式选择
-    accelModeGroup_ = new QButtonGroup(this);
-
-    radioDisabled_ = new QRadioButton("禁用GPU加速 (仅使用CPU)", this);
-    radioDisabled_->setToolTip("禁用所有GPU加速功能，适用于没有GPU或GPU不稳定的环境");
-    accelModeGroup_->addButton(radioDisabled_, static_cast<int>(Base::GPUAccelMode::Disabled));
-    gpuLayout->addWidget(radioDisabled_);
-
-    radioCUDA_ = new QRadioButton("启用CUDA GPU加速", this);
-    radioCUDA_->setToolTip("强制使用CUDA GPU加速，需要NVIDIA显卡和CUDA支持");
-    accelModeGroup_->addButton(radioCUDA_, static_cast<int>(Base::GPUAccelMode::CUDA));
-    gpuLayout->addWidget(radioCUDA_);
-
-    radioAuto_ = new QRadioButton("自动选择 (推荐)", this);
-    radioAuto_->setToolTip("自动检测GPU可用性，有GPU时使用GPU，否则使用CPU");
-    accelModeGroup_->addButton(radioAuto_, static_cast<int>(Base::GPUAccelMode::Auto));
-    gpuLayout->addWidget(radioAuto_);
-
-    connect(accelModeGroup_, QOverload<int>::of(&QButtonGroup::idClicked),
-            this, &SystemSettingsDialog::onAccelModeChanged);
-
-    // 分隔线
-    QFrame* line = new QFrame(this);
-    line->setFrameShape(QFrame::HLine);
-    line->setFrameShadow(QFrame::Sunken);
-    gpuLayout->addWidget(line);
-
-    // GPU状态显示
-    gpuStatusLabel_ = new QLabel(this);
-    gpuStatusLabel_->setStyleSheet("font-weight: bold;");
-    gpuLayout->addWidget(gpuStatusLabel_);
-
-    gpuInfoLabel_ = new QLabel(this);
-    gpuInfoLabel_->setWordWrap(true);
-    gpuInfoLabel_->setStyleSheet("color: #666; font-size: 11px;");
-    gpuLayout->addWidget(gpuInfoLabel_);
-
-    layout->addWidget(gpuGroupBox_);
-    layout->addStretch();
+    if (!dir.isEmpty()) {
+        savePathEdit_->setText(dir);
+    }
 }
 
 void SystemSettingsDialog::loadSettings()
 {
-    LOG_DEBUG("loadSettings: 开始");
+    Base::ConfigManager& config = Base::ConfigManager::instance();
 
-    try {
-        // 加载GPU设置
-        LOG_DEBUG("loadSettings: 获取GPUAccelerator实例");
-        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-        LOG_DEBUG("loadSettings: 获取加速模式");
-        selectedMode_ = gpu.getAccelMode();
+    // 加载存图路径
+    QString savePath = config.getValue("ImageSave/Path", "E:\\VSImage\\WS0").toString();
+    savePathEdit_->setText(savePath);
 
-        // 安全检查：确保accelModeGroup_已创建
-        LOG_DEBUG("loadSettings: 设置加速模式按钮");
-        if (accelModeGroup_) {
-            QAbstractButton* button = accelModeGroup_->button(static_cast<int>(selectedMode_));
-            if (button) {
-                button->setChecked(true);
-            }
-        }
+    // 加载磁盘使用百分比
+    int diskUsage = config.getValue("ImageSave/DiskUsage", 90).toInt();
+    diskUsageSpin_->setValue(diskUsage);
 
-        LOG_DEBUG("loadSettings: 更新GPU状态显示");
-        updateGPUStatusDisplay();
-
-        // 加载平台设置
-        LOG_DEBUG("loadSettings: 加载平台设置");
-        loadPlatformSettings();
-
-        LOG_DEBUG("loadSettings: 完成");
-
-    } catch (const std::exception& e) {
-        LOG_ERROR(QString("loadSettings: 异常: %1").arg(e.what()));
-    } catch (...) {
-        LOG_ERROR("loadSettings: 未知异常");
-    }
-}
-
-void SystemSettingsDialog::loadPlatformSettings()
-{
-    LOG_DEBUG("loadPlatformSettings: 开始");
-
-    try {
-        // 安全检查：确保所有必要控件已创建
-        if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
-            !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
-            !dRangeSpin_ || !dPulseSpin_ || !xDirectionCombo_ || !yDirectionCombo_ ||
-            !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
-            !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
-            !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
-            LOG_WARNING("loadPlatformSettings: 控件未完全初始化，跳过");
-            return;
-        }
-
-        LOG_DEBUG("loadPlatformSettings: 获取PlatformConfigManager实例");
-        Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
-        LOG_DEBUG("loadPlatformSettings: 获取当前配置");
-        const Platform::PlatformConfig& config = mgr.currentConfig();
-        LOG_DEBUG("loadPlatformSettings: 配置获取成功");
-
-        // 阻止信号，避免重复触发槽函数
-        platformTypeCombo_->blockSignals(true);
-
-        // 设置平台类型
-        selectedPlatformType_ = config.type;
-        int typeIndex = platformTypeCombo_->findData(static_cast<int>(config.type));
-        if (typeIndex >= 0) {
-            platformTypeCombo_->setCurrentIndex(typeIndex);
-        }
-
-        platformTypeCombo_->blockSignals(false);
-
-        // 基本参数
-        cameraNumSpin_->setValue(config.cameraNum);
-        positionNumSpin_->setValue(config.positionNum);
-
-        // 轴参数
-        xRangeSpin_->setValue(config.xRange);
-        xPulseSpin_->setValue(config.xPulsePerMM);
-        yRangeSpin_->setValue(config.yRange);
-        yPulseSpin_->setValue(config.yPulsePerMM);
-        dRangeSpin_->setValue(config.dRange);
-        dPulseSpin_->setValue(config.dPulsePerDegree);
-
-        // 根据平台类型加载详细配置
-        const Platform::PlatformInfo* info = config.getPlatformInfo();
-        if (info) {
-            if (auto xydInfo = dynamic_cast<const Platform::PlatformXYDInfo*>(info)) {
-                xDirectionCombo_->setCurrentIndex(
-                    xydInfo->xDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-                yDirectionCombo_->setCurrentIndex(
-                    xydInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-                dDirectionCombo_->setCurrentIndex(
-                    xydInfo->dDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-                dDriveTypeCombo_->setCurrentIndex(static_cast<int>(xydInfo->dDriveType));
-                rotationLengthSpin_->setValue(xydInfo->rotationLength);
-            }
-            else if (auto x1x2yInfo = dynamic_cast<const Platform::PlatformX1X2YInfo*>(info)) {
-                xDirectionCombo_->setCurrentIndex(
-                    x1x2yInfo->x1Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
-                if (x2DirectionCombo_) {
-                    x2DirectionCombo_->setCurrentIndex(
-                        x1x2yInfo->x2Direction == Platform::AxisDirectionType::Positive ? 0 : 1);
-                }
-                yDirectionCombo_->setCurrentIndex(
-                    x1x2yInfo->yDirection == Platform::AxisDirectionType::Positive ? 0 : 1);
-            }
-        }
-
-        // 相机平台配置 - 添加安全检查
-        try {
-            int camTypeIndex = cameraPlatformTypeCombo_->findData(
-                static_cast<int>(config.cameraPlatform.getCamPlatformType()));
-            if (camTypeIndex >= 0) {
-                cameraPlatformTypeCombo_->setCurrentIndex(camTypeIndex);
-            }
-
-            // 相机方向 - 检查相机数量
-            if (config.cameraNum >= 1) {
-                cam1XDirectionCombo_->setCurrentIndex(
-                    config.cameraPlatform.getCamDirectionX(0) == Platform::AxisDirectionType::Positive ? 0 : 1);
-                cam1YDirectionCombo_->setCurrentIndex(
-                    config.cameraPlatform.getCamDirectionY(0) == Platform::AxisDirectionType::Positive ? 0 : 1);
-            }
-            if (config.cameraNum >= 2) {
-                cam2XDirectionCombo_->setCurrentIndex(
-                    config.cameraPlatform.getCamDirectionX(1) == Platform::AxisDirectionType::Positive ? 0 : 1);
-                cam2YDirectionCombo_->setCurrentIndex(
-                    config.cameraPlatform.getCamDirectionY(1) == Platform::AxisDirectionType::Positive ? 0 : 1);
-            }
-        } catch (const std::exception& e) {
-            LOG_WARNING(QString("loadPlatformSettings: 加载相机配置失败: %1").arg(e.what()));
-        }
-
-        // 更新轴可见性
-        updateAxisVisibility();
-
-    } catch (const std::exception& e) {
-        LOG_ERROR(QString("loadPlatformSettings: 异常: %1").arg(e.what()));
-    } catch (...) {
-        LOG_ERROR("loadPlatformSettings: 未知异常");
-    }
+    // 加载其他设置...
+    LOG_DEBUG("系统设置已加载");
 }
 
 void SystemSettingsDialog::applySettings()
 {
-    try {
-        // 应用GPU设置
-        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-        gpu.setAccelMode(selectedMode_);
+    Base::ConfigManager& config = Base::ConfigManager::instance();
 
-        LOG_INFO(QString("GPU加速模式已更改为: %1")
-                .arg(Base::GPUAccelerator::getAccelModeName(selectedMode_)));
+    // 保存存图路径
+    config.setValue("ImageSave/Path", savePathEdit_->text());
 
-        updateGPUStatusDisplay();
-    } catch (const std::exception& e) {
-        LOG_ERROR(QString("applySettings: GPU设置应用失败: %1").arg(e.what()));
-    } catch (...) {
-        LOG_ERROR("applySettings: GPU设置应用时发生未知异常");
-    }
+    // 保存磁盘使用百分比
+    config.setValue("ImageSave/DiskUsage", diskUsageSpin_->value());
 
-    // 应用平台设置
-    applyPlatformSettings();
-}
+    // 保存存储模式
+    config.setValue("ImageSave/ThreadMode", radioThreadSave_->isChecked());
 
-void SystemSettingsDialog::applyPlatformSettings()
-{
-    // 安全检查：确保所有必要控件已创建
-    if (!platformTypeCombo_ || !cameraNumSpin_ || !positionNumSpin_ ||
-        !xRangeSpin_ || !xPulseSpin_ || !yRangeSpin_ || !yPulseSpin_ ||
-        !dRangeSpin_ || !dPulseSpin_ || !xDirectionCombo_ || !yDirectionCombo_ ||
-        !dDirectionCombo_ || !dDriveTypeCombo_ || !rotationLengthSpin_ ||
-        !cameraPlatformTypeCombo_ || !cam1XDirectionCombo_ || !cam1YDirectionCombo_ ||
-        !cam2XDirectionCombo_ || !cam2YDirectionCombo_) {
-        return;
-    }
+    // 保存时刻存图设置
+    config.setValue("ImageSave/TimeSaveEnabled", timeSaveGroup_->isChecked());
+    config.setValue("ImageSave/DailySave", radioDaySave_->isChecked());
+    config.setValue("ImageSave/DailyStartTime", dailyStartTimeSpin_->value());
+    config.setValue("ImageSave/MaxFolders", maxFoldersSpin_->value());
 
-    Platform::PlatformConfigManager& mgr = Platform::PlatformConfigManager::instance();
-    Platform::PlatformConfig& config = mgr.currentConfig();
+    // 保存图像文件设置
+    config.setValue("ImageSave/ProductIdNaming", chkProductIdNaming_->isChecked());
+    config.setValue("ImageSave/SaveFailedImages", chkSaveFailedImages_->isChecked());
+    config.setValue("ImageSave/FailedImageCount", failedImageCountSpin_->value());
+    config.setValue("ImageSave/SaveAllImages", chkSaveAllImages_->isChecked());
+    config.setValue("ImageSave/AllImageCount", allImageCountSpin_->value());
+    config.setValue("ImageSave/ImageFormat", imageFormatCombo_->currentText());
 
-    // 检查平台类型是否变化
-    Platform::PlatformType newType = static_cast<Platform::PlatformType>(
-        platformTypeCombo_->currentData().toInt());
-    bool typeChanged = (newType != config.type);
+    // 保存VDB设置
+    config.setValue("VDB/Enabled", vdbFileGroup_->isChecked());
+    config.setValue("VDB/ProductIdNaming", chkVdbProductIdNaming_->isChecked());
+    config.setValue("VDB/SaveFailedImages", chkVdbSaveFailedImages_->isChecked());
+    config.setValue("VDB/FailedImageCount", vdbFailedImageCountSpin_->value());
+    config.setValue("VDB/SaveAllImages", chkVdbSaveAllImages_->isChecked());
+    config.setValue("VDB/AllImageCount", vdbAllImageCountSpin_->value());
+    config.setValue("VDB/Format", vdbFormatCombo_->currentText());
+    config.setValue("VDB/Compression", vdbCompressionSpin_->value());
 
-    // 更新基本参数
-    config.type = newType;
-    config.cameraNum = cameraNumSpin_->value();
-    config.positionNum = positionNumSpin_->value();
+    // 保存自定义参数
+    config.setValue("CustomParams/Enabled", customParamsGroup_->isChecked());
+    config.setValue("CustomParams/LineWidth", lineWidthSpin_->value());
+    config.setValue("CustomParams/FontSize", fontSizeSpin_->value());
+    config.setValue("CustomParams/LabelSize", labelSizeSpin_->value());
 
-    // 更新轴参数
-    config.xRange = xRangeSpin_->value();
-    config.xPulsePerMM = xPulseSpin_->value();
-    config.yRange = yRangeSpin_->value();
-    config.yPulsePerMM = yPulseSpin_->value();
-    config.dRange = dRangeSpin_->value();
-    config.dPulsePerDegree = dPulseSpin_->value();
-
-    // 如果类型变化，创建新的详细配置
-    if (typeChanged) {
-        config.createDefaultInfo(newType);
-    }
-
-    // 更新详细配置
-    Platform::PlatformInfo* info = const_cast<Platform::PlatformInfo*>(config.getPlatformInfo());
-    if (info) {
-        if (auto xydInfo = dynamic_cast<Platform::PlatformXYDInfo*>(info)) {
-            xydInfo->xDirection = xDirectionCombo_->currentIndex() == 0
-                ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-            xydInfo->yDirection = yDirectionCombo_->currentIndex() == 0
-                ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-            xydInfo->dDirection = dDirectionCombo_->currentIndex() == 0
-                ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-            xydInfo->dDriveType = static_cast<Platform::DDriveType>(dDriveTypeCombo_->currentIndex());
-            xydInfo->rotationLength = rotationLengthSpin_->value();
-        }
-        else if (auto x1x2yInfo = dynamic_cast<Platform::PlatformX1X2YInfo*>(info)) {
-            x1x2yInfo->x1Direction = xDirectionCombo_->currentIndex() == 0
-                ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-            if (x2DirectionCombo_) {
-                x1x2yInfo->x2Direction = x2DirectionCombo_->currentIndex() == 0
-                    ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-            }
-            x1x2yInfo->yDirection = yDirectionCombo_->currentIndex() == 0
-                ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative;
-        }
-    }
-
-    // 更新相机平台配置
-    Platform::CameraPlatformType camType = static_cast<Platform::CameraPlatformType>(
-        cameraPlatformTypeCombo_->currentData().toInt());
-    config.cameraPlatform.setCameraNumAndType(config.cameraNum, camType);
-
-    config.cameraPlatform.setCamDirectionX(0, cam1XDirectionCombo_->currentIndex() == 0
-        ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative);
-    config.cameraPlatform.setCamDirectionY(0, cam1YDirectionCombo_->currentIndex() == 0
-        ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative);
-    config.cameraPlatform.setCamDirectionX(1, cam2XDirectionCombo_->currentIndex() == 0
-        ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative);
-    config.cameraPlatform.setCamDirectionY(1, cam2YDirectionCombo_->currentIndex() == 0
-        ? Platform::AxisDirectionType::Positive : Platform::AxisDirectionType::Negative);
-
-    LOG_INFO(QString("平台配置已更新: 类型=%1, 相机数=%2")
-        .arg(Platform::getPlatformTypeName(config.type))
-        .arg(config.cameraNum));
-
-    if (typeChanged) {
-        QMessageBox::information(this, "提示",
-            QString("平台类型已更改为: %1\n\n注意：切换平台类型后需要重新进行标定！")
-                .arg(Platform::getPlatformTypeName(newType)));
-    }
-}
-
-void SystemSettingsDialog::updateGPUStatusDisplay()
-{
-    // 安全检查：确保控件已创建
-    if (!gpuStatusLabel_ || !gpuInfoLabel_ || !radioCUDA_) {
-        return;
-    }
-
-    try {
-        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-
-        QString statusText;
-        if (gpu.isCudaAvailable()) {
-            int deviceCount = gpu.getDeviceCount();
-            statusText = QString("CUDA状态: 可用 (检测到 %1 个GPU设备)").arg(deviceCount);
-            gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #2e7d32;");
-        } else {
-            statusText = "CUDA状态: 不可用";
-            gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
-        }
-        gpuStatusLabel_->setText(statusText);
-
-        QString infoText;
-        if (gpu.isCudaAvailable()) {
-            QList<Base::GPUDeviceInfo> devices = gpu.getAllDevices();
-            for (const Base::GPUDeviceInfo& dev : devices) {
-                if (!infoText.isEmpty()) {
-                    infoText += "\n";
-                }
-                infoText += QString("GPU %1: %2\n  内存: %3 MB, 计算能力: %4")
-                    .arg(dev.deviceId)
-                    .arg(dev.name)
-                    .arg(dev.totalMemory / 1024 / 1024)
-                    .arg(dev.computeCapability / 10.0, 0, 'f', 1);
-            }
-        } else {
-            infoText = "未检测到CUDA兼容的GPU设备。\n"
-                       "请确保已安装NVIDIA显卡和CUDA驱动。\n"
-                       "若选择\"自动\"模式，将自动使用CPU处理。";
-        }
-
-        infoText += QString("\n\n当前模式: %1")
-            .arg(Base::GPUAccelerator::getAccelModeName(selectedMode_));
-
-        if (gpu.isUsingGPU()) {
-            infoText += " (实际使用: GPU)";
-        } else {
-            infoText += " (实际使用: CPU)";
-        }
-
-        gpuInfoLabel_->setText(infoText);
-
-        radioCUDA_->setEnabled(gpu.isCudaAvailable());
-        if (!gpu.isCudaAvailable()) {
-            radioCUDA_->setText("启用CUDA GPU加速 (不可用)");
-        } else {
-            radioCUDA_->setText("启用CUDA GPU加速");
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR(QString("updateGPUStatusDisplay: 异常: %1").arg(e.what()));
-        gpuStatusLabel_->setText("CUDA状态: 检测失败");
-        gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
-        gpuInfoLabel_->setText(QString("GPU状态检测失败: %1").arg(e.what()));
-        radioCUDA_->setEnabled(false);
-        radioCUDA_->setText("启用CUDA GPU加速 (不可用)");
-    } catch (...) {
-        LOG_ERROR("updateGPUStatusDisplay: 未知异常");
-        gpuStatusLabel_->setText("CUDA状态: 检测失败");
-        gpuStatusLabel_->setStyleSheet("font-weight: bold; color: #c62828;");
-        gpuInfoLabel_->setText("GPU状态检测失败: 未知错误");
-        radioCUDA_->setEnabled(false);
-        radioCUDA_->setText("启用CUDA GPU加速 (不可用)");
-    }
-}
-
-void SystemSettingsDialog::updateAxisVisibility()
-{
-    // 安全检查：确保控件已创建
-    if (!x2AxisWidget_ || !y2AxisWidget_ || !dAxisWidget_ ||
-        !platformTypeCombo_ || !platformDescLabel_) {
-        return;
-    }
-
-    Platform::PlatformType type = static_cast<Platform::PlatformType>(
-        platformTypeCombo_->currentData().toInt());
-
-    // X2轴仅对龙门结构可见
-    bool showX2 = Platform::platformIsDualX(type);
-    x2AxisWidget_->setVisible(showX2);
-
-    // Y2轴仅对双Y结构可见
-    bool showY2 = Platform::platformIsDualY(type);
-    y2AxisWidget_->setVisible(showY2);
-
-    // D轴对有旋转的平台可见
-    bool showD = Platform::platformHasRotation(type);
-    dAxisWidget_->setVisible(showD);
-
-    // 更新描述
-    QString desc;
-    switch (type) {
-        case Platform::PlatformType::XYD:
-            desc = "标准三轴对位平台，包含X轴、Y轴和旋转D轴，适用于大多数对位场景。";
-            break;
-        case Platform::PlatformType::X1X2Y:
-            desc = "龙门双X轴结构，双X轴+Y轴，适用于大幅面高精度对位。";
-            break;
-        case Platform::PlatformType::XY1Y2:
-            desc = "双Y平台结构，X轴+双Y轴，适用于特殊结构需求。";
-            break;
-        case Platform::PlatformType::XY:
-            desc = "简化双轴平台，仅X轴+Y轴，无旋转功能。";
-            break;
-        case Platform::PlatformType::DXY:
-            desc = "旋转优先型平台，先进行D轴旋转再进行XY平移。";
-            break;
-        case Platform::PlatformType::UVW:
-            desc = "UVW精密对位平台，用于高精度微调。";
-            break;
-        default:
-            desc = Platform::getPlatformTypeName(type);
-            break;
-    }
-    platformDescLabel_->setText(desc);
-}
-
-void SystemSettingsDialog::onPlatformTypeChanged(int index)
-{
-    Q_UNUSED(index);
-    selectedPlatformType_ = static_cast<Platform::PlatformType>(
-        platformTypeCombo_->currentData().toInt());
-    updateAxisVisibility();
-}
-
-void SystemSettingsDialog::onAxisDirectionChanged()
-{
-    // 可用于实时预览方向变化
-}
-
-void SystemSettingsDialog::onAccelModeChanged(int id)
-{
-    try {
-        selectedMode_ = static_cast<Base::GPUAccelMode>(id);
-
-        Base::GPUAccelerator& gpu = Base::GPUAccelerator::instance();
-        if (selectedMode_ == Base::GPUAccelMode::CUDA && !gpu.isCudaAvailable()) {
-            QMessageBox::warning(this, "警告",
-                "当前系统不支持CUDA，选择此选项后将自动回退到CPU处理。\n"
-                "建议选择\"自动选择\"模式。");
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR(QString("onAccelModeChanged: 异常: %1").arg(e.what()));
-        QMessageBox::warning(this, "警告",
-            QString("GPU模式切换时发生错误: %1").arg(e.what()));
-    } catch (...) {
-        LOG_ERROR("onAccelModeChanged: 未知异常");
-        QMessageBox::warning(this, "警告", "GPU模式切换时发生未知错误");
-    }
+    LOG_INFO("系统设置已保存");
 }
 
 void SystemSettingsDialog::onOkClicked()
 {
     applySettings();
     accept();
-}
-
-void SystemSettingsDialog::onApplyClicked()
-{
-    applySettings();
-    QMessageBox::information(this, "提示", "设置已应用");
 }
 
 void SystemSettingsDialog::onCancelClicked()

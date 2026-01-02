@@ -3,6 +3,74 @@
  * @brief 权限管理器 - 用户角色与权限控制
  * @author VisionForge Team
  * @date 2025-12-18
+ *
+ * @details
+ * 本文件实现了VisionForge项目的用户权限管理系统，提供基于角色的访问控制(RBAC)。
+ *
+ * ## 设计模式
+ * - **单例模式 (Singleton)**：全局唯一的权限管理器实例
+ * - **观察者模式 (Observer)**：登录/登出/权限变更通过信号通知
+ * - **策略模式 (Strategy)**：不同角色有不同的权限集合
+ *
+ * ## 角色层次
+ * @code
+ * Administrator (管理员)
+ *     ↑ 继承
+ * Engineer (工程师)
+ *     ↑ 继承
+ * Operator (操作员)
+ *     ↑ 继承
+ * Guest (访客)
+ * @endcode
+ *
+ * ## 权限分类
+ * - 项目操作：新建、打开、保存、关闭
+ * - 工具操作：添加、删除、编辑、排序
+ * - 运行操作：启动、停止、单步
+ * - 相机操作：连接、断开、设置
+ * - 通信操作：通讯设置、PLC控制
+ * - 系统操作：系统设置、用户管理、日志
+ * - 数据操作：导入、导出、统计
+ *
+ * ## 安全机制
+ *
+ * ### 密码存储
+ * - 使用SHA-256哈希存储密码
+ * - 固定盐值防止彩虹表攻击
+ * - 生产环境建议使用随机盐值
+ *
+ * ### 用户数据
+ * - 用户信息存储在JSON文件
+ * - 支持禁用用户账户
+ * - 记录最后登录时间
+ *
+ * ## 线程安全
+ * - 单例访问线程安全（C++11保证）
+ * - 用户数据操作建议在主线程进行
+ * - Qt信号可跨线程发送
+ *
+ * ## 内存管理
+ * - 当前用户使用unique_ptr管理
+ * - 析构时自动保存配置
+ *
+ * ## 使用示例
+ * @code
+ * // 用户登录
+ * if (PERMISSION_MANAGER.login("admin", "admin123")) {
+ *     LOG_INFO("登录成功");
+ * }
+ *
+ * // 检查权限
+ * if (HAS_PERMISSION(ToolEdit)) {
+ *     // 允许编辑工具
+ * } else {
+ *     QMessageBox::warning(this, "权限不足", "您没有编辑工具的权限");
+ * }
+ *
+ * // 监听登录状态
+ * connect(&PERMISSION_MANAGER, &PermissionManager::userLoggedIn,
+ *         this, &MainWindow::onUserLoggedIn);
+ * @endcode
  */
 
 #pragma once

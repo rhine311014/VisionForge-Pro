@@ -1,7 +1,7 @@
 /**
  * @file SystemSettingsDialog.h
  * @brief 系统设置对话框
- * @details 配置系统全局设置，包括平台类型、GPU加速模式等
+ * @details VisionASM风格的系统配置界面
  * @author VisionForge Team
  * @date 2025-12-18
  */
@@ -17,26 +17,22 @@
 #include <QComboBox>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
-#include <QTabWidget>
 #include <QCheckBox>
-#include "base/GPUAccelerator.h"
-#include "platform/PlatformTypes.h"
-#include "platform/PlatformConfig.h"
+#include <QLineEdit>
+#include <QStackedWidget>
 
 namespace VisionForge {
 namespace UI {
 
 /**
  * @class SystemSettingsDialog
- * @brief 系统设置对话框
+ * @brief 系统设置对话框 - VisionASM风格
  *
- * 功能：
- * - 平台类型选择和配置
- * - 轴参数配置（行程、方向、脉冲当量）
- * - 相机配置
- * - GPU加速模式选择（禁用/CUDA/自动）
- * - 显示GPU设备信息
- * - 保存/加载配置
+ * 功能页面：
+ * - 图像：图像存储设置
+ * - 日志：日志配置
+ * - 布局：界面布局设置
+ * - 平台：平台参数配置
  */
 class SystemSettingsDialog : public QDialog
 {
@@ -47,97 +43,99 @@ public:
     ~SystemSettingsDialog() override = default;
 
 private slots:
-    void onAccelModeChanged(int id);
-    void onPlatformTypeChanged(int index);
-    void onAxisDirectionChanged();
+    void onToolButtonClicked(int index);
+    void onBrowsePath();
     void onOkClicked();
-    void onApplyClicked();
     void onCancelClicked();
 
 private:
     void setupUI();
-    void setupPlatformTab(QWidget* tab);
-    void setupAxisTab(QWidget* tab);
-    void setupCameraTab(QWidget* tab);
-    void setupGPUTab(QWidget* tab);
+    void setupToolBar();
+    void setupImagePage();
+    void setupLogPage();
+    void setupLayoutPage();
+    void setupPlatformPage();
     void loadSettings();
-    void loadPlatformSettings();
     void applySettings();
-    void applyPlatformSettings();
-    void updateGPUStatusDisplay();
-    void updateAxisVisibility();
 
 private:
-    // 主标签页
-    QTabWidget* tabWidget_ = nullptr;
+    // 顶部工具栏
+    QWidget* toolBar_ = nullptr;
+    QPushButton* btnImage_ = nullptr;
+    QPushButton* btnLog_ = nullptr;
+    QPushButton* btnLayout_ = nullptr;
+    QPushButton* btnPlatform_ = nullptr;
+    QPushButton* btnBianJian_ = nullptr;
+    QButtonGroup* toolButtonGroup_ = nullptr;
 
-    // ========== 平台类型设置 ==========
-    QGroupBox* platformGroupBox_ = nullptr;
-    QComboBox* platformTypeCombo_ = nullptr;
-    QLabel* platformDescLabel_ = nullptr;
-    QSpinBox* cameraNumSpin_ = nullptr;
-    QSpinBox* positionNumSpin_ = nullptr;
+    // 页面切换
+    QStackedWidget* stackedWidget_ = nullptr;
 
-    // ========== 轴参数设置 ==========
-    QGroupBox* axisGroupBox_ = nullptr;
+    // ========== 图像页面 ==========
+    QWidget* imagePage_ = nullptr;
 
-    // X轴配置
-    QDoubleSpinBox* xRangeSpin_ = nullptr;
-    QDoubleSpinBox* xPulseSpin_ = nullptr;
-    QComboBox* xDirectionCombo_ = nullptr;
+    // 存储模式
+    QGroupBox* storageModeGroup_ = nullptr;
+    QRadioButton* radioFlowSave_ = nullptr;
+    QRadioButton* radioThreadSave_ = nullptr;
+    QSpinBox* diskUsageSpin_ = nullptr;
 
-    // X2轴配置（龙门结构）
-    QWidget* x2AxisWidget_ = nullptr;
-    QDoubleSpinBox* x2RangeSpin_ = nullptr;
-    QDoubleSpinBox* x2PulseSpin_ = nullptr;
-    QComboBox* x2DirectionCombo_ = nullptr;
+    // 存图路径
+    QGroupBox* savePathGroup_ = nullptr;
+    QPushButton* btnBrowsePath_ = nullptr;
+    QLineEdit* savePathEdit_ = nullptr;
 
-    // Y轴配置
-    QDoubleSpinBox* yRangeSpin_ = nullptr;
-    QDoubleSpinBox* yPulseSpin_ = nullptr;
-    QComboBox* yDirectionCombo_ = nullptr;
+    // 时刻存图
+    QGroupBox* timeSaveGroup_ = nullptr;
+    QCheckBox* chkTimeSave_ = nullptr;
+    QRadioButton* radioHourSave_ = nullptr;
+    QRadioButton* radioDaySave_ = nullptr;
+    QSpinBox* dailyStartTimeSpin_ = nullptr;
+    QSpinBox* maxFoldersSpin_ = nullptr;
 
-    // Y2轴配置（双Y结构）
-    QWidget* y2AxisWidget_ = nullptr;
-    QDoubleSpinBox* y2RangeSpin_ = nullptr;
-    QDoubleSpinBox* y2PulseSpin_ = nullptr;
-    QComboBox* y2DirectionCombo_ = nullptr;
+    // 图像文件
+    QGroupBox* imageFileGroup_ = nullptr;
+    QCheckBox* chkProductIdNaming_ = nullptr;
+    QCheckBox* chkSaveFailedImages_ = nullptr;
+    QSpinBox* failedImageCountSpin_ = nullptr;
+    QCheckBox* chkSaveAllImages_ = nullptr;
+    QSpinBox* allImageCountSpin_ = nullptr;
+    QComboBox* imageFormatCombo_ = nullptr;
 
-    // D轴配置
-    QWidget* dAxisWidget_ = nullptr;
-    QDoubleSpinBox* dRangeSpin_ = nullptr;
-    QDoubleSpinBox* dPulseSpin_ = nullptr;
-    QComboBox* dDirectionCombo_ = nullptr;
-    QComboBox* dDriveTypeCombo_ = nullptr;
-    QDoubleSpinBox* rotationLengthSpin_ = nullptr;
+    // VDB文件
+    QGroupBox* vdbFileGroup_ = nullptr;
+    QCheckBox* chkVdbEnabled_ = nullptr;
+    QCheckBox* chkVdbProductIdNaming_ = nullptr;
+    QCheckBox* chkVdbSaveFailedImages_ = nullptr;
+    QSpinBox* vdbFailedImageCountSpin_ = nullptr;
+    QCheckBox* chkVdbSaveAllImages_ = nullptr;
+    QSpinBox* vdbAllImageCountSpin_ = nullptr;
+    QComboBox* vdbFormatCombo_ = nullptr;
+    QSpinBox* vdbCompressionSpin_ = nullptr;
 
-    // ========== 相机平台设置 ==========
-    QGroupBox* cameraGroupBox_ = nullptr;
-    QComboBox* cameraPlatformTypeCombo_ = nullptr;
-    QComboBox* cam1XDirectionCombo_ = nullptr;
-    QComboBox* cam1YDirectionCombo_ = nullptr;
-    QComboBox* cam2XDirectionCombo_ = nullptr;
-    QComboBox* cam2YDirectionCombo_ = nullptr;
+    // 自定义参数
+    QGroupBox* customParamsGroup_ = nullptr;
+    QCheckBox* chkCustomParams_ = nullptr;
+    QSpinBox* lineWidthSpin_ = nullptr;
+    QSpinBox* fontSizeSpin_ = nullptr;
+    QSpinBox* labelSizeSpin_ = nullptr;
 
-    // ========== GPU加速设置 ==========
-    QGroupBox* gpuGroupBox_ = nullptr;
-    QRadioButton* radioDisabled_ = nullptr;
-    QRadioButton* radioCUDA_ = nullptr;
-    QRadioButton* radioAuto_ = nullptr;
-    QButtonGroup* accelModeGroup_ = nullptr;
+    // ========== 日志页面 ==========
+    QWidget* logPage_ = nullptr;
 
-    // GPU状态显示
-    QLabel* gpuStatusLabel_ = nullptr;
-    QLabel* gpuInfoLabel_ = nullptr;
+    // ========== 布局页面 ==========
+    QWidget* layoutPage_ = nullptr;
 
-    // ========== 按钮 ==========
+    // ========== 平台页面 ==========
+    QWidget* platformPage_ = nullptr;
+
+    // ========== 底部按钮 ==========
     QPushButton* okButton_ = nullptr;
-    QPushButton* applyButton_ = nullptr;
     QPushButton* cancelButton_ = nullptr;
 
-    // ========== 当前配置 ==========
-    Base::GPUAccelMode selectedMode_;
-    Platform::PlatformType selectedPlatformType_;
+    // 工具栏按钮样式
+    QString toolBtnNormalStyle_;
+    QString toolBtnSelectedStyle_;
 };
 
 } // namespace UI

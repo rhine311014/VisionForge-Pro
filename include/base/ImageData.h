@@ -3,6 +3,63 @@
  * @brief 图像数据类 - 支持零拷贝、内存对齐、GPU加速
  * @author VisionForge Team
  * @date 2025-12-14
+ *
+ * @details
+ * 本文件定义了VisionForge项目的核心图像数据结构，封装了OpenCV的cv::Mat，
+ * 并提供了内存对齐、GPU加速和Qt集成等高级功能。
+ *
+ * ## 设计模式
+ * - **工厂模式 (Factory)**：通过静态方法fromAlignedMemory创建对象
+ * - **RAII模式**：自动管理内存生命周期
+ * - **享元模式 (Flyweight)**：配合ImageMemoryPool实现对象复用
+ *
+ * ## 核心特性
+ *
+ * ### 零拷贝设计
+ * - 使用shared_ptr进行引用计数，避免不必要的数据复制
+ * - toQImage()在灰度图和RGBA图场景下实现零拷贝
+ * - clone()方法返回共享数据的浅拷贝
+ * - deepCopy()方法在需要时创建完整副本
+ *
+ * ### 内存对齐
+ * - 默认32字节对齐，支持AVX2 SIMD指令集
+ * - 使用平台特定API：Windows使用_aligned_malloc，POSIX使用posix_memalign
+ * - 对齐内存可显著提升SIMD运算性能（约20-30%）
+ *
+ * ### GPU内存管理
+ * - 支持CUDA GPU内存分配和传输
+ * - allocateGPU()/releaseGPU()：显式管理GPU内存
+ * - uploadToGPU()/downloadFromGPU()：CPU与GPU间数据传输
+ * - 使用USE_CUDA宏条件编译
+ *
+ * ## 线程安全
+ * - ImageData对象本身不是线程安全的
+ * - 多线程访问同一ImageData需要外部同步
+ * - 建议每个线程使用独立的ImageData实例
+ *
+ * ## 内存管理策略
+ * - ownsMemory_标志：区分是否拥有内存所有权
+ * - customDeleter_：支持自定义析构函数
+ * - 禁止拷贝构造和赋值，防止意外的浅拷贝
+ *
+ * ## 使用示例
+ * @code
+ * // 创建图像
+ * auto image = std::make_shared<ImageData>(1920, 1080, CV_8UC3);
+ *
+ * // 访问OpenCV Mat
+ * cv::Mat& mat = image->mat();
+ *
+ * // 转换为QImage显示
+ * QImage qimg = image->toQImage();
+ *
+ * // GPU加速处理
+ * #ifdef USE_CUDA
+ * image->uploadToGPU();
+ * // ... GPU处理 ...
+ * image->downloadFromGPU();
+ * #endif
+ * @endcode
  */
 
 #pragma once

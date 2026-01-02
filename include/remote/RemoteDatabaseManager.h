@@ -2,8 +2,72 @@
  * @file RemoteDatabaseManager.h
  * @brief 远程诊断数据库管理器 - SQLite数据持久化
  * @details 存储和查询性能指标、日志等历史数据
+ *
+ * @section database_overview 数据库概述
+ * 使用SQLite作为本地数据存储引擎，提供:
+ * - 性能指标历史存储
+ * - 系统日志持久化
+ * - 高效的时间范围查询
+ * - 自动数据清理和维护
+ *
+ * @section database_schema 数据库表结构
+ *
+ * @subsection perf_table 性能指标表 (performance_metrics)
+ * | 字段 | 类型 | 说明 |
+ * |------|------|------|
+ * | id | INTEGER | 主键，自增 |
+ * | timestamp | DATETIME | 采集时间 |
+ * | cpu_usage | REAL | CPU使用率 |
+ * | memory_used_mb | INTEGER | 内存使用量(MB) |
+ * | fps | REAL | 处理帧率 |
+ * | avg_latency_ms | REAL | 平均延迟(ms) |
+ * | error_count | INTEGER | 错误计数 |
+ *
+ * @subsection log_table 日志表 (log_entries)
+ * | 字段 | 类型 | 说明 |
+ * |------|------|------|
+ * | id | INTEGER | 主键，自增 |
+ * | timestamp | DATETIME | 日志时间 |
+ * | level | INTEGER | 日志级别 |
+ * | category | TEXT | 日志分类 |
+ * | message | TEXT | 日志内容 |
+ * | file | TEXT | 源文件名 |
+ * | line | INTEGER | 源文件行号 |
+ *
+ * @section performance_optimization 性能优化
+ * - 索引: 时间戳、级别、分类等常用查询字段
+ * - WAL模式: 提升并发写入性能
+ * - 批量插入: 支持事务批量写入
+ * - 自动清理: 定期删除过期数据
+ *
+ * @section usage_example 使用示例
+ * @code
+ * RemoteDatabaseManager dbManager;
+ *
+ * // 初始化
+ * DatabaseConfig config;
+ * config.databasePath = "./data/diagnostics.db";
+ * config.maxRecordAge = 30;  // 保留30天
+ * dbManager.initialize(config);
+ *
+ * // 插入性能数据
+ * PerformanceMetrics metrics;
+ * metrics.timestamp = QDateTime::currentDateTime();
+ * metrics.cpuUsage = 45.5;
+ * metrics.memoryUsedMB = 2048;
+ * dbManager.insertPerformanceMetrics(metrics);
+ *
+ * // 查询历史数据
+ * PerformanceQuery query;
+ * query.startTime = QDateTime::currentDateTime().addDays(-7);
+ * query.endTime = QDateTime::currentDateTime();
+ * auto results = dbManager.queryPerformanceMetrics(query);
+ * @endcode
+ *
  * @author VisionForge Team
+ * @version 1.6.0
  * @date 2025-12-20
+ * @copyright Copyright (c) 2025 VisionForge. All rights reserved.
  */
 
 #pragma once
