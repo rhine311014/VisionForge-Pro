@@ -27,6 +27,13 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QDoubleSpinBox>
+#include <QSpinBox>
+#include <QCheckBox>
+#include <QRadioButton>
+#include <QTableView>
+#include <QStandardItemModel>
+#include <QButtonGroup>
 
 namespace VisionForge {
 namespace UI {
@@ -103,6 +110,12 @@ ProductManageDialog::ProductManageDialog(QWidget* parent)
     : QDialog(parent)
     , currentProductIndex_(-1)
     , currentSceneIndex_(0)
+    , currentPanelIndex_(0)
+    , contentStack_(nullptr)
+    , scenePanel_(nullptr)
+    , calibPanel_(nullptr)
+    , alignPanel_(nullptr)
+    , calibMatrixModel_(nullptr)
 {
     setupUI();
     initDefaultProducts(80);
@@ -317,8 +330,32 @@ void ProductManageDialog::createContentArea(QVBoxLayout* layout)
     productTitleLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #333;");
     contentLayout->addWidget(productTitleLabel_);
 
+    // 内容堆栈
+    contentStack_ = new QStackedWidget(contentGroup_);
+
+    // 创建各面板
+    createScenePanel();
+    createCalibPanel();
+    createAlignPanel();
+
+    contentStack_->addWidget(scenePanel_);   // 索引0
+    contentStack_->addWidget(calibPanel_);   // 索引1
+    contentStack_->addWidget(alignPanel_);   // 索引2
+
+    contentLayout->addWidget(contentStack_, 1);
+
+    layout->addWidget(contentGroup_, 1);
+}
+
+void ProductManageDialog::createScenePanel()
+{
+    scenePanel_ = new QWidget();
+    QVBoxLayout* panelLayout = new QVBoxLayout(scenePanel_);
+    panelLayout->setContentsMargins(0, 0, 0, 0);
+    panelLayout->setSpacing(8);
+
     // 场景滚动区域
-    sceneScrollArea_ = new QScrollArea(contentGroup_);
+    sceneScrollArea_ = new QScrollArea(scenePanel_);
     sceneScrollArea_->setWidgetResizable(true);
     sceneScrollArea_->setFrameShape(QFrame::NoFrame);
 
@@ -359,9 +396,382 @@ void ProductManageDialog::createContentArea(QVBoxLayout* layout)
 
     sceneLayout->addStretch();
     sceneScrollArea_->setWidget(sceneContainer_);
-    contentLayout->addWidget(sceneScrollArea_, 1);
+    panelLayout->addWidget(sceneScrollArea_, 1);
+}
 
-    layout->addWidget(contentGroup_, 1);
+void ProductManageDialog::createCalibPanel()
+{
+    calibPanel_ = new QWidget();
+    QVBoxLayout* panelLayout = new QVBoxLayout(calibPanel_);
+    panelLayout->setContentsMargins(8, 8, 8, 8);
+    panelLayout->setSpacing(12);
+
+    // 顶部：位置和模式选择
+    QHBoxLayout* topLayout = new QHBoxLayout();
+
+    QLabel* locationLabel = new QLabel(tr("位置1"), calibPanel_);
+    topLayout->addWidget(locationLabel);
+
+    calibLocationCombo_ = new QComboBox(calibPanel_);
+    calibLocationCombo_->addItem(tr("自动标定"));
+    calibLocationCombo_->addItem(tr("手动标定"));
+    calibLocationCombo_->addItem(tr("九点标定"));
+    calibLocationCombo_->setMinimumWidth(120);
+    topLayout->addWidget(calibLocationCombo_);
+    topLayout->addStretch();
+
+    panelLayout->addLayout(topLayout);
+
+    // 标定矩阵表格
+    QGroupBox* matrixGroup = new QGroupBox(calibPanel_);
+    QVBoxLayout* matrixLayout = new QVBoxLayout(matrixGroup);
+
+    calibMatrixModel_ = new QStandardItemModel(4, 3, this);
+    calibMatrixView_ = new QTableView(calibPanel_);
+    calibMatrixView_->setModel(calibMatrixModel_);
+    calibMatrixView_->horizontalHeader()->setVisible(false);
+    calibMatrixView_->verticalHeader()->setVisible(false);
+    calibMatrixView_->setMinimumHeight(120);
+    calibMatrixView_->setMaximumHeight(160);
+
+    // 设置默认矩阵值（单位矩阵扩展）
+    QStringList defaultValues = {
+        "1.000000", "0.000000", "0.000000",
+        "0.000000", "1.000000", "0.000000",
+        "0.000000", "0.000000", "1.000000"
+    };
+    for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 3; ++col) {
+            QStandardItem* item = new QStandardItem(defaultValues[row * 3 + col]);
+            item->setTextAlignment(Qt::AlignCenter);
+            calibMatrixModel_->setItem(row, col, item);
+        }
+    }
+    // 第四行：坐标标签
+    calibMatrixModel_->setItem(3, 0, new QStandardItem(tr("平台坐标")));
+    calibMatrixModel_->setItem(3, 1, new QStandardItem("0.000000"));
+    calibMatrixModel_->setItem(3, 2, new QStandardItem("0.000000"));
+    calibMatrixModel_->item(3, 0)->setTextAlignment(Qt::AlignCenter);
+
+    calibMatrixView_->resizeColumnsToContents();
+    matrixLayout->addWidget(calibMatrixView_);
+
+    // 坐标输入行
+    QGridLayout* coordLayout = new QGridLayout();
+
+    coordLayout->addWidget(new QLabel(tr("平台坐标")), 0, 0);
+    calibPlatformXSpin_ = new QDoubleSpinBox(calibPanel_);
+    calibPlatformXSpin_->setRange(-99999, 99999);
+    calibPlatformXSpin_->setDecimals(6);
+    calibPlatformXSpin_->setValue(0.0);
+    coordLayout->addWidget(calibPlatformXSpin_, 0, 1);
+    calibPlatformYSpin_ = new QDoubleSpinBox(calibPanel_);
+    calibPlatformYSpin_->setRange(-99999, 99999);
+    calibPlatformYSpin_->setDecimals(6);
+    calibPlatformYSpin_->setValue(0.0);
+    coordLayout->addWidget(calibPlatformYSpin_, 0, 2);
+
+    coordLayout->addWidget(new QLabel(tr("图像坐标")), 1, 0);
+    calibImageXSpin_ = new QDoubleSpinBox(calibPanel_);
+    calibImageXSpin_->setRange(-99999, 99999);
+    calibImageXSpin_->setDecimals(6);
+    calibImageXSpin_->setValue(0.0);
+    coordLayout->addWidget(calibImageXSpin_, 1, 1);
+    calibImageYSpin_ = new QDoubleSpinBox(calibPanel_);
+    calibImageYSpin_->setRange(-99999, 99999);
+    calibImageYSpin_->setDecimals(6);
+    calibImageYSpin_->setValue(0.0);
+    coordLayout->addWidget(calibImageYSpin_, 1, 2);
+
+    coordLayout->addWidget(new QLabel(tr("标定位置")), 2, 0);
+    calibPositionXSpin_ = new QDoubleSpinBox(calibPanel_);
+    calibPositionXSpin_->setRange(-99999, 99999);
+    calibPositionXSpin_->setDecimals(6);
+    calibPositionXSpin_->setValue(0.0);
+    coordLayout->addWidget(calibPositionXSpin_, 2, 1);
+    calibPositionYSpin_ = new QDoubleSpinBox(calibPanel_);
+    calibPositionYSpin_->setRange(-99999, 99999);
+    calibPositionYSpin_->setDecimals(6);
+    calibPositionYSpin_->setValue(0.0);
+    coordLayout->addWidget(calibPositionYSpin_, 2, 2);
+
+    matrixLayout->addLayout(coordLayout);
+    panelLayout->addWidget(matrixGroup);
+
+    // 底部按钮行
+    QHBoxLayout* btnLayout = new QHBoxLayout();
+    btnLayout->setSpacing(8);
+
+    calibSettingBtn_ = new QPushButton(tr("设置"), calibPanel_);
+    calibSettingBtn_->setMinimumWidth(60);
+    btnLayout->addWidget(calibSettingBtn_);
+
+    calibTemplateBtn_ = new QPushButton(tr("模板"), calibPanel_);
+    calibTemplateBtn_->setMinimumWidth(60);
+    btnLayout->addWidget(calibTemplateBtn_);
+
+    calibLinkBtn_ = new QPushButton(tr("关联"), calibPanel_);
+    calibLinkBtn_->setMinimumWidth(60);
+    btnLayout->addWidget(calibLinkBtn_);
+
+    calibCopyBtn_ = new QPushButton(tr("复制"), calibPanel_);
+    calibCopyBtn_->setMinimumWidth(60);
+    btnLayout->addWidget(calibCopyBtn_);
+
+    calibClearBtn_ = new QPushButton(tr("清空"), calibPanel_);
+    calibClearBtn_->setMinimumWidth(60);
+    btnLayout->addWidget(calibClearBtn_);
+
+    btnLayout->addStretch();
+    panelLayout->addLayout(btnLayout);
+
+    panelLayout->addStretch();
+}
+
+void ProductManageDialog::createAlignPanel()
+{
+    alignPanel_ = new QWidget();
+    QHBoxLayout* mainLayout = new QHBoxLayout(alignPanel_);
+    mainLayout->setContentsMargins(8, 8, 8, 8);
+    mainLayout->setSpacing(16);
+
+    // ========== 左侧：对位精度 + 检查设置 ==========
+    QVBoxLayout* leftLayout = new QVBoxLayout();
+    leftLayout->setSpacing(12);
+
+    // 对位精度组
+    QGroupBox* precisionGroup = new QGroupBox(tr("对位精度"), alignPanel_);
+    QGridLayout* precisionLayout = new QGridLayout(precisionGroup);
+    precisionLayout->setSpacing(6);
+
+    precisionLayout->addWidget(new QLabel(tr("设定精度X:")), 0, 0);
+    alignPrecisionXSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignPrecisionXSpin_->setRange(0.001, 10.0);
+    alignPrecisionXSpin_->setDecimals(2);
+    alignPrecisionXSpin_->setValue(0.01);
+    alignPrecisionXSpin_->setSuffix("°");
+    precisionLayout->addWidget(alignPrecisionXSpin_, 0, 1);
+
+    precisionLayout->addWidget(new QLabel(tr("设定精度Y:")), 1, 0);
+    alignPrecisionYSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignPrecisionYSpin_->setRange(0.001, 10.0);
+    alignPrecisionYSpin_->setDecimals(2);
+    alignPrecisionYSpin_->setValue(0.01);
+    alignPrecisionYSpin_->setSuffix("°");
+    precisionLayout->addWidget(alignPrecisionYSpin_, 1, 1);
+
+    precisionLayout->addWidget(new QLabel(tr("设定精度U:")), 2, 0);
+    alignPrecisionUSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignPrecisionUSpin_->setRange(0.001, 10.0);
+    alignPrecisionUSpin_->setDecimals(2);
+    alignPrecisionUSpin_->setValue(0.01);
+    alignPrecisionUSpin_->setSuffix("°");
+    precisionLayout->addWidget(alignPrecisionUSpin_, 2, 1);
+
+    precisionLayout->addWidget(new QLabel(tr("对位次数:")), 3, 0);
+    alignCountSpin_ = new QSpinBox(alignPanel_);
+    alignCountSpin_->setRange(1, 10);
+    alignCountSpin_->setValue(1);
+    alignCountSpin_->setSuffix(tr(" 次"));
+    precisionLayout->addWidget(alignCountSpin_, 3, 1);
+
+    leftLayout->addWidget(precisionGroup);
+
+    // 检查设置组
+    QGroupBox* checkGroup = new QGroupBox(tr("检查设置"), alignPanel_);
+    QVBoxLayout* checkLayout = new QVBoxLayout(checkGroup);
+
+    alignDistanceValidCheck_ = new QCheckBox(tr("检测距离是否有效"), alignPanel_);
+    checkLayout->addWidget(alignDistanceValidCheck_);
+
+    QHBoxLayout* modeLayout = new QHBoxLayout();
+    alignInputModeRadio_ = new QRadioButton(tr("输入模式"), alignPanel_);
+    alignCheckModeRadio_ = new QRadioButton(tr("检查模式"), alignPanel_);
+    alignInputModeRadio_->setChecked(true);
+    QButtonGroup* modeGroup = new QButtonGroup(this);
+    modeGroup->addButton(alignInputModeRadio_);
+    modeGroup->addButton(alignCheckModeRadio_);
+    modeLayout->addWidget(alignInputModeRadio_);
+    modeLayout->addWidget(alignCheckModeRadio_);
+    checkLayout->addLayout(modeLayout);
+
+    QGridLayout* distLayout = new QGridLayout();
+    distLayout->addWidget(new QLabel(tr("对象距离偏差(mm):")), 0, 0);
+    alignObjectDistSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignObjectDistSpin_->setRange(0.001, 100.0);
+    alignObjectDistSpin_->setDecimals(2);
+    alignObjectDistSpin_->setValue(0.01);
+    distLayout->addWidget(alignObjectDistSpin_, 0, 1);
+
+    distLayout->addWidget(new QLabel(tr("目标距离偏差(mm):")), 1, 0);
+    alignTargetDistSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignTargetDistSpin_->setRange(0.001, 100.0);
+    alignTargetDistSpin_->setDecimals(2);
+    alignTargetDistSpin_->setValue(0.01);
+    distLayout->addWidget(alignTargetDistSpin_, 1, 1);
+    checkLayout->addLayout(distLayout);
+
+    // 产品图示
+    QHBoxLayout* productImgLayout = new QHBoxLayout();
+    QPushButton* productImgBtn = new QPushButton(tr("产品图示"), alignPanel_);
+    productImgLayout->addWidget(productImgBtn);
+    alignProductImageLabel_ = new QLabel(alignPanel_);
+    alignProductImageLabel_->setFixedSize(100, 80);
+    alignProductImageLabel_->setStyleSheet("border: 1px solid #999; background-color: #1a1a2e;");
+    productImgLayout->addWidget(alignProductImageLabel_);
+    productImgLayout->addStretch();
+    checkLayout->addLayout(productImgLayout);
+
+    leftLayout->addWidget(checkGroup);
+    leftLayout->addStretch();
+
+    mainLayout->addLayout(leftLayout);
+
+    // ========== 右侧：对位计算 + 对象补偿 ==========
+    QVBoxLayout* rightLayout = new QVBoxLayout();
+    rightLayout->setSpacing(12);
+
+    // 对位计算组
+    QGroupBox* calcGroup = new QGroupBox(tr("对位计算"), alignPanel_);
+    QGridLayout* calcLayout = new QGridLayout(calcGroup);
+    calcLayout->setSpacing(6);
+
+    calcLayout->addWidget(new QLabel(tr("对位点个数:")), 0, 0);
+    alignPointCountSpin_ = new QSpinBox(alignPanel_);
+    alignPointCountSpin_->setRange(1, 10);
+    alignPointCountSpin_->setValue(1);
+    calcLayout->addWidget(alignPointCountSpin_, 0, 1);
+
+    calcLayout->addWidget(new QLabel(tr("对象到目标角度:")), 0, 2);
+    alignTargetAngleCombo_ = new QComboBox(alignPanel_);
+    alignTargetAngleCombo_->addItems({tr("无"), tr("90°"), tr("180°"), tr("270°")});
+    calcLayout->addWidget(alignTargetAngleCombo_, 0, 3);
+
+    calcLayout->addWidget(new QLabel(tr("对象移动类型:")), 1, 0);
+    alignObjectMoveCombo_ = new QComboBox(alignPanel_);
+    alignObjectMoveCombo_->addItems({"XYQ", "XY", "XQ", "YQ", "X", "Y", "Q"});
+    calcLayout->addWidget(alignObjectMoveCombo_, 1, 1);
+
+    calcLayout->addWidget(new QLabel(tr("目标移动类型:")), 1, 2);
+    alignTargetMoveCombo_ = new QComboBox(alignPanel_);
+    alignTargetMoveCombo_->addItems({tr("移动"), tr("固定")});
+    calcLayout->addWidget(alignTargetMoveCombo_, 1, 3);
+
+    calcLayout->addWidget(new QLabel(tr("1VS1对位模式:")), 2, 0);
+    alignModeCombo_ = new QComboBox(alignPanel_);
+    alignModeCombo_->addItem(tr("位置1_定位点_中心对位"));
+    alignModeCombo_->addItem(tr("位置1_定位点_边缘对位"));
+    calcLayout->addWidget(alignModeCombo_, 2, 1, 1, 3);
+
+    // 位置偏差方向
+    QHBoxLayout* offsetLayout = new QHBoxLayout();
+    offsetLayout->addWidget(new QLabel(tr("位置偏差方向:")));
+    alignOffsetXInvertCheck_ = new QCheckBox(tr("X取反"), alignPanel_);
+    alignOffsetYInvertCheck_ = new QCheckBox(tr("Y取反"), alignPanel_);
+    alignOffsetQInvertCheck_ = new QCheckBox(tr("Q取反"), alignPanel_);
+    offsetLayout->addWidget(alignOffsetXInvertCheck_);
+    offsetLayout->addWidget(alignOffsetYInvertCheck_);
+    offsetLayout->addWidget(alignOffsetQInvertCheck_);
+    offsetLayout->addStretch();
+    calcLayout->addLayout(offsetLayout, 3, 0, 1, 4);
+
+    rightLayout->addWidget(calcGroup);
+
+    // 对象补偿组
+    QGroupBox* compGroup = new QGroupBox(tr("对象补偿"), alignPanel_);
+    QVBoxLayout* compLayout = new QVBoxLayout(compGroup);
+
+    QHBoxLayout* compTypeLayout = new QHBoxLayout();
+    compTypeLayout->addWidget(new QLabel(tr("补偿类型:")));
+    alignCompTypeCombo_ = new QComboBox(alignPanel_);
+    alignCompTypeCombo_->addItems({tr("产品坐标补偿"), tr("图像坐标补偿"), tr("无补偿")});
+    compTypeLayout->addWidget(alignCompTypeCombo_);
+    compTypeLayout->addStretch();
+    compLayout->addLayout(compTypeLayout);
+
+    QGridLayout* compValueLayout = new QGridLayout();
+    compValueLayout->addWidget(new QLabel(tr("基础")), 0, 1);
+    compValueLayout->addWidget(new QLabel(tr("补偿")), 0, 2);
+
+    alignCompIndexCombo_ = new QComboBox(alignPanel_);
+    alignCompIndexCombo_->addItems({"1", "2", "3", "4", "5"});
+    compValueLayout->addWidget(alignCompIndexCombo_, 0, 3);
+
+    compValueLayout->addWidget(new QLabel("X:"), 1, 0);
+    alignBaseXSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignBaseXSpin_->setRange(-9999, 9999);
+    alignBaseXSpin_->setDecimals(2);
+    alignBaseXSpin_->setSuffix(" mm");
+    compValueLayout->addWidget(alignBaseXSpin_, 1, 1);
+    alignCompXSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignCompXSpin_->setRange(-9999, 9999);
+    alignCompXSpin_->setDecimals(2);
+    alignCompXSpin_->setSuffix(" mm");
+    compValueLayout->addWidget(alignCompXSpin_, 1, 2);
+
+    compValueLayout->addWidget(new QLabel("Y:"), 2, 0);
+    alignBaseYSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignBaseYSpin_->setRange(-9999, 9999);
+    alignBaseYSpin_->setDecimals(2);
+    alignBaseYSpin_->setSuffix(" mm");
+    compValueLayout->addWidget(alignBaseYSpin_, 2, 1);
+    alignCompYSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignCompYSpin_->setRange(-9999, 9999);
+    alignCompYSpin_->setDecimals(2);
+    alignCompYSpin_->setSuffix(" mm");
+    compValueLayout->addWidget(alignCompYSpin_, 2, 2);
+
+    compValueLayout->addWidget(new QLabel("Q:"), 3, 0);
+    alignBaseQSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignBaseQSpin_->setRange(-360, 360);
+    alignBaseQSpin_->setDecimals(2);
+    alignBaseQSpin_->setSuffix("°");
+    compValueLayout->addWidget(alignBaseQSpin_, 3, 1);
+    alignCompQSpin_ = new QDoubleSpinBox(alignPanel_);
+    alignCompQSpin_->setRange(-360, 360);
+    alignCompQSpin_->setDecimals(2);
+    alignCompQSpin_->setSuffix("°");
+    compValueLayout->addWidget(alignCompQSpin_, 3, 2);
+
+    compLayout->addLayout(compValueLayout);
+
+    // 补偿图示
+    QHBoxLayout* compImgLayout = new QHBoxLayout();
+    QPushButton* compImgBtn = new QPushButton(tr("补偿图示"), alignPanel_);
+    compImgLayout->addWidget(compImgBtn);
+    alignCompImageLabel_ = new QLabel(alignPanel_);
+    alignCompImageLabel_->setFixedSize(100, 80);
+    alignCompImageLabel_->setStyleSheet("border: 1px solid #999; background-color: #1a1a2e;");
+    compImgLayout->addWidget(alignCompImageLabel_);
+    compImgLayout->addStretch();
+    compLayout->addLayout(compImgLayout);
+
+    // 补偿方向
+    QHBoxLayout* compDirLayout = new QHBoxLayout();
+    compDirLayout->addWidget(new QLabel(tr("补偿方向")));
+    alignCompXInvertCheck_ = new QCheckBox(tr("X取反"), alignPanel_);
+    alignCompYInvertCheck_ = new QCheckBox(tr("Y取反"), alignPanel_);
+    alignCompQInvertCheck_ = new QCheckBox(tr("Q取反"), alignPanel_);
+    alignCompXYSwapCheck_ = new QCheckBox(tr("X与Y对调"), alignPanel_);
+    compDirLayout->addWidget(alignCompXInvertCheck_);
+    compDirLayout->addWidget(alignCompYInvertCheck_);
+    compDirLayout->addWidget(alignCompQInvertCheck_);
+    compDirLayout->addWidget(alignCompXYSwapCheck_);
+    compDirLayout->addStretch();
+    compLayout->addLayout(compDirLayout);
+
+    rightLayout->addWidget(compGroup);
+    rightLayout->addStretch();
+
+    mainLayout->addLayout(rightLayout);
+}
+
+void ProductManageDialog::switchToPanel(int index)
+{
+    if (contentStack_ && index >= 0 && index < contentStack_->count()) {
+        contentStack_->setCurrentIndex(index);
+        currentPanelIndex_ = index;
+    }
 }
 
 void ProductManageDialog::createCopyPanel(QVBoxLayout* layout)
@@ -618,6 +1028,9 @@ void ProductManageDialog::onPreviewClicked()
 
 void ProductManageDialog::onSceneClicked()
 {
+    // 切换到场景面板
+    switchToPanel(0);
+
     // 切换场景
     if (currentProductIndex_ >= 0 && currentProductIndex_ < products_.size()) {
         int sceneCount = products_[currentProductIndex_].scenes.size();
@@ -631,6 +1044,9 @@ void ProductManageDialog::onSceneClicked()
 
 void ProductManageDialog::onCalibrationClicked()
 {
+    // 切换到标定面板
+    switchToPanel(1);
+
     if (currentProductIndex_ >= 0) {
         emit calibrationRequested(currentProductIndex_);
     }
@@ -638,6 +1054,9 @@ void ProductManageDialog::onCalibrationClicked()
 
 void ProductManageDialog::onAlignmentClicked()
 {
+    // 切换到对位面板
+    switchToPanel(2);
+
     if (currentProductIndex_ >= 0) {
         emit alignmentRequested(currentProductIndex_);
     }

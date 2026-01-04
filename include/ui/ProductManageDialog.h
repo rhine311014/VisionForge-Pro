@@ -25,6 +25,12 @@ class QVBoxLayout;
 class QHBoxLayout;
 class QStackedWidget;
 class QScrollArea;
+class QDoubleSpinBox;
+class QSpinBox;
+class QCheckBox;
+class QRadioButton;
+class QTableView;
+class QStandardItemModel;
 
 namespace VisionForge {
 
@@ -237,6 +243,12 @@ private:
     void initDefaultProducts(int count = 80);
     QString generateProductName(int index);
 
+    // 面板创建
+    void createScenePanel();        ///< 创建场景面板
+    void createCalibPanel();        ///< 创建标定面板
+    void createAlignPanel();        ///< 创建对位面板
+    void switchToPanel(int index);  ///< 切换到指定面板
+
 private:
     QString workStationId_;
     QVector<ProductInfo> products_;
@@ -281,6 +293,70 @@ private:
     // 底部按钮
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
+
+    // ========== 内容堆栈 ==========
+    QStackedWidget* contentStack_;          ///< 内容区域堆栈
+    int currentPanelIndex_;                 ///< 当前面板索引
+
+    // ========== 场景面板 (索引0) ==========
+    QWidget* scenePanel_;
+
+    // ========== 标定面板 (索引1) ==========
+    QWidget* calibPanel_;
+    QComboBox* calibLocationCombo_;         ///< 位置下拉框
+    QComboBox* calibModeCombo_;             ///< 标定模式下拉框
+    QStandardItemModel* calibMatrixModel_;  ///< 标定矩阵数据模型
+    QTableView* calibMatrixView_;           ///< 标定矩阵表格
+    QDoubleSpinBox* calibPlatformXSpin_;    ///< 平台坐标X
+    QDoubleSpinBox* calibPlatformYSpin_;    ///< 平台坐标Y
+    QDoubleSpinBox* calibImageXSpin_;       ///< 图像坐标X
+    QDoubleSpinBox* calibImageYSpin_;       ///< 图像坐标Y
+    QDoubleSpinBox* calibPositionXSpin_;    ///< 标定位置X
+    QDoubleSpinBox* calibPositionYSpin_;    ///< 标定位置Y
+    QPushButton* calibSettingBtn_;          ///< 设置按钮
+    QPushButton* calibTemplateBtn_;         ///< 模板按钮
+    QPushButton* calibLinkBtn_;             ///< 关联按钮
+    QPushButton* calibCopyBtn_;             ///< 复制按钮
+    QPushButton* calibClearBtn_;            ///< 清空按钮
+
+    // ========== 对位面板 (索引2) ==========
+    QWidget* alignPanel_;
+    // 对位精度
+    QDoubleSpinBox* alignPrecisionXSpin_;   ///< 设定精度X
+    QDoubleSpinBox* alignPrecisionYSpin_;   ///< 设定精度Y
+    QDoubleSpinBox* alignPrecisionUSpin_;   ///< 设定精度U
+    QSpinBox* alignCountSpin_;              ///< 对位次数
+    // 对位计算
+    QSpinBox* alignPointCountSpin_;         ///< 对位点个数
+    QComboBox* alignTargetAngleCombo_;      ///< 对象到目标角度
+    QComboBox* alignObjectMoveCombo_;       ///< 对象移动类型
+    QComboBox* alignTargetMoveCombo_;       ///< 目标移动类型
+    QComboBox* alignModeCombo_;             ///< 1VS1对位模式
+    QCheckBox* alignOffsetXInvertCheck_;    ///< X取反
+    QCheckBox* alignOffsetYInvertCheck_;    ///< Y取反
+    QCheckBox* alignOffsetQInvertCheck_;    ///< Q取反
+    // 检查设置
+    QRadioButton* alignInputModeRadio_;     ///< 输入模式
+    QRadioButton* alignCheckModeRadio_;     ///< 检查模式
+    QCheckBox* alignDistanceValidCheck_;    ///< 检测距离是否有效
+    QDoubleSpinBox* alignObjectDistSpin_;   ///< 对象距离偏差
+    QDoubleSpinBox* alignTargetDistSpin_;   ///< 目标距离偏差
+    QLabel* alignProductImageLabel_;        ///< 产品图示
+    // 对象补偿
+    QComboBox* alignCompTypeCombo_;         ///< 补偿类型
+    QComboBox* alignCompIndexCombo_;        ///< 补偿索引
+    QDoubleSpinBox* alignBaseXSpin_;        ///< 基础X
+    QDoubleSpinBox* alignBaseYSpin_;        ///< 基础Y
+    QDoubleSpinBox* alignBaseQSpin_;        ///< 基础Q
+    QDoubleSpinBox* alignCompXSpin_;        ///< 补偿X
+    QDoubleSpinBox* alignCompYSpin_;        ///< 补偿Y
+    QDoubleSpinBox* alignCompQSpin_;        ///< 补偿Q
+    QLabel* alignCompImageLabel_;           ///< 补偿图示
+    // 补偿方向
+    QCheckBox* alignCompXInvertCheck_;      ///< 补偿X取反
+    QCheckBox* alignCompYInvertCheck_;      ///< 补偿Y取反
+    QCheckBox* alignCompQInvertCheck_;      ///< 补偿Q取反
+    QCheckBox* alignCompXYSwapCheck_;       ///< X与Y对调
 };
 
 } // namespace UI
