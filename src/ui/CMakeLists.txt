@@ -61,6 +61,7 @@ set(UI_SOURCES
     MultiPointAlignmentDialog.cpp
     AlignmentOutputDialog.cpp
     WorkStationDialog.cpp
+    ProductManageDialog.cpp
     # 工位配置工具
     StationConfigTool.cpp
     # 相机设置对话框
@@ -169,6 +170,7 @@ set(UI_HEADERS
     ${CMAKE_SOURCE_DIR}/include/ui/MultiPointAlignmentDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/AlignmentOutputDialog.h
     ${CMAKE_SOURCE_DIR}/include/ui/WorkStationDialog.h
+    ${CMAKE_SOURCE_DIR}/include/ui/ProductManageDialog.h
     # 工位配置工具头文件
     ${CMAKE_SOURCE_DIR}/include/ui/StationConfigTool.h
     # 相机设置对话框头文件

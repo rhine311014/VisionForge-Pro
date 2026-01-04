@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<VisionMaster.ModuleMainWindow.ModuleDialogNew.DeepLearning.FlawTrainData>
+	<_ItemsData>
+		<VisionMaster.ModuleMainWindow.ModuleDialogNew.DeepLearning.FlawPolygonRoiParameter>
+						<_LevelNum>2</_LevelNum>
+						<flags>胶珠</flags>
+						<_ColorValue>1</_ColorValue>
+						<_BackgroundColor>#FF6D16A6</_BackgroundColor>
+						<_Opacity>0.2</_Opacity>
+						<_IsVisibleLabel>True</_IsVisibleLabel>
+			<_PolygonPoints>
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>14054.92</x>
+										<y>2607.942</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>14054.92</x>
+										<y>2616.285</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>14068.09</x>
+										<y>2616.725</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>14068.53</x>
+										<y>2607.503</y>
+</HikPcUI.ImageView.PolygonPoint>
+</_PolygonPoints>
+						<IsNotifyPropertyChanged>True</IsNotifyPropertyChanged>
+						<_Sign>True</_Sign>
+						<_TIsVisible>True</_TIsVisible>
+						<_TOpacity>0</_TOpacity>
+</VisionMaster.ModuleMainWindow.ModuleDialogNew.DeepLearning.FlawPolygonRoiParameter>
+
+		<VisionMaster.ModuleMainWindow.ModuleDialogNew.DeepLearning.FlawPolygonRoiParameter>
+						<_LevelNum>2</_LevelNum>
+						<flags>胶珠</flags>
+						<_ColorValue>1</_ColorValue>
+						<_BackgroundColor>#FF6D16A6</_BackgroundColor>
+						<_Opacity>0.2</_Opacity>
+						<_IsVisibleLabel>True</_IsVisibleLabel>
+			<_PolygonPoints>
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>21216.51</x>
+										<y>2267.814</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>21215.86</x>
+										<y>2285.379</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>21235.18</x>
+										<y>2285.818</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>21237.59</x>
+										<y>2273.962</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>21237.37</x>
+										<y>2264.96</y>
+</HikPcUI.ImageView.PolygonPoint>
+
+				<HikPcUI.ImageView.PolygonPoint>
+										<x>21223.76</x>
+										<y>2264.96</y>
+</HikPcUI.ImageView.PolygonPoint>
+</_PolygonPoints>
+						<IsNotifyPropertyChanged>True</IsNotifyPropertyChanged>
+						<_Sign>True</_Sign>
+						<_TIsVisible>True</_TIsVisible>
+						<_TOpacity>0</_TOpacity>
+</VisionMaster.ModuleMainWindow.ModuleDialogNew.DeepLearning.FlawPolygonRoiParameter>
+</_ItemsData>
+		<_IsOKCalibrated>False</_IsOKCalibrated>
+		<_ImagePath>D:\tes\IC异物检测\base\1\images\1231.JPG</_ImagePath>
+		<_ImageWidth>40000</_ImageWidth>
+		<_ImageHeight>4096</_ImageHeight>
+</VisionMaster.ModuleMainWindow.ModuleDialogNew.DeepLearning.FlawTrainData>

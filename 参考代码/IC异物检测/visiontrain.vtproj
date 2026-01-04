@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Hik.VM.DeepLearningTool.Data.Programme>
+		<ProgrammeName>IC异物检测</ProgrammeName>
+		<ProgrammeBasePath>D:\tes\IC异物检测</ProgrammeBasePath>
+		<ProgrammeDesc></ProgrammeDesc>
+	<Modules>
+		<Hik.VM.DeepLearningTool.Data.Module>
+						<_moduleId>1</_moduleId>
+						<_parentId>0</_parentId>
+						<_algorithmType>100</_algorithmType>
+						<_moduleName>模块1_4064</_moduleName>
+</Hik.VM.DeepLearningTool.Data.Module>
+</Modules>
+</Hik.VM.DeepLearningTool.Data.Programme>

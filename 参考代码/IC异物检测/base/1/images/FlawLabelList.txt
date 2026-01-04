@@ -1,0 +1,5 @@
+﻿background:#FF73F40B:0.2:1:999:True:False:True:True:0
+hard_background:#aa6ae3:0.2:2:128:True:False:True:False:0
+ignore:#fe8b04:0.2:3:200:True:False:True:False:0
+胶珠:#FF6D16A6:0.2:4:1:True:False:False:False:0
+黑色异物:#FF95BFCC:0.2:5:2:True:False:False:False:0
