@@ -140,6 +140,15 @@ public:
     static Ptr fromAlignedMemory(void* data, int width, int height, int type,
                                  std::function<void(void*)> deleter = nullptr);
 
+    /**
+     * @brief 从文件路径加载图像（支持中文路径）
+     * @param filePath 图像文件路径（支持Unicode/中文路径）
+     * @return ImageData智能指针，加载失败返回nullptr
+     * @details 使用Qt的QFile读取文件内容，再用OpenCV解码
+     *          支持的格式：BMP, PNG, JPG, JPEG, TIFF等
+     */
+    static Ptr loadFromFile(const QString& filePath);
+
     // ========== GPU内存管理 ==========
 
     /**

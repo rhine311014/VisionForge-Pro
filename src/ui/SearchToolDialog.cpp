@@ -13,8 +13,6 @@
 #include "algorithm/VisionTool.h"
 #include "base/Logger.h"
 
-#include <opencv2/imgcodecs.hpp>
-
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -670,11 +668,10 @@ void SearchToolDialog::onLoadImageClicked()
         return;
     }
 
-    // 尝试加载图像
+    // 尝试加载图像（使用 ImageData::loadFromFile 支持中文路径）
     try {
-        cv::Mat mat = cv::imread(filePath.toStdString());
-        if (!mat.empty()) {
-            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
+        Base::ImageData::Ptr image = Base::ImageData::loadFromFile(filePath);
+        if (image) {
             setImage(image);
             LOG_INFO(QString("加载图片成功: %1").arg(filePath));
         } else {

@@ -31,6 +31,8 @@
 #include "base/ImageData.h"
 #include "base/Logger.h"
 #include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <QFile>
 #include <cstring>
 #include <stdexcept>
 
@@ -228,6 +230,38 @@ ImageData::Ptr ImageData::fromAlignedMemory(void* data, int width, int height, i
     image->ownsMemory_ = false;
 
     return image;
+}
+
+ImageData::Ptr ImageData::loadFromFile(const QString& filePath)
+{
+    // 使用Qt的QFile读取文件，支持中文路径
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        LOG_ERROR(QString("无法打开图像文件: %1").arg(filePath));
+        return nullptr;
+    }
+
+    // 读取文件内容到内存
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    if (fileData.isEmpty()) {
+        LOG_ERROR(QString("图像文件为空: %1").arg(filePath));
+        return nullptr;
+    }
+
+    // 将QByteArray转换为std::vector<uchar>供OpenCV解码
+    std::vector<uchar> buffer(fileData.begin(), fileData.end());
+
+    // 使用OpenCV解码图像
+    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
+    if (mat.empty()) {
+        LOG_ERROR(QString("无法解码图像文件: %1").arg(filePath));
+        return nullptr;
+    }
+
+    // 创建ImageData对象
+    return std::make_shared<ImageData>(mat);
 }
 
 // ============================================================

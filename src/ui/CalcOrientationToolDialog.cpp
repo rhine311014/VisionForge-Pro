@@ -10,7 +10,6 @@
 #include "algorithm/CalcOrientationTool.h"
 #include "base/Logger.h"
 
-#include <opencv2/imgcodecs.hpp>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -579,18 +578,12 @@ void CalcOrientationToolDialog::onLoadImageClicked()
         return;
     }
 
-    try {
-        cv::Mat mat = cv::imread(filePath.toStdString());
-        if (!mat.empty()) {
-            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
-            setImage(image);
-            LOG_INFO(QString("加载图片成功: %1").arg(filePath));
-        } else {
-            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
-        }
-    } catch (const std::exception& e) {
-        QMessageBox::warning(this, tr("加载失败"), tr("加载图片时发生错误: %1").arg(e.what()));
-        LOG_ERROR(QString("加载图片失败: %1").arg(e.what()));
+    Base::ImageData::Ptr image = Base::ImageData::loadFromFile(filePath);
+    if (image) {
+        setImage(image);
+        LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+    } else {
+        QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
     }
 }
 

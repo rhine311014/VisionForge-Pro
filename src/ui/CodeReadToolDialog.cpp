@@ -33,7 +33,6 @@
 #include <QApplication>
 #include <QSlider>
 #include <QStyle>
-#include <opencv2/imgcodecs.hpp>
 
 namespace VisionForge {
 namespace UI {
@@ -531,33 +530,18 @@ void CodeReadToolDialog::loadImageAt(int index)
 
     QString filePath = imageFiles_[index];
 
-    // 使用Qt读取文件（支持中文路径）
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        appendLog(QString("无法打开文件: %1").arg(filePath), true);
+    // 使用ImageData::loadFromFile加载图像（支持中文路径）
+    Base::ImageData::Ptr image = Base::ImageData::loadFromFile(filePath);
+    if (!image) {
+        appendLog(QString("无法加载图像: %1").arg(filePath), true);
         return;
     }
 
-    QByteArray fileData = file.readAll();
-    file.close();
-
-    std::vector<uchar> buffer(fileData.begin(), fileData.end());
-    cv::Mat mat = cv::imdecode(buffer, cv::IMREAD_COLOR);
-
-    if (mat.empty()) {
-        appendLog(QString("无法解码图像: %1").arg(filePath), true);
-        return;
-    }
-
-    // 创建ImageData
-    currentImage_ = Base::ImageMemoryPool::instance().allocate(mat.cols, mat.rows, mat.type());
-    if (currentImage_) {
-        mat.copyTo(currentImage_->mat());
-        imageViewer_->setImage(currentImage_);
-        currentImageIndex_ = index;
-        updateImageNavigation();
-        appendLog(QString("已加载: %1").arg(QFileInfo(filePath).fileName()));
-    }
+    currentImage_ = image;
+    imageViewer_->setImage(currentImage_);
+    currentImageIndex_ = index;
+    updateImageNavigation();
+    appendLog(QString("已加载: %1").arg(QFileInfo(filePath).fileName()));
 }
 
 void CodeReadToolDialog::appendLog(const QString& message, bool isError)
@@ -579,9 +563,13 @@ void CodeReadToolDialog::onLoadImageClicked()
 
     if (filePath.isEmpty()) return;
 
-    imageFiles_.clear();
-    imageFiles_.append(filePath);
-    loadImageAt(0);
+    Base::ImageData::Ptr image = Base::ImageData::loadFromFile(filePath);
+    if (image) {
+        setImage(image);
+        LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+    } else {
+        QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
+    }
 }
 
 void CodeReadToolDialog::onLoadFolderClicked()
