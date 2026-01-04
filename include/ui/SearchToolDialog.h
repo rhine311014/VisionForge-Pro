@@ -257,6 +257,16 @@ protected slots:
     void onApplyClicked();
 
     /**
+     * @brief 加载图片按钮点击槽
+     */
+    void onLoadImageClicked();
+
+    /**
+     * @brief 采集图像按钮点击槽
+     */
+    void onCaptureImageClicked();
+
+    /**
      * @brief 结果表格行选中槽
      * @param row 选中的行号
      */
@@ -277,6 +287,12 @@ signals:
      */
     void searchCompleted(const std::vector<SearchResult>& results);
 
+    /**
+     * @brief 请求采集图像信号
+     * @details 当用户点击采集按钮时发出，由外部相机控制器响应
+     */
+    void captureImageRequested();
+
 protected:
     // ==================== 核心成员变量 ====================
 
@@ -294,6 +310,8 @@ protected:
 
     HalconImageViewer* imageViewer_ = nullptr;       ///< Halcon图像查看器
     QLabel* imageInfoLabel_ = nullptr;               ///< 图像信息标签（显示尺寸等）
+    QPushButton* loadImageBtn_ = nullptr;            ///< 加载图片按钮
+    QPushButton* captureImageBtn_ = nullptr;         ///< 采集图像按钮
 
     // ==================== UI组件 - ROI控制 ====================
 

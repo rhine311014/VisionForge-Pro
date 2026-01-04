@@ -10,6 +10,7 @@
 
 #include "algorithm/VisionTool.h"
 #include "base/ImageData.h"
+#include "ui/IToolDialog.h"
 #include <QDialog>
 #include <QMap>
 #include <QString>

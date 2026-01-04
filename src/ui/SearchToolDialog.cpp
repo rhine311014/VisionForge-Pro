@@ -13,12 +13,16 @@
 #include "algorithm/VisionTool.h"
 #include "base/Logger.h"
 
+#include <opencv2/imgcodecs.hpp>
+
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QElapsedTimer>
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QStyle>
 
 namespace VisionForge {
 namespace UI {
@@ -169,6 +173,20 @@ void SearchToolDialog::createLeftPanel(QWidget* parent)
     imageInfoLabel_->setStyleSheet("color: #888; font-size: 11px;");
     titleLayout->addWidget(imageInfoLabel_);
     titleLayout->addStretch();  // 将信息推到左侧
+
+    // 加载图片按钮
+    loadImageBtn_ = new QPushButton(tr("加载图片"), parent);
+    loadImageBtn_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    loadImageBtn_->setToolTip(tr("从文件加载图片"));
+    loadImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(loadImageBtn_);
+
+    // 采集图像按钮
+    captureImageBtn_ = new QPushButton(tr("采集图像"), parent);
+    captureImageBtn_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    captureImageBtn_->setToolTip(tr("从相机采集图像"));
+    captureImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(captureImageBtn_);
 
     layout->addLayout(titleLayout);
 
@@ -364,6 +382,10 @@ void SearchToolDialog::connectSignals()
     connect(okBtn_, &QPushButton::clicked, this, &SearchToolDialog::onOkClicked);
     connect(cancelBtn_, &QPushButton::clicked, this, &SearchToolDialog::onCancelClicked);
     connect(applyBtn_, &QPushButton::clicked, this, &SearchToolDialog::onApplyClicked);
+
+    // ==================== 图像操作信号 ====================
+    connect(loadImageBtn_, &QPushButton::clicked, this, &SearchToolDialog::onLoadImageClicked);
+    connect(captureImageBtn_, &QPushButton::clicked, this, &SearchToolDialog::onCaptureImageClicked);
 }
 
 /**
@@ -627,6 +649,52 @@ void SearchToolDialog::onApplyClicked()
     applySpecificParameters();
     // 发出参数变化信号
     emit parameterChanged();
+}
+
+/**
+ * @brief 加载图片按钮点击槽
+ * @details 打开文件对话框选择图片文件并加载
+ */
+void SearchToolDialog::onLoadImageClicked()
+{
+    // 打开文件选择对话框
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("选择图片文件"),
+        QString(),
+        tr("图片文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif);;所有文件 (*.*)")
+    );
+
+    // 用户取消选择
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    // 尝试加载图像
+    try {
+        cv::Mat mat = cv::imread(filePath.toStdString());
+        if (!mat.empty()) {
+            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
+            setImage(image);
+            LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
+        }
+    } catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("加载失败"), tr("加载图片时发生错误: %1").arg(e.what()));
+        LOG_ERROR(QString("加载图片失败: %1").arg(e.what()));
+    }
+}
+
+/**
+ * @brief 采集图像按钮点击槽
+ * @details 发出采集图像请求信号，由外部相机控制器响应
+ */
+void SearchToolDialog::onCaptureImageClicked()
+{
+    // 发出采集图像请求信号
+    emit captureImageRequested();
+    LOG_INFO("请求采集图像");
 }
 
 /**

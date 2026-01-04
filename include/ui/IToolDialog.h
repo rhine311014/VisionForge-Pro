@@ -72,13 +72,5 @@ signals:
  */
 using IToolDialogPtr = std::unique_ptr<IToolDialog>;
 
-/**
- * @brief 工具对话框创建器函数类型
- * @param tool 工具实例
- * @param parent 父窗口
- * @return 对话框实例
- */
-using ToolDialogCreator = std::function<IToolDialog*(Algorithm::VisionTool* tool, QWidget* parent)>;
-
 } // namespace UI
 } // namespace VisionForge

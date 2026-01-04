@@ -3,6 +3,13 @@
  * @brief 工具对话框工厂实现
  */
 
+// 防止Windows头文件中的min/max宏与std::min/std::max冲突
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#endif
+
 #include "ui/ToolDialogFactory.h"
 #include "base/Logger.h"
 #include <QMetaMethod>
