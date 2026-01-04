@@ -10,11 +10,15 @@
 #include "algorithm/ROITool.h"
 #include "base/Logger.h"
 
+#include <opencv2/imgcodecs.hpp>
+
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QScrollArea>
 #include <QMessageBox>
 #include <QHeaderView>
+#include <QFileDialog>
+#include <QStyle>
 
 namespace VisionForge {
 namespace UI {
@@ -63,6 +67,8 @@ ROIToolDialog::ROIToolDialog(Algorithm::ROITool* tool, QWidget* parent)
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , loadImageBtn_(nullptr)
+    , captureImageBtn_(nullptr)
 {
     setWindowTitle("ROI区域工具设置");
     setMinimumSize(1000, 700);
@@ -124,10 +130,35 @@ void ROIToolDialog::createUI()
 void ROIToolDialog::createLeftPanel(QWidget* parent)
 {
     auto* layout = new QVBoxLayout(parent);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(4);
+
+    // 标题栏布局
+    QHBoxLayout* titleLayout = new QHBoxLayout();
+    QLabel* titleLabel = new QLabel("检测图像", parent);
+    titleLabel->setStyleSheet("font-weight: bold; font-size: 12px;");
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    // 加载图片按钮
+    loadImageBtn_ = new QPushButton(tr("加载图片"), parent);
+    loadImageBtn_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    loadImageBtn_->setToolTip(tr("从文件加载图片"));
+    loadImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(loadImageBtn_);
+
+    // 采集图像按钮
+    captureImageBtn_ = new QPushButton(tr("采集图像"), parent);
+    captureImageBtn_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    captureImageBtn_->setToolTip(tr("从相机采集图像"));
+    captureImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(captureImageBtn_);
+
+    layout->addLayout(titleLayout);
 
     imageViewer_ = new HalconImageViewer(parent);
     imageViewer_->setMinimumSize(400, 400);
-    layout->addWidget(imageViewer_);
+    layout->addWidget(imageViewer_, 1);
 
     // 预览按钮
     previewBtn_ = new QPushButton("预览Mask", parent);
@@ -421,6 +452,10 @@ void ROIToolDialog::connectSignals()
     connect(okBtn_, &QPushButton::clicked, this, &ROIToolDialog::onOkClicked);
     connect(cancelBtn_, &QPushButton::clicked, this, &ROIToolDialog::onCancelClicked);
     connect(applyBtn_, &QPushButton::clicked, this, &ROIToolDialog::onApplyClicked);
+
+    // 图像操作按钮
+    connect(loadImageBtn_, &QPushButton::clicked, this, &ROIToolDialog::onLoadImageClicked);
+    connect(captureImageBtn_, &QPushButton::clicked, this, &ROIToolDialog::onCaptureImageClicked);
 }
 
 void ROIToolDialog::onROITypeChanged(int index)
@@ -680,6 +715,40 @@ void ROIToolDialog::updateParamsFromSelection()
     default:
         break;
     }
+}
+
+void ROIToolDialog::onLoadImageClicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("选择图片文件"),
+        QString(),
+        tr("图片文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif);;所有文件 (*.*)")
+    );
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    try {
+        cv::Mat mat = cv::imread(filePath.toStdString());
+        if (!mat.empty()) {
+            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
+            setImage(image);
+            LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
+        }
+    } catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("加载失败"), tr("加载图片时发生错误: %1").arg(e.what()));
+        LOG_ERROR(QString("加载图片失败: %1").arg(e.what()));
+    }
+}
+
+void ROIToolDialog::onCaptureImageClicked()
+{
+    emit captureImageRequested();
+    LOG_INFO("请求采集图像");
 }
 
 } // namespace UI

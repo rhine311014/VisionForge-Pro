@@ -103,6 +103,23 @@ public:
     void setImage(Base::ImageData::Ptr image) override;
     Algorithm::VisionTool* tool() const override;
 
+signals:
+    /**
+     * @brief 请求采集图像信号
+     */
+    void captureImageRequested();
+
+private slots:
+    /**
+     * @brief 加载图片按钮点击
+     */
+    void onLoadImageClicked();
+
+    /**
+     * @brief 采集图像按钮点击
+     */
+    void onCaptureImageClicked();
+
 private:
     void setupUI();
     void createLeftPanel(QWidget* parent);
@@ -138,6 +155,10 @@ private:
     QSplitter* mainSplitter_ = nullptr;
     HalconImageViewer* imageViewer_ = nullptr;
     QLabel* imageInfoLabel_ = nullptr;
+
+    // 图像操作按钮
+    QPushButton* loadImageBtn_ = nullptr;
+    QPushButton* captureImageBtn_ = nullptr;
 
     // 对象类型选择
     QGroupBox* objectTypeGroup_ = nullptr;

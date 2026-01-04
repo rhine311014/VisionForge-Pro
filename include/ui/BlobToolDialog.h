@@ -67,6 +67,12 @@ signals:
 protected:
     void showEvent(QShowEvent* event) override;
 
+signals:
+    /**
+     * @brief 请求采集图像信号
+     */
+    void captureImageRequested();
+
 private slots:
     // 基本参数槽
     void onBackendChanged(int index);
@@ -93,6 +99,10 @@ private slots:
     void onCancelClicked();
     void onApplyClicked();
 
+    // 图像操作槽
+    void onLoadImageClicked();
+    void onCaptureImageClicked();
+
 private:
     void createUI();
     void createLeftPanel(QWidget* parent);
@@ -112,6 +122,10 @@ private:
     // 左侧图像显示
     HalconImageViewer* imageViewer_;
     QSplitter* mainSplitter_;
+
+    // 图像操作按钮
+    QPushButton* loadImageBtn_;
+    QPushButton* captureImageBtn_;
 
     // 右侧选项卡
     QTabWidget* paramTabWidget_;

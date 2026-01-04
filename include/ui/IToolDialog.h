@@ -65,6 +65,12 @@ signals:
      * @brief 参数已更新信号
      */
     void parametersChanged();
+
+    /**
+     * @brief 请求采集图像信号
+     * @details 当用户点击采集按钮时发出，由外部相机控制器响应
+     */
+    void captureImageRequested();
 };
 
 /**

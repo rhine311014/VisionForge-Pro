@@ -32,6 +32,7 @@
 #include <QStandardItemModel>
 #include <QApplication>
 #include <QSlider>
+#include <QStyle>
 #include <opencv2/imgcodecs.hpp>
 
 namespace VisionForge {
@@ -45,6 +46,7 @@ CodeReadToolDialog::CodeReadToolDialog(Algorithm::CodeReadTool* tool, QWidget* p
     , isTrained_(false)
     , camera_(nullptr)
     , cameraGrabBtn_(nullptr)
+    , captureImageBtn_(nullptr)
 {
     setupUi();
     updateUi();
@@ -96,9 +98,16 @@ void CodeReadToolDialog::createImagePanel(QSplitter* splitter)
     QHBoxLayout* navLayout = new QHBoxLayout();
 
     loadImageBtn_ = new QPushButton(tr("加载图像"), this);
+    loadImageBtn_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
     loadImageBtn_->setToolTip(tr("加载单张图像"));
     connect(loadImageBtn_, &QPushButton::clicked, this, &CodeReadToolDialog::onLoadImageClicked);
     navLayout->addWidget(loadImageBtn_);
+
+    captureImageBtn_ = new QPushButton(tr("采集图像"), this);
+    captureImageBtn_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    captureImageBtn_->setToolTip(tr("从相机采集图像"));
+    connect(captureImageBtn_, &QPushButton::clicked, this, &CodeReadToolDialog::onCaptureImageClicked);
+    navLayout->addWidget(captureImageBtn_);
 
     loadFolderBtn_ = new QPushButton(tr("加载文件夹"), this);
     loadFolderBtn_->setToolTip(tr("加载文件夹中的所有图像"));
@@ -1151,6 +1160,12 @@ void CodeReadToolDialog::updateCodeROIFromParams()
 
     imageViewer_->update();
     updateROIDisplay();
+}
+
+void CodeReadToolDialog::onCaptureImageClicked()
+{
+    emit captureImageRequested();
+    LOG_INFO("请求采集图像");
 }
 
 } // namespace UI

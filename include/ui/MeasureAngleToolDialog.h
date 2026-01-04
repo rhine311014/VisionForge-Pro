@@ -67,6 +67,11 @@ signals:
      */
     void executeMeasureRequested();
 
+    /**
+     * @brief 请求采集图像信号
+     */
+    void captureImageRequested();
+
 protected:
     void showEvent(QShowEvent* event) override;
 
@@ -87,6 +92,10 @@ private slots:
     void onCancelClicked();
     void onApplyClicked();
     void onAutoCalc();
+
+    // 图像操作槽
+    void onLoadImageClicked();
+    void onCaptureImageClicked();
 
 private:
     void createUI();
@@ -149,6 +158,10 @@ private:
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
     QPushButton* applyBtn_;
+
+    // 图像操作按钮
+    QPushButton* loadImageBtn_;
+    QPushButton* captureImageBtn_;
 
     // 实时计算
     PreviewHelper* previewHelper_;

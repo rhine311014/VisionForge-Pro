@@ -75,10 +75,15 @@ public:
 
 signals:
     void trainModelRequested();
+    /**
+     * @brief 请求采集图像信号
+     */
+    void captureImageRequested();
 
 private slots:
     // 图像操作
     void onLoadImageClicked();
+    void onCaptureImageClicked();
     void onLoadFolderClicked();
     void onCameraGrabClicked();
     void onPrevImageClicked();
@@ -141,6 +146,7 @@ private:
 
     // 图像导航
     QPushButton* loadImageBtn_;
+    QPushButton* captureImageBtn_;
     QPushButton* loadFolderBtn_;
     QPushButton* cameraGrabBtn_;
     QPushButton* prevImageBtn_;

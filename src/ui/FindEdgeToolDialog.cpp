@@ -11,12 +11,16 @@
 #include "algorithm/FindEdgeTool.h"
 #include "base/Logger.h"
 
+#include <opencv2/imgcodecs.hpp>
+
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QSplitter>
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QStyle>
 #include <QTimer>
 
 namespace VisionForge {
@@ -48,6 +52,8 @@ FindEdgeToolDialog::FindEdgeToolDialog(Algorithm::FindEdgeTool* tool, QWidget* p
     , applyBtn_(nullptr)
     , previewHelper_(nullptr)
     , autoPreviewCheck_(nullptr)
+    , loadImageBtn_(nullptr)
+    , captureImageBtn_(nullptr)
 {
     setWindowTitle("边缘查找设置");
     setMinimumSize(800, 550);
@@ -186,14 +192,32 @@ void FindEdgeToolDialog::createLeftPanel(QWidget* parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(4);
 
+    // 标题栏布局
+    QHBoxLayout* titleLayout = new QHBoxLayout();
     QLabel* titleLabel = new QLabel("检测图像", parent);
     titleLabel->setStyleSheet("font-weight: bold; font-size: 12px;");
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    // 加载图片按钮
+    loadImageBtn_ = new QPushButton(tr("加载图片"), parent);
+    loadImageBtn_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    loadImageBtn_->setToolTip(tr("从文件加载图片"));
+    loadImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(loadImageBtn_);
+
+    // 采集图像按钮
+    captureImageBtn_ = new QPushButton(tr("采集图像"), parent);
+    captureImageBtn_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    captureImageBtn_->setToolTip(tr("从相机采集图像"));
+    captureImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(captureImageBtn_);
 
     imageViewer_ = new HalconImageViewer(parent);
     imageViewer_->setMinimumSize(400, 300);
     imageViewer_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    layout->addWidget(titleLabel);
+    layout->addLayout(titleLayout);
     layout->addWidget(imageViewer_, 1);
 }
 
@@ -401,6 +425,10 @@ void FindEdgeToolDialog::connectSignals()
     connect(okBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onOkClicked);
     connect(cancelBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onCancelClicked);
     connect(applyBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onApplyClicked);
+
+    // 图像操作按钮
+    connect(loadImageBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onLoadImageClicked);
+    connect(captureImageBtn_, &QPushButton::clicked, this, &FindEdgeToolDialog::onCaptureImageClicked);
 }
 
 void FindEdgeToolDialog::onSearchModeChanged(int index)
@@ -571,6 +599,40 @@ void FindEdgeToolDialog::onAutoPreview()
             imageViewer_->setImage(result.outputImage);
         }
     }
+}
+
+void FindEdgeToolDialog::onLoadImageClicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("选择图片文件"),
+        QString(),
+        tr("图片文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif);;所有文件 (*.*)")
+    );
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    try {
+        cv::Mat mat = cv::imread(filePath.toStdString());
+        if (!mat.empty()) {
+            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
+            setImage(image);
+            LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
+        }
+    } catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("加载失败"), tr("加载图片时发生错误: %1").arg(e.what()));
+        LOG_ERROR(QString("加载图片失败: %1").arg(e.what()));
+    }
+}
+
+void FindEdgeToolDialog::onCaptureImageClicked()
+{
+    emit captureImageRequested();
+    LOG_INFO("请求采集图像");
 }
 
 } // namespace UI

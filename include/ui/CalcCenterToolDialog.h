@@ -71,6 +71,11 @@ signals:
      */
     void executeCalcRequested();
 
+    /**
+     * @brief 请求采集图像信号
+     */
+    void captureImageRequested();
+
 protected:
     void showEvent(QShowEvent* event) override;
 
@@ -93,6 +98,10 @@ private slots:
     void onApplyClicked();
     void onAutoCalc();
 
+    // 图像操作槽
+    void onLoadImageClicked();
+    void onCaptureImageClicked();
+
 private:
     void createUI();
     void createCalcMethodGroup(QVBoxLayout* layout);
@@ -113,6 +122,10 @@ private:
 
     // 图像显示
     ImageViewer* imageViewer_;
+
+    // 图像操作按钮
+    QPushButton* loadImageBtn_;
+    QPushButton* captureImageBtn_;
 
     // 计算方法
     QComboBox* calcMethodCombo_;

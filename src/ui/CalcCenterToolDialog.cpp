@@ -10,6 +10,8 @@
 #include "algorithm/CalcCenterTool.h"
 #include "base/Logger.h"
 
+#include <opencv2/imgcodecs.hpp>
+
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -18,6 +20,8 @@
 #include <QSplitter>
 #include <QMessageBox>
 #include <QHeaderView>
+#include <QFileDialog>
+#include <QStyle>
 
 namespace VisionForge {
 namespace UI {
@@ -27,6 +31,8 @@ CalcCenterToolDialog::CalcCenterToolDialog(Algorithm::CalcCenterTool* tool, QWid
     , tool_(tool)
     , currentImage_(nullptr)
     , imageViewer_(nullptr)
+    , loadImageBtn_(nullptr)
+    , captureImageBtn_(nullptr)
     , calcMethodCombo_(nullptr)
     , sourceTypeCombo_(nullptr)
     , imageParamsGroup_(nullptr)
@@ -121,13 +127,31 @@ void CalcCenterToolDialog::createUI()
     QVBoxLayout* leftLayout = new QVBoxLayout(leftPanel);
     leftLayout->setContentsMargins(0, 0, 0, 0);
 
+    // 标题栏布局
+    QHBoxLayout* titleLayout = new QHBoxLayout();
     QLabel* titleLabel = new QLabel("图像预览", leftPanel);
     titleLabel->setStyleSheet("font-weight: bold; font-size: 12px;");
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    // 加载图片按钮
+    loadImageBtn_ = new QPushButton(tr("加载图片"), leftPanel);
+    loadImageBtn_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    loadImageBtn_->setToolTip(tr("从文件加载图片"));
+    loadImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(loadImageBtn_);
+
+    // 采集图像按钮
+    captureImageBtn_ = new QPushButton(tr("采集图像"), leftPanel);
+    captureImageBtn_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    captureImageBtn_->setToolTip(tr("从相机采集图像"));
+    captureImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(captureImageBtn_);
 
     imageViewer_ = new ImageViewer(leftPanel);
     imageViewer_->setMinimumSize(400, 300);
 
-    leftLayout->addWidget(titleLabel);
+    leftLayout->addLayout(titleLayout);
     leftLayout->addWidget(imageViewer_, 1);
 
     // 右侧 - 参数设置
@@ -334,6 +358,10 @@ void CalcCenterToolDialog::connectSignals()
     connect(okBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onOkClicked);
     connect(cancelBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onCancelClicked);
     connect(applyBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onApplyClicked);
+
+    // 图像操作按钮
+    connect(loadImageBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onLoadImageClicked);
+    connect(captureImageBtn_, &QPushButton::clicked, this, &CalcCenterToolDialog::onCaptureImageClicked);
 }
 
 void CalcCenterToolDialog::onCalcMethodChanged(int index)
@@ -510,6 +538,40 @@ void CalcCenterToolDialog::onAutoCalc()
     Algorithm::ToolResult result;
     tool_->process(currentImage_, result);
     updateResultDisplay();
+}
+
+void CalcCenterToolDialog::onLoadImageClicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("选择图片文件"),
+        QString(),
+        tr("图片文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif);;所有文件 (*.*)")
+    );
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    try {
+        cv::Mat mat = cv::imread(filePath.toStdString());
+        if (!mat.empty()) {
+            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
+            setImage(image);
+            LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
+        }
+    } catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("加载失败"), tr("加载图片时发生错误: %1").arg(e.what()));
+        LOG_ERROR(QString("加载图片失败: %1").arg(e.what()));
+    }
+}
+
+void CalcCenterToolDialog::onCaptureImageClicked()
+{
+    emit captureImageRequested();
+    LOG_INFO("请求采集图像");
 }
 
 } // namespace UI

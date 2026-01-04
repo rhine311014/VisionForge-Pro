@@ -32,7 +32,9 @@
 #include <QInputDialog>
 #include <QDir>
 #include <QCoreApplication>
+#include <QStyle>
 #include <opencv2/opencv.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 namespace VisionForge {
 namespace UI {
@@ -85,6 +87,8 @@ ShapeMatchToolDialog::ShapeMatchToolDialog(Algorithm::ShapeMatchTool* tool, QWid
     , okBtn_(nullptr)
     , cancelBtn_(nullptr)
     , applyBtn_(nullptr)
+    , loadImageBtn_(nullptr)
+    , captureImageBtn_(nullptr)
 {
     setWindowTitle("形状匹配设置");
     setMinimumSize(900, 600);
@@ -249,16 +253,33 @@ void ShapeMatchToolDialog::createLeftPanel(QWidget* parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(4);
 
-    // 标题
+    // 标题栏布局
+    QHBoxLayout* titleLayout = new QHBoxLayout();
     QLabel* titleLabel = new QLabel("训练图像", parent);
     titleLabel->setStyleSheet("font-weight: bold; font-size: 12px;");
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    // 加载图片按钮
+    loadImageBtn_ = new QPushButton(tr("加载图片"), parent);
+    loadImageBtn_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    loadImageBtn_->setToolTip(tr("从文件加载图片"));
+    loadImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(loadImageBtn_);
+
+    // 采集图像按钮
+    captureImageBtn_ = new QPushButton(tr("采集图像"), parent);
+    captureImageBtn_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    captureImageBtn_->setToolTip(tr("从相机采集图像"));
+    captureImageBtn_->setMaximumWidth(100);
+    titleLayout->addWidget(captureImageBtn_);
 
     // Halcon图像显示器
     imageViewer_ = new HalconImageViewer(parent);
     imageViewer_->setMinimumSize(400, 300);
     imageViewer_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    layout->addWidget(titleLabel);
+    layout->addLayout(titleLayout);
     layout->addWidget(imageViewer_, 1);
 }
 
@@ -665,6 +686,10 @@ void ShapeMatchToolDialog::connectSignals()
     connect(okBtn_, &QPushButton::clicked, this, &ShapeMatchToolDialog::onOkClicked);
     connect(cancelBtn_, &QPushButton::clicked, this, &ShapeMatchToolDialog::onCancelClicked);
     connect(applyBtn_, &QPushButton::clicked, this, &ShapeMatchToolDialog::onApplyClicked);
+
+    // 图像操作按钮
+    connect(loadImageBtn_, &QPushButton::clicked, this, &ShapeMatchToolDialog::onLoadImageClicked);
+    connect(captureImageBtn_, &QPushButton::clicked, this, &ShapeMatchToolDialog::onCaptureImageClicked);
 }
 
 void ShapeMatchToolDialog::onMinScoreChanged(double value)
@@ -1805,6 +1830,40 @@ bool ShapeMatchToolDialog::saveToModelLibrary()
         QMessageBox::warning(this, "添加失败", "无法添加模板到模板库");
         return false;
     }
+}
+
+void ShapeMatchToolDialog::onLoadImageClicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("选择图片文件"),
+        QString(),
+        tr("图片文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif);;所有文件 (*.*)")
+    );
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    try {
+        cv::Mat mat = cv::imread(filePath.toStdString());
+        if (!mat.empty()) {
+            Base::ImageData::Ptr image = std::make_shared<Base::ImageData>(mat);
+            setImage(image);
+            LOG_INFO(QString("加载图片成功: %1").arg(filePath));
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图片文件: %1").arg(filePath));
+        }
+    } catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("加载失败"), tr("加载图片时发生错误: %1").arg(e.what()));
+        LOG_ERROR(QString("加载图片失败: %1").arg(e.what()));
+    }
+}
+
+void ShapeMatchToolDialog::onCaptureImageClicked()
+{
+    emit captureImageRequested();
+    LOG_INFO("请求采集图像");
 }
 
 } // namespace UI
