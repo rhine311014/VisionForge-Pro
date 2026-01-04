@@ -11,6 +11,9 @@
 #include <QPainter>
 #include <QShowEvent>
 #include <QTimer>
+#include <QContextMenuEvent>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <cmath>
 
 // 解决Halcon与OpenCV/STL的宏冲突
@@ -46,13 +49,35 @@ HalconImageViewer::HalconImageViewer(QWidget* parent)
     , partRow2_(-1.0)
     , partCol2_(-1.0)
     , isPanning_(false)
-    , interactionMode_(PanMode)
+    , interactionMode_(PointerMode)
     , selectedROI_(nullptr)
     , currentROI_(nullptr)
     , roiColor_(Qt::green)
     , roiLineWidth_(2)
     , isDrawing_(false)
     , isDrawingROI_(false)
+    , autoFitMode_(AutoFitImage)
+    , contextMenu_(nullptr)
+    , modeActionGroup_(nullptr)
+    , autoFitActionGroup_(nullptr)
+    , actPointerMode_(nullptr)
+    , actPanMode_(nullptr)
+    , actZoomIn_(nullptr)
+    , actZoomOut_(nullptr)
+    , actAutoFitImage_(nullptr)
+    , actAutoFitImageWidth_(nullptr)
+    , actAutoFitImageHeight_(nullptr)
+    , actFitToWindow_(nullptr)
+    , actFitToWidth_(nullptr)
+    , actFitToHeight_(nullptr)
+    , actFitToGraphics_(nullptr)
+    , actFitToImageAndGraphics_(nullptr)
+    , actActualSize_(nullptr)
+    , actEnterMaskEdit_(nullptr)
+    , actExitMaskEdit_(nullptr)
+    , actSaveImage_(nullptr)
+    , actSaveScreen_(nullptr)
+    , actEnterMeasureMode_(nullptr)
 {
     // 设置窗口属性
     setMinimumSize(200, 200);
@@ -83,6 +108,9 @@ HalconImageViewer::HalconImageViewer(QWidget* parent)
     initTimer_ = new QTimer(this);
     initTimer_->setSingleShot(true);
     connect(initTimer_, &QTimer::timeout, this, &HalconImageViewer::onInitTimer);
+
+    // 初始化右键菜单
+    initContextMenu();
 }
 
 HalconImageViewer::~HalconImageViewer()
@@ -433,7 +461,16 @@ void HalconImageViewer::mousePressEvent(QMouseEvent* event)
     QPoint imagePos = widgetToImage(event->pos());
 
     if (event->button() == Qt::LeftButton) {
-        if (interactionMode_ == PanMode) {
+        if (interactionMode_ == PointerMode) {
+            // 指针模式：点击选择ROI
+            ROIShapePtr roi = findROIAt(imagePos);
+            if (roi != selectedROI_) {
+                selectedROI_ = roi;
+                updateDisplay();
+                emit roiSelectionChanged(selectedROI_);
+            }
+        }
+        else if (interactionMode_ == PanMode) {
             // 平移模式
             isPanning_ = true;
             lastMousePos_ = event->pos();
@@ -1198,6 +1235,486 @@ void HalconImageViewer::finishCurrentROI()
             updateDisplay();
         });
     }
+}
+
+// ========== 右键菜单相关实现 ==========
+
+void HalconImageViewer::initContextMenu()
+{
+    // 创建右键菜单
+    contextMenu_ = new QMenu(this);
+
+    // 创建动作组
+    modeActionGroup_ = new QActionGroup(this);
+    modeActionGroup_->setExclusive(true);
+
+    autoFitActionGroup_ = new QActionGroup(this);
+    autoFitActionGroup_->setExclusive(true);
+
+    // ========== 模式选择 ==========
+    actPointerMode_ = new QAction(tr("指针"), this);
+    actPointerMode_->setCheckable(true);
+    actPointerMode_->setChecked(true);
+    modeActionGroup_->addAction(actPointerMode_);
+    connect(actPointerMode_, &QAction::triggered, this, &HalconImageViewer::onPointerMode);
+
+    actPanMode_ = new QAction(tr("移动"), this);
+    actPanMode_->setCheckable(true);
+    modeActionGroup_->addAction(actPanMode_);
+    connect(actPanMode_, &QAction::triggered, this, &HalconImageViewer::onPanMode);
+
+    actZoomIn_ = new QAction(tr("放大(+)"), this);
+    connect(actZoomIn_, &QAction::triggered, this, &HalconImageViewer::onZoomIn);
+
+    actZoomOut_ = new QAction(tr("缩小(-)"), this);
+    connect(actZoomOut_, &QAction::triggered, this, &HalconImageViewer::onZoomOut);
+
+    contextMenu_->addAction(actPointerMode_);
+    contextMenu_->addAction(actPanMode_);
+    contextMenu_->addAction(actZoomIn_);
+    contextMenu_->addAction(actZoomOut_);
+    contextMenu_->addSeparator();
+
+    // ========== 自动适应模式 ==========
+    actAutoFitImage_ = new QAction(tr("图像自动适应屏幕"), this);
+    actAutoFitImage_->setCheckable(true);
+    actAutoFitImage_->setChecked(true);
+    autoFitActionGroup_->addAction(actAutoFitImage_);
+    connect(actAutoFitImage_, &QAction::triggered, this, &HalconImageViewer::onAutoFitImage);
+
+    actAutoFitImageWidth_ = new QAction(tr("图像宽度自动适应屏幕"), this);
+    actAutoFitImageWidth_->setCheckable(true);
+    autoFitActionGroup_->addAction(actAutoFitImageWidth_);
+    connect(actAutoFitImageWidth_, &QAction::triggered, this, &HalconImageViewer::onAutoFitImageWidth);
+
+    actAutoFitImageHeight_ = new QAction(tr("图像高度自动适应屏幕"), this);
+    actAutoFitImageHeight_->setCheckable(true);
+    autoFitActionGroup_->addAction(actAutoFitImageHeight_);
+    connect(actAutoFitImageHeight_, &QAction::triggered, this, &HalconImageViewer::onAutoFitImageHeight);
+
+    contextMenu_->addAction(actAutoFitImage_);
+    contextMenu_->addAction(actAutoFitImageWidth_);
+    contextMenu_->addAction(actAutoFitImageHeight_);
+    contextMenu_->addSeparator();
+
+    // ========== 手动适应 ==========
+    actFitToWindow_ = new QAction(tr("图像适应屏幕"), this);
+    connect(actFitToWindow_, &QAction::triggered, this, &HalconImageViewer::onFitToWindow);
+
+    actFitToWidth_ = new QAction(tr("图像宽度适应屏幕"), this);
+    connect(actFitToWidth_, &QAction::triggered, this, &HalconImageViewer::onFitToWidth);
+
+    actFitToHeight_ = new QAction(tr("图像高度适应屏幕"), this);
+    connect(actFitToHeight_, &QAction::triggered, this, &HalconImageViewer::onFitToHeight);
+
+    actFitToGraphics_ = new QAction(tr("图形适应屏幕"), this);
+    connect(actFitToGraphics_, &QAction::triggered, this, &HalconImageViewer::onFitToGraphics);
+
+    actFitToImageAndGraphics_ = new QAction(tr("图像与图形适应屏幕"), this);
+    connect(actFitToImageAndGraphics_, &QAction::triggered, this, &HalconImageViewer::onFitToImageAndGraphics);
+
+    actActualSize_ = new QAction(tr("实际大小(1:1)"), this);
+    connect(actActualSize_, &QAction::triggered, this, &HalconImageViewer::onActualSize);
+
+    contextMenu_->addAction(actFitToWindow_);
+    contextMenu_->addAction(actFitToWidth_);
+    contextMenu_->addAction(actFitToHeight_);
+    contextMenu_->addAction(actFitToGraphics_);
+    contextMenu_->addAction(actFitToImageAndGraphics_);
+    contextMenu_->addAction(actActualSize_);
+    contextMenu_->addSeparator();
+
+    // ========== 掩膜编辑 ==========
+    actEnterMaskEdit_ = new QAction(tr("掩膜编辑"), this);
+    connect(actEnterMaskEdit_, &QAction::triggered, this, &HalconImageViewer::onEnterMaskEdit);
+
+    actExitMaskEdit_ = new QAction(tr("退出掩膜编辑"), this);
+    connect(actExitMaskEdit_, &QAction::triggered, this, &HalconImageViewer::onExitMaskEdit);
+
+    contextMenu_->addAction(actEnterMaskEdit_);
+    contextMenu_->addAction(actExitMaskEdit_);
+    contextMenu_->addSeparator();
+
+    // ========== 保存功能 ==========
+    actSaveImage_ = new QAction(tr("保存图像..."), this);
+    connect(actSaveImage_, &QAction::triggered, this, &HalconImageViewer::onSaveImage);
+
+    actSaveScreen_ = new QAction(tr("保存屏幕..."), this);
+    connect(actSaveScreen_, &QAction::triggered, this, &HalconImageViewer::onSaveScreen);
+
+    contextMenu_->addAction(actSaveImage_);
+    contextMenu_->addAction(actSaveScreen_);
+    contextMenu_->addSeparator();
+
+    // ========== 测量模式 ==========
+    actEnterMeasureMode_ = new QAction(tr("进入测量模式"), this);
+    connect(actEnterMeasureMode_, &QAction::triggered, this, &HalconImageViewer::onEnterMeasureMode);
+
+    contextMenu_->addAction(actEnterMeasureMode_);
+}
+
+void HalconImageViewer::updateContextMenuState()
+{
+    // 更新模式选择状态
+    actPointerMode_->setChecked(interactionMode_ == PointerMode);
+    actPanMode_->setChecked(interactionMode_ == PanMode);
+
+    // 更新自动适应模式状态
+    actAutoFitImage_->setChecked(autoFitMode_ == AutoFitImage);
+    actAutoFitImageWidth_->setChecked(autoFitMode_ == AutoFitImageWidth);
+    actAutoFitImageHeight_->setChecked(autoFitMode_ == AutoFitImageHeight);
+
+    // 更新掩膜编辑状态
+    bool isMaskEdit = (interactionMode_ == MaskEditMode);
+    actEnterMaskEdit_->setVisible(!isMaskEdit);
+    actExitMaskEdit_->setVisible(isMaskEdit);
+
+    // 更新测量模式状态
+    bool isMeasure = (interactionMode_ == MeasureMode);
+    actEnterMeasureMode_->setText(isMeasure ? tr("退出测量模式") : tr("进入测量模式"));
+
+    // 根据是否有图像更新某些动作的可用性
+    bool hasImage = (currentImage_ != nullptr);
+    actZoomIn_->setEnabled(hasImage);
+    actZoomOut_->setEnabled(hasImage);
+    actFitToWindow_->setEnabled(hasImage);
+    actFitToWidth_->setEnabled(hasImage);
+    actFitToHeight_->setEnabled(hasImage);
+    actActualSize_->setEnabled(hasImage);
+    actSaveImage_->setEnabled(hasImage);
+    actSaveScreen_->setEnabled(hasImage);
+
+    // 图形适应需要有ROI
+    bool hasROIs = !rois_.empty();
+    actFitToGraphics_->setEnabled(hasROIs);
+    actFitToImageAndGraphics_->setEnabled(hasImage && hasROIs);
+}
+
+void HalconImageViewer::contextMenuEvent(QContextMenuEvent* event)
+{
+    updateContextMenuState();
+    contextMenu_->exec(event->globalPos());
+    event->accept();
+}
+
+// ========== 右键菜单槽函数 ==========
+
+void HalconImageViewer::onPointerMode()
+{
+    interactionMode_ = PointerMode;
+    setCursor(Qt::ArrowCursor);
+    emit interactionModeChanged(interactionMode_);
+}
+
+void HalconImageViewer::onPanMode()
+{
+    interactionMode_ = PanMode;
+    setCursor(Qt::OpenHandCursor);
+    emit interactionModeChanged(interactionMode_);
+}
+
+void HalconImageViewer::onZoomIn()
+{
+    zoomIn();
+}
+
+void HalconImageViewer::onZoomOut()
+{
+    zoomOut();
+}
+
+void HalconImageViewer::onAutoFitImage()
+{
+    autoFitMode_ = AutoFitImage;
+    fitMode_ = FitToWindow;
+    fitToWindow();
+}
+
+void HalconImageViewer::onAutoFitImageWidth()
+{
+    autoFitMode_ = AutoFitImageWidth;
+    fitMode_ = FitToWidth;
+    fitToWidth();
+}
+
+void HalconImageViewer::onAutoFitImageHeight()
+{
+    autoFitMode_ = AutoFitImageHeight;
+    fitMode_ = FitToHeight;
+    fitToHeight();
+}
+
+void HalconImageViewer::onFitToWindow()
+{
+    fitToWindow();
+}
+
+void HalconImageViewer::onFitToWidth()
+{
+    fitToWidth();
+}
+
+void HalconImageViewer::onFitToHeight()
+{
+    fitToHeight();
+}
+
+void HalconImageViewer::onFitToGraphics()
+{
+    fitToGraphics();
+}
+
+void HalconImageViewer::onFitToImageAndGraphics()
+{
+    fitToImageAndGraphics();
+}
+
+void HalconImageViewer::onActualSize()
+{
+    actualSize();
+}
+
+void HalconImageViewer::onEnterMaskEdit()
+{
+    enterMaskEditMode();
+}
+
+void HalconImageViewer::onExitMaskEdit()
+{
+    exitMaskEditMode();
+}
+
+void HalconImageViewer::onSaveImage()
+{
+    saveImage();
+}
+
+void HalconImageViewer::onSaveScreen()
+{
+    saveScreen();
+}
+
+void HalconImageViewer::onEnterMeasureMode()
+{
+    if (interactionMode_ == MeasureMode) {
+        exitMeasureMode();
+    } else {
+        enterMeasureMode();
+    }
+}
+
+// ========== 功能实现 ==========
+
+bool HalconImageViewer::saveImage(const QString& filePath)
+{
+    if (!currentImage_ || currentImage_->isEmpty()) {
+        QMessageBox::warning(this, tr("保存图像"), tr("没有可保存的图像"));
+        return false;
+    }
+
+    QString path = filePath;
+    if (path.isEmpty()) {
+        path = QFileDialog::getSaveFileName(this, tr("保存图像"),
+            QString(), tr("图像文件 (*.png *.jpg *.bmp *.tiff);;所有文件 (*.*)"));
+    }
+
+    if (path.isEmpty()) {
+        return false;
+    }
+
+    try {
+        const cv::Mat& mat = currentImage_->mat();
+        if (mat.empty()) {
+            QMessageBox::warning(this, tr("保存图像"), tr("图像数据无效"));
+            return false;
+        }
+
+        bool success = cv::imwrite(path.toStdString(), mat);
+        if (success) {
+            LOG_INFO(QString("图像已保存: %1").arg(path));
+            return true;
+        } else {
+            QMessageBox::warning(this, tr("保存图像"), tr("保存图像失败"));
+            return false;
+        }
+    }
+    catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("保存图像"), tr("保存图像失败: %1").arg(e.what()));
+        return false;
+    }
+}
+
+bool HalconImageViewer::saveScreen(const QString& filePath)
+{
+    QString path = filePath;
+    if (path.isEmpty()) {
+        path = QFileDialog::getSaveFileName(this, tr("保存屏幕"),
+            QString(), tr("图像文件 (*.png *.jpg *.bmp);;所有文件 (*.*)"));
+    }
+
+    if (path.isEmpty()) {
+        return false;
+    }
+
+    try {
+        // 截取当前窗口内容
+        QPixmap pixmap = this->grab();
+        bool success = pixmap.save(path);
+        if (success) {
+            LOG_INFO(QString("屏幕已保存: %1").arg(path));
+            return true;
+        } else {
+            QMessageBox::warning(this, tr("保存屏幕"), tr("保存屏幕失败"));
+            return false;
+        }
+    }
+    catch (const std::exception& e) {
+        QMessageBox::warning(this, tr("保存屏幕"), tr("保存屏幕失败: %1").arg(e.what()));
+        return false;
+    }
+}
+
+void HalconImageViewer::fitToGraphics()
+{
+    if (rois_.empty()) {
+        return;
+    }
+
+    // 计算所有ROI的包围盒
+    int minX = INT_MAX, minY = INT_MAX;
+    int maxX = INT_MIN, maxY = INT_MIN;
+
+    for (const auto& roi : rois_) {
+        QRect bounds = roi->boundingRect();
+        minX = std::min(minX, bounds.left());
+        minY = std::min(minY, bounds.top());
+        maxX = std::max(maxX, bounds.right());
+        maxY = std::max(maxY, bounds.bottom());
+    }
+
+    if (minX >= maxX || minY >= maxY) {
+        return;
+    }
+
+    // 添加边距
+    int margin = 20;
+    minX -= margin;
+    minY -= margin;
+    maxX += margin;
+    maxY += margin;
+
+    // 计算缩放比例
+    double scaleX = static_cast<double>(width()) / (maxX - minX);
+    double scaleY = static_cast<double>(height()) / (maxY - minY);
+    scale_ = std::min(scaleX, scaleY);
+    scale_ = qBound(MIN_SCALE, scale_, MAX_SCALE);
+
+    // 设置显示区域
+    double centerRow = (minY + maxY) / 2.0;
+    double centerCol = (minX + maxX) / 2.0;
+
+    double halfHeight = height() / (2.0 * scale_);
+    double halfWidth = width() / (2.0 * scale_);
+
+    partRow1_ = centerRow - halfHeight;
+    partRow2_ = centerRow + halfHeight;
+    partCol1_ = centerCol - halfWidth;
+    partCol2_ = centerCol + halfWidth;
+
+    fitMode_ = NoFit;
+    updateImagePart();
+    updateDisplay();
+    emit scaleChanged(scale_);
+}
+
+void HalconImageViewer::fitToImageAndGraphics()
+{
+    if (!currentImage_ || rois_.empty()) {
+        if (currentImage_) {
+            fitToWindow();
+        } else if (!rois_.empty()) {
+            fitToGraphics();
+        }
+        return;
+    }
+
+    // 计算图像和所有ROI的包围盒
+    int minX = 0, minY = 0;
+    int maxX = imageWidth_, maxY = imageHeight_;
+
+    for (const auto& roi : rois_) {
+        QRect bounds = roi->boundingRect();
+        minX = std::min(minX, bounds.left());
+        minY = std::min(minY, bounds.top());
+        maxX = std::max(maxX, bounds.right());
+        maxY = std::max(maxY, bounds.bottom());
+    }
+
+    // 添加边距
+    int margin = 20;
+    minX -= margin;
+    minY -= margin;
+    maxX += margin;
+    maxY += margin;
+
+    // 计算缩放比例
+    double scaleX = static_cast<double>(width()) / (maxX - minX);
+    double scaleY = static_cast<double>(height()) / (maxY - minY);
+    scale_ = std::min(scaleX, scaleY);
+    scale_ = qBound(MIN_SCALE, scale_, MAX_SCALE);
+
+    // 设置显示区域
+    double centerRow = (minY + maxY) / 2.0;
+    double centerCol = (minX + maxX) / 2.0;
+
+    double halfHeight = height() / (2.0 * scale_);
+    double halfWidth = width() / (2.0 * scale_);
+
+    partRow1_ = centerRow - halfHeight;
+    partRow2_ = centerRow + halfHeight;
+    partCol1_ = centerCol - halfWidth;
+    partCol2_ = centerCol + halfWidth;
+
+    fitMode_ = NoFit;
+    updateImagePart();
+    updateDisplay();
+    emit scaleChanged(scale_);
+}
+
+void HalconImageViewer::enterMaskEditMode()
+{
+    interactionMode_ = MaskEditMode;
+    setCursor(Qt::CrossCursor);
+    emit interactionModeChanged(interactionMode_);
+    emit maskEditModeChanged(true);
+    LOG_INFO("进入掩膜编辑模式");
+}
+
+void HalconImageViewer::exitMaskEditMode()
+{
+    interactionMode_ = PointerMode;
+    setCursor(Qt::ArrowCursor);
+    emit interactionModeChanged(interactionMode_);
+    emit maskEditModeChanged(false);
+    LOG_INFO("退出掩膜编辑模式");
+}
+
+void HalconImageViewer::enterMeasureMode()
+{
+    interactionMode_ = MeasureMode;
+    setCursor(Qt::CrossCursor);
+    emit interactionModeChanged(interactionMode_);
+    emit measureModeChanged(true);
+    LOG_INFO("进入测量模式");
+}
+
+void HalconImageViewer::exitMeasureMode()
+{
+    interactionMode_ = PointerMode;
+    setCursor(Qt::ArrowCursor);
+    emit interactionModeChanged(interactionMode_);
+    emit measureModeChanged(false);
+    LOG_INFO("退出测量模式");
 }
 
 } // namespace UI

@@ -14,6 +14,9 @@
 #include <QWidget>
 #include <QTimer>
 #include <QMutex>
+#include <QMenu>
+#include <QAction>
+#include <QActionGroup>
 #include <vector>
 #include <memory>
 #include <opencv2/opencv.hpp>
@@ -68,6 +71,7 @@ public:
      * @brief 交互模式
      */
     enum InteractionMode {
+        PointerMode,    // 指针模式
         PanMode,        // 平移模式
         DrawRectangle,  // 绘制矩形
         DrawCircle,     // 绘制圆形
@@ -76,7 +80,19 @@ public:
         DrawLine,       // 绘制直线
         DrawPoint,      // 绘制点
         DrawFreehand,   // 自由绘制轮廓
-        SelectMode      // 选择模式
+        SelectMode,     // 选择模式
+        MaskEditMode,   // 掩膜编辑模式
+        MeasureMode     // 测量模式
+    };
+
+    /**
+     * @brief 自动适应模式（用于新图像加载时）
+     */
+    enum AutoFitMode {
+        AutoFitNone,            // 不自动适应
+        AutoFitImage,           // 图像自动适应屏幕
+        AutoFitImageWidth,      // 图像宽度自动适应屏幕
+        AutoFitImageHeight      // 图像高度自动适应屏幕
     };
 
     explicit HalconImageViewer(QWidget* parent = nullptr);
@@ -230,6 +246,72 @@ public:
      */
     int getROILineWidth() const { return roiLineWidth_; }
 
+    // ========== 右键菜单相关接口 ==========
+
+    /**
+     * @brief 设置自动适应模式
+     */
+    void setAutoFitMode(AutoFitMode mode) { autoFitMode_ = mode; }
+
+    /**
+     * @brief 获取自动适应模式
+     */
+    AutoFitMode getAutoFitMode() const { return autoFitMode_; }
+
+    /**
+     * @brief 保存当前图像到文件
+     * @param filePath 文件路径（为空则弹出保存对话框）
+     * @return 是否保存成功
+     */
+    bool saveImage(const QString& filePath = QString());
+
+    /**
+     * @brief 保存当前屏幕截图到文件
+     * @param filePath 文件路径（为空则弹出保存对话框）
+     * @return 是否保存成功
+     */
+    bool saveScreen(const QString& filePath = QString());
+
+    /**
+     * @brief 图形适应屏幕（适应所有ROI区域）
+     */
+    void fitToGraphics();
+
+    /**
+     * @brief 图像与图形适应屏幕
+     */
+    void fitToImageAndGraphics();
+
+    /**
+     * @brief 进入掩膜编辑模式
+     */
+    void enterMaskEditMode();
+
+    /**
+     * @brief 退出掩膜编辑模式
+     */
+    void exitMaskEditMode();
+
+    /**
+     * @brief 进入测量模式
+     */
+    void enterMeasureMode();
+
+    /**
+     * @brief 退出测量模式
+     */
+    void exitMeasureMode();
+
+    /**
+     * @brief 是否处于掩膜编辑模式
+     */
+    bool isMaskEditMode() const { return interactionMode_ == MaskEditMode; }
+
+    /**
+     * @brief 是否处于测量模式
+     */
+    bool isMeasureMode() const { return interactionMode_ == MeasureMode; }
+
 signals:
     /**
      * @brief 缩放比例改变信号
@@ -260,6 +342,21 @@ signals:
      */
     void roiRemoved(ROIShapePtr roi);
 
+    /**
+     * @brief 掩膜编辑模式改变信号
+     */
+    void maskEditModeChanged(bool enabled);
+
+    /**
+     * @brief 测量模式改变信号
+     */
+    void measureModeChanged(bool enabled);
+
+    /**
+     * @brief 交互模式改变信号
+     */
+    void interactionModeChanged(InteractionMode mode);
+
 protected:
     void showEvent(QShowEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
@@ -268,11 +365,32 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
+    void contextMenuEvent(QContextMenuEvent* event) override;
 
 private slots:
     void onInitTimer();
     void onImageDisplayed();
     void onDisplayError(const QString& errorMsg);
+
+    // 右键菜单槽函数
+    void onPointerMode();
+    void onPanMode();
+    void onZoomIn();
+    void onZoomOut();
+    void onAutoFitImage();
+    void onAutoFitImageWidth();
+    void onAutoFitImageHeight();
+    void onFitToWindow();
+    void onFitToWidth();
+    void onFitToHeight();
+    void onFitToGraphics();
+    void onFitToImageAndGraphics();
+    void onActualSize();
+    void onEnterMaskEdit();
+    void onExitMaskEdit();
+    void onSaveImage();
+    void onSaveScreen();
+    void onEnterMeasureMode();
 
 private:
     /**
@@ -350,6 +468,16 @@ private:
      */
     void finishCurrentROI();
 
+    /**
+     * @brief 初始化右键菜单
+     */
+    void initContextMenu();
+
+    /**
+     * @brief 更新右键菜单状态
+     */
+    void updateContextMenuState();
+
 private:
     // Halcon窗口相关
 #ifdef _WIN32
@@ -390,6 +518,44 @@ private:
     static constexpr double ZOOM_STEP = 1.2;        // 缩放步进
     static constexpr double MIN_SCALE = 0.01;       // 最小缩放
     static constexpr double MAX_SCALE = 100.0;      // 最大缩放
+
+    // 自动适应模式
+    AutoFitMode autoFitMode_;                       // 自动适应模式
+
+    // 右键菜单相关
+    QMenu* contextMenu_;                            // 右键菜单
+    QActionGroup* modeActionGroup_;                 // 模式动作组
+    QActionGroup* autoFitActionGroup_;              // 自动适应动作组
+
+    // 模式动作
+    QAction* actPointerMode_;                       // 指针模式
+    QAction* actPanMode_;                           // 移动模式
+    QAction* actZoomIn_;                            // 放大
+    QAction* actZoomOut_;                           // 缩小
+
+    // 自动适应动作
+    QAction* actAutoFitImage_;                      // 图像自动适应屏幕
+    QAction* actAutoFitImageWidth_;                 // 图像宽度自动适应屏幕
+    QAction* actAutoFitImageHeight_;                // 图像高度自动适应屏幕
+
+    // 手动适应动作
+    QAction* actFitToWindow_;                       // 图像适应屏幕
+    QAction* actFitToWidth_;                        // 图像宽度适应屏幕
+    QAction* actFitToHeight_;                       // 图像高度适应屏幕
+    QAction* actFitToGraphics_;                     // 图形适应屏幕
+    QAction* actFitToImageAndGraphics_;             // 图像与图形适应屏幕
+    QAction* actActualSize_;                        // 实际大小(1:1)
+
+    // 掩膜编辑动作
+    QAction* actEnterMaskEdit_;                     // 掩膜编辑
+    QAction* actExitMaskEdit_;                      // 退出掩膜编辑
+
+    // 保存动作
+    QAction* actSaveImage_;                         // 保存图像
+    QAction* actSaveScreen_;                        // 保存屏幕
+
+    // 测量模式动作
+    QAction* actEnterMeasureMode_;                  // 进入测量模式
 };
 
 } // namespace UI
