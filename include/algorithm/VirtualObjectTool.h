@@ -103,7 +103,7 @@ public:
     ~VirtualObjectTool() override = default;
 
     // VisionTool接口实现
-    ToolType toolType() const override { return Custom; }
+    ToolType toolType() const override { return VirtualObject; }
     QString toolName() const override { return tr("虚拟对象"); }
     bool process(const Base::ImageData::Ptr& input, ToolResult& output) override;
     QJsonObject serializeParams() const override;

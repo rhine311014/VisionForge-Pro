@@ -170,7 +170,7 @@ public:
 
     // ========== VisionTool 接口 ==========
 
-    ToolType toolType() const override { return ToolType::PLCOutput; }
+    ToolType toolType() const override { return ToolType::AlignmentOutput; }
     QString toolName() const override { return "AlignmentOutput"; }
 
     bool process(const Base::ImageData::Ptr& input, ToolResult& output) override;

@@ -161,7 +161,7 @@ public:
 
     // ========== VisionTool 接口 ==========
 
-    ToolType toolType() const override { return ToolType::Custom; }
+    ToolType toolType() const override { return ToolType::MultiPointAlignment; }
     QString toolName() const override { return "MultiPointAlignment"; }
 
     bool process(const Base::ImageData::Ptr& input, ToolResult& output) override;

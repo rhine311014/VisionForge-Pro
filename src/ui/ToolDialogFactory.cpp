@@ -30,6 +30,15 @@
 #include "algorithm/PLCOutputTool.h"
 #include "algorithm/LogicOperationTool.h"
 #include "algorithm/AIDetectionTool.h"
+#include "algorithm/SubPixelEdgeTool.h"
+#include "algorithm/VirtualObjectTool.h"
+#include "algorithm/QuickSearchTool.h"
+#include "algorithm/CornerSearchTool.h"
+#include "algorithm/PatternSearchTool.h"
+#include "algorithm/MultiPointAlignmentTool.h"
+#include "algorithm/AlignmentOutputTool.h"
+#include "algorithm/CameraCalibTool.h"
+#include "algorithm/NinePointCalibTool.h"
 
 // 对话框头文件
 #include "ui/GrayToolDialog.h"
@@ -54,12 +63,21 @@
 #include "ui/PLCOutputToolDialog.h"
 #include "ui/LogicOperationToolDialog.h"
 #include "ui/AIDetectionToolDialog.h"
+#include "ui/SubPixelEdgeToolDialog.h"
+#include "ui/VirtualObjectToolDialog.h"
+#include "ui/QuickSearchToolDialog.h"
+#include "ui/CornerSearchToolDialog.h"
+#include "ui/PatternSearchToolDialog.h"
+#include "ui/MultiPointAlignmentDialog.h"
+#include "ui/AlignmentOutputDialog.h"
+#include "ui/CameraCalibDialog.h"
+#include "ui/NinePointCalibDialog.h"
 
 #ifdef USE_HALCON
 #include "algorithm/ShapeMatchTool.h"
 #include "algorithm/CodeReadTool.h"
 #include "ui/ShapeMatchToolDialog.h"
-// CodeReadToolDialog 如果存在
+#include "ui/CodeReadToolDialog.h"
 #endif
 
 namespace VisionForge {
@@ -316,6 +334,84 @@ void ToolDialogFactory::registerBuiltInDialogs()
         auto* t = dynamic_cast<Algorithm::PLCOutputTool*>(tool);
         return t ? new PLCOutputToolDialog(t, parent) : nullptr;
     });
+
+    // ========== 亚像素边缘检测 ==========
+    registerDialog(VT::SubPixelEdge, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::SubPixelEdgeTool*>(tool);
+        return t ? new SubPixelEdgeToolDialog(t, parent) : nullptr;
+    });
+
+    // ========== 搜索工具 ==========
+
+    // 快速搜索
+    registerDialog(VT::QuickSearch, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::QuickSearchTool*>(tool);
+        return t ? new QuickSearchToolDialog(t, parent) : nullptr;
+    });
+
+    // 图案搜索
+    registerDialog(VT::PatternSearch, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::PatternSearchTool*>(tool);
+        return t ? new PatternSearchToolDialog(t, parent) : nullptr;
+    });
+
+    // 角点搜索
+    registerDialog(VT::CornerSearch, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::CornerSearchTool*>(tool);
+        return t ? new CornerSearchToolDialog(t, parent) : nullptr;
+    });
+
+    // ========== 计算工具 ==========
+
+    // 虚拟对象
+    registerDialog(VT::VirtualObject, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::VirtualObjectTool*>(tool);
+        return t ? new VirtualObjectToolDialog(t, parent) : nullptr;
+    });
+
+    // ========== 标定工具 ==========
+
+    // 相机标定
+    registerDialog(VT::CameraCalib, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::CameraCalibTool*>(tool);
+        if (!t) return nullptr;
+        auto* dialog = new CameraCalibDialog(parent);
+        return dialog;
+    });
+
+    // 九点标定
+    registerDialog(VT::NinePointCalib, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::NinePointCalibTool*>(tool);
+        if (!t) return nullptr;
+        auto* dialog = new NinePointCalibDialog(parent);
+        return dialog;
+    });
+
+    // 多点对位
+    registerDialog(VT::MultiPointAlignment, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::MultiPointAlignmentTool*>(tool);
+        if (!t) return nullptr;
+        auto* dialog = new MultiPointAlignmentDialog(parent);
+        dialog->setAlignmentTool(t);
+        return dialog;
+    });
+
+    // 对位输出
+    registerDialog(VT::AlignmentOutput, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::AlignmentOutputTool*>(tool);
+        if (!t) return nullptr;
+        auto* dialog = new AlignmentOutputDialog(parent);
+        dialog->setOutputTool(t);
+        return dialog;
+    });
+
+#ifdef USE_HALCON
+    // 读码工具
+    registerDialog(VT::CodeRead, [](Algorithm::VisionTool* tool, QWidget* parent) -> QDialog* {
+        auto* t = dynamic_cast<Algorithm::CodeReadTool*>(tool);
+        return t ? new CodeReadToolDialog(t, parent) : nullptr;
+    });
+#endif
 
     LOG_INFO(QString("已注册 %1 个工具对话框").arg(dialogs_.size()));
 }

@@ -100,7 +100,7 @@ public:
 
     // ========== VisionTool接口实现 ==========
 
-    ToolType toolType() const override { return Edge; }
+    ToolType toolType() const override { return SubPixelEdge; }
     QString toolName() const override { return tr("亚像素边缘检测"); }
 
     bool process(const Base::ImageData::Ptr& input, ToolResult& output) override;

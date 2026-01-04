@@ -123,7 +123,7 @@ public:
      * @brief 获取工具类型
      * @return 返回Custom类型
      */
-    ToolType toolType() const override { return Custom; }
+    ToolType toolType() const override { return CornerSearch; }
 
     /**
      * @brief 获取工具显示名称

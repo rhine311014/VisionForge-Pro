@@ -96,20 +96,27 @@ public:
 
         // 预处理
         Gray, Blur, Binary, ROI, ColorConvert, Edge, Morphology,
+        SubPixelEdge,           // 亚像素边缘检测
 
         // 定位检测
         TemplateMatch, Match, FindCircle, FindLine, FindEdge,
         BlobAnalysis, AIDetection,
+        QuickSearch,            // 快速搜索
+        PatternSearch,          // 图案搜索
+        CornerSearch,           // 角点搜索
 
         // 测量计算
         MeasureDistance, MeasureAngle, MeasureArea,
         CalcCenter, CalcOrientation,
+        VirtualObject,          // 虚拟对象
 
         // 判定输出
         RangeJudge, LogicOperation, PLCOutput, SaveImage,
 
         // 标定
         CameraCalib, NinePointCalib,
+        MultiPointAlignment,    // 多点对位
+        AlignmentOutput,        // 对位输出
 
         // 识别
         CodeRead,
