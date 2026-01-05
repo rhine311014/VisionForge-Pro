@@ -12,6 +12,7 @@
 #include "ui/OptionsDialog.h"
 #include "comm/LightControllerManager.h"
 #include "base/Logger.h"
+#include "base/GPUAccelerator.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -275,6 +276,10 @@ void OptionsDialog::setupBasicPage()
     // 通信指令显示选项
     chkCommDisplay_ = new QCheckBox("通信指令显示", startupGroup_);
     startupLayout->addWidget(chkCommDisplay_);
+
+    // GPU CUDA加速选项
+    chkGpuAcceleration_ = new QCheckBox("GPU CUDA加速", startupGroup_);
+    startupLayout->addWidget(chkGpuAcceleration_);
 
     layout->addWidget(startupGroup_);
 
@@ -814,6 +819,11 @@ void OptionsDialog::loadSettings()
         syncLightConfigToUI(i);
     }
 
+    // 加载GPU加速设置
+    auto& gpuAccel = Base::GPUAccelerator::instance();
+    gpuAccel.loadSettings();
+    chkGpuAcceleration_->setChecked(gpuAccel.isEnabled());
+
     LOG_INFO("选项设置已加载");
 }
 
@@ -831,6 +841,11 @@ void OptionsDialog::applySettings()
     // 保存光源配置到文件
     auto& lightMgr = Comm::LightControllerManager::instance();
     lightMgr.saveConfig();
+
+    // 保存GPU加速设置
+    auto& gpuAccel = Base::GPUAccelerator::instance();
+    gpuAccel.setEnabled(chkGpuAcceleration_->isChecked());
+    gpuAccel.saveSettings();
 
     LOG_INFO("选项设置已保存");
 }

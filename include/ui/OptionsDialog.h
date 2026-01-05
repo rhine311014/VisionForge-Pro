@@ -277,6 +277,7 @@ private:
     QCheckBox* chkCameraChannel_ = nullptr;           ///< 相机通道设置复选框
     QCheckBox* chkVirtualKeyboard_ = nullptr;         ///< 虚拟屏幕键盘复选框
     QCheckBox* chkCommDisplay_ = nullptr;             ///< 通信指令显示复选框
+    QCheckBox* chkGpuAcceleration_ = nullptr;         ///< GPU CUDA加速复选框
 
     // ----- 工位名称设置 -----
     QGroupBox* stationNameGroup_ = nullptr;           ///< 工位名称设置分组框
