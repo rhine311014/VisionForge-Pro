@@ -235,15 +235,16 @@ void ProductManageDialog::createToolBar(QVBoxLayout* layout)
         "QPushButton {"
         "  padding: 8px 16px;"
         "  font-size: 12px;"
-        "  border: 1px solid #ccc;"
+        "  border: 1px solid #555;"
         "  border-radius: 4px;"
-        "  background-color: #f0f0f0;"
+        "  background-color: #3c3c3c;"
+        "  color: #e0e0e0;"
         "}"
         "QPushButton:hover {"
-        "  background-color: #e0e0e0;"
+        "  background-color: #4a4a4a;"
         "}"
         "QPushButton:pressed {"
-        "  background-color: #d0d0d0;"
+        "  background-color: #2a2a2a;"
         "}";
 
     // 预览按钮
@@ -329,7 +330,7 @@ void ProductManageDialog::createContentArea(QVBoxLayout* layout)
 
     // 产品标题
     productTitleLabel_ = new QLabel(tr("-产品1-场景1-1"), contentGroup_);
-    productTitleLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #333;");
+    productTitleLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #e0e0e0;");
     contentLayout->addWidget(productTitleLabel_);
 
     // 内容堆栈
@@ -389,9 +390,13 @@ void ProductManageDialog::createScenePanel()
     cameraParamBtn->setStyleSheet(
         "QPushButton {"
         "  padding: 6px 12px;"
-        "  border: 1px solid #ccc;"
+        "  border: 1px solid #555;"
         "  border-radius: 3px;"
-        "  background-color: #f5f5f5;"
+        "  background-color: #3c3c3c;"
+        "  color: #e0e0e0;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #4a4a4a;"
         "}"
     );
     connect(cameraParamBtn, &QPushButton::clicked, this, &ProductManageDialog::onCameraParamClicked);
@@ -807,12 +812,13 @@ void ProductManageDialog::createCopyPanel(QVBoxLayout* layout)
     copyProductBtn_->setStyleSheet(
         "QPushButton {"
         "  padding: 8px 20px;"
-        "  border: 1px solid #ccc;"
+        "  border: 1px solid #555;"
         "  border-radius: 4px;"
-        "  background-color: #f0f0f0;"
+        "  background-color: #3c3c3c;"
+        "  color: #e0e0e0;"
         "}"
         "QPushButton:hover {"
-        "  background-color: #e0e0e0;"
+        "  background-color: #4a4a4a;"
         "}"
     );
     connect(copyProductBtn_, &QPushButton::clicked, this, &ProductManageDialog::onCopyProduct);
