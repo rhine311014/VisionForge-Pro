@@ -6,9 +6,11 @@
  */
 
 #include "ui/ProductManageDialog.h"
+#include "ui/ToolChainEditorDialog.h"
 #include "base/Logger.h"
 
 #include <QVBoxLayout>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QSplitter>
@@ -376,6 +378,8 @@ void ProductManageDialog::createScenePanel()
             "}"
         );
         imageLabel->setAlignment(Qt::AlignCenter);
+        // 安装事件过滤器以捕获双击事件
+        imageLabel->installEventFilter(this);
         sceneLayout->addWidget(imageLabel);
         sceneImageLabels_.append(imageLabel);
     }
@@ -1087,6 +1091,39 @@ void ProductManageDialog::onSceneImageClicked(int sceneIndex)
 {
     currentSceneIndex_ = sceneIndex;
     updateProductContent();
+}
+
+void ProductManageDialog::onSceneImageDoubleClicked(int sceneIndex)
+{
+    currentSceneIndex_ = sceneIndex;
+
+    // 打开工具链编辑器对话框
+    ToolChainEditorDialog dialog(this);
+    dialog.setWindowTitle(tr("工具链编辑器 - 产品%1 场景%2")
+        .arg(currentProductIndex_ + 1)
+        .arg(sceneIndex + 1));
+
+    if (dialog.exec() == QDialog::Accepted) {
+        // 更新场景配置
+        updateProductContent();
+    }
+
+    // 发出信号通知外部
+    emit toolChainEditRequested(currentProductIndex_, sceneIndex);
+}
+
+bool ProductManageDialog::eventFilter(QObject* watched, QEvent* event)
+{
+    // 处理场景图片的双击事件
+    if (event->type() == QEvent::MouseButtonDblClick) {
+        for (int i = 0; i < sceneImageLabels_.size(); ++i) {
+            if (watched == sceneImageLabels_[i]) {
+                onSceneImageDoubleClicked(i);
+                return true;
+            }
+        }
+    }
+    return QDialog::eventFilter(watched, event);
 }
 
 void ProductManageDialog::onCopyProduct()

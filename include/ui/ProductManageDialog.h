@@ -199,7 +199,22 @@ signals:
      */
     void inspectionRequested(int productIndex);
 
+    /**
+     * @brief 请求打开工具链编辑器
+     */
+    void toolChainEditRequested(int productIndex, int sceneIndex);
+
+protected:
+    /**
+     * @brief 事件过滤器 - 用于处理场景图片的双击事件
+     */
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 private slots:
+    /**
+     * @brief 场景图片双击响应 - 打开工具链编辑器
+     */
+    void onSceneImageDoubleClicked(int sceneIndex);
     // 产品列表操作
     void onProductSelectionChanged();
     void onProductDoubleClicked(int row, int column);
