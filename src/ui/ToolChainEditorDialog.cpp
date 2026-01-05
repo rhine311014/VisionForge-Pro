@@ -275,6 +275,9 @@ void ToolChainEditorDialog::createRightPanel(QWidget* parent)
     scrollLayout->addStretch();
     settingScrollArea_->setWidget(scrollContent);
     layout->addWidget(settingScrollArea_);
+
+    // 初始隐藏工具设置面板，只有选中工具时才显示
+    settingScrollArea_->setVisible(false);
 }
 
 void ToolChainEditorDialog::createSideBar(QVBoxLayout* layout)
@@ -756,15 +759,28 @@ int ToolChainEditorDialog::addTool(Algorithm::VisionTool* tool)
     if (!tool) return -1;
 
     tools_.append(tool);
+    currentToolIndex_ = tools_.size() - 1;
     updateToolTable();
+    updateToolSettings();
     return tools_.size() - 1;
 }
 
 bool ToolChainEditorDialog::removeTool(int index)
 {
     if (index >= 0 && index < tools_.size()) {
+        delete tools_[index];
         tools_.removeAt(index);
         updateToolTable();
+
+        // 更新当前选中索引
+        if (tools_.isEmpty()) {
+            currentToolIndex_ = -1;
+        } else if (currentToolIndex_ >= tools_.size()) {
+            currentToolIndex_ = tools_.size() - 1;
+        }
+
+        // 更新设置面板显示状态
+        updateToolSettings();
         return true;
     }
     return false;
@@ -808,11 +824,15 @@ void ToolChainEditorDialog::updateToolTable()
 
 void ToolChainEditorDialog::updateToolSettings()
 {
-    if (currentToolIndex_ < 0 || currentToolIndex_ >= tools_.size()) {
+    // 根据是否有选中的工具来显示/隐藏设置面板
+    bool hasSelectedTool = (currentToolIndex_ >= 0 && currentToolIndex_ < tools_.size());
+    settingScrollArea_->setVisible(hasSelectedTool);
+
+    if (!hasSelectedTool) {
         return;
     }
 
-    // TODO: 根据当前选中的工具更新设置面板
+    // TODO: 根据当前选中的工具更新设置面板内容
 }
 
 void ToolChainEditorDialog::updateCategoryTree()
