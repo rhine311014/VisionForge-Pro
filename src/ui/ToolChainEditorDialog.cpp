@@ -92,6 +92,9 @@ ToolChainEditorDialog::ToolChainEditorDialog(QWidget* parent)
     , imageInfoLabel_(nullptr)
     , rightPanel_(nullptr)
     , settingScrollArea_(nullptr)
+    , toolSettingContainer_(nullptr)
+    , toolSettingLayout_(nullptr)
+    , currentToolDialog_(nullptr)
     , trainSettingGroup_(nullptr)
     , trainAreaLabel_(nullptr)
     , trainAreaBtn_(nullptr)
@@ -258,22 +261,14 @@ void ToolChainEditorDialog::createRightPanel(QWidget* parent)
     settingScrollArea_->setWidgetResizable(true);
     settingScrollArea_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    auto* scrollContent = new QWidget();
-    auto* scrollLayout = new QVBoxLayout(scrollContent);
-    scrollLayout->setSpacing(10);
+    // 创建工具设置容器（动态内容）
+    toolSettingContainer_ = new QWidget();
+    toolSettingLayout_ = new QVBoxLayout(toolSettingContainer_);
+    toolSettingLayout_->setContentsMargins(4, 4, 4, 4);
+    toolSettingLayout_->setSpacing(10);
+    toolSettingLayout_->addStretch();
 
-    // 创建设置组
-    createTrainSettingGroup();
-    scrollLayout->addWidget(trainSettingGroup_);
-
-    createSearchSettingGroup();
-    scrollLayout->addWidget(searchSettingGroup_);
-
-    createPositionSettingGroup();
-    scrollLayout->addWidget(positionSettingGroup_);
-
-    scrollLayout->addStretch();
-    settingScrollArea_->setWidget(scrollContent);
+    settingScrollArea_->setWidget(toolSettingContainer_);
     layout->addWidget(settingScrollArea_);
 
     // 初始隐藏工具设置面板，只有选中工具时才显示
@@ -828,11 +823,36 @@ void ToolChainEditorDialog::updateToolSettings()
     bool hasSelectedTool = (currentToolIndex_ >= 0 && currentToolIndex_ < tools_.size());
     settingScrollArea_->setVisible(hasSelectedTool);
 
+    // 清除之前的工具对话框
+    if (currentToolDialog_) {
+        toolSettingLayout_->removeWidget(currentToolDialog_);
+        currentToolDialog_->deleteLater();
+        currentToolDialog_ = nullptr;
+    }
+
     if (!hasSelectedTool) {
         return;
     }
 
-    // TODO: 根据当前选中的工具更新设置面板内容
+    // 获取当前选中的工具
+    Algorithm::VisionTool* tool = tools_[currentToolIndex_];
+    if (!tool) {
+        return;
+    }
+
+    // 创建工具对话框并嵌入到右侧面板
+    QDialog* dialog = ToolDialogFactory::instance().createDialog(tool, toolSettingContainer_);
+    if (dialog) {
+        // 移除对话框的窗口标题栏，使其成为嵌入式控件
+        dialog->setWindowFlags(Qt::Widget);
+        dialog->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+        // 将对话框添加到布局中（在stretch之前）
+        toolSettingLayout_->insertWidget(0, dialog);
+        dialog->show();
+
+        currentToolDialog_ = dialog;
+    }
 }
 
 void ToolChainEditorDialog::updateCategoryTree()

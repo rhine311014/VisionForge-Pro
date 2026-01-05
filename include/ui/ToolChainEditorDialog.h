@@ -277,6 +277,9 @@ private:
     // ========== 右侧面板 - 工具设置 ==========
     QWidget* rightPanel_;
     QScrollArea* settingScrollArea_;    ///< 设置滚动区域
+    QWidget* toolSettingContainer_;     ///< 工具设置容器
+    QVBoxLayout* toolSettingLayout_;    ///< 工具设置布局
+    QDialog* currentToolDialog_;        ///< 当前嵌入的工具对话框
 
     // 训练设置组
     QGroupBox* trainSettingGroup_;
