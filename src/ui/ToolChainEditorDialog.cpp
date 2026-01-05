@@ -7,7 +7,43 @@
 
 #include "ui/ToolChainEditorDialog.h"
 #include "ui/HalconImageViewer.h"
+#include "ui/ToolDialogFactory.h"
 #include "algorithm/VisionTool.h"
+
+// 工具类头文件
+#include "algorithm/GrayTool.h"
+#include "algorithm/BlurTool.h"
+#include "algorithm/ThresholdTool.h"
+#include "algorithm/EdgeTool.h"
+#include "algorithm/MorphologyTool.h"
+#include "algorithm/ColorConvertTool.h"
+#include "algorithm/ROITool.h"
+#include "algorithm/TemplateMatchTool.h"
+#include "algorithm/CircleTool.h"
+#include "algorithm/LineTool.h"
+#include "algorithm/FindEdgeTool.h"
+#include "algorithm/BlobTool.h"
+#include "algorithm/QuickSearchTool.h"
+#include "algorithm/PatternSearchTool.h"
+#include "algorithm/CornerSearchTool.h"
+#include "algorithm/MeasureDistanceTool.h"
+#include "algorithm/MeasureAngleTool.h"
+#include "algorithm/MeasureAreaTool.h"
+#include "algorithm/CalcCenterTool.h"
+#include "algorithm/CalcOrientationTool.h"
+#include "algorithm/RangeJudgeTool.h"
+#include "algorithm/LogicOperationTool.h"
+#include "algorithm/PLCOutputTool.h"
+#include "algorithm/SaveImageTool.h"
+#include "algorithm/CameraCalibTool.h"
+#include "algorithm/NinePointCalibTool.h"
+#include "algorithm/MultiPointAlignmentTool.h"
+#include "algorithm/AlignmentOutputTool.h"
+
+#ifdef USE_HALCON
+#include "algorithm/ShapeMatchTool.h"
+#include "algorithm/CodeReadTool.h"
+#endif
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -826,7 +862,22 @@ void ToolChainEditorDialog::onToolDoubleClicked(int row, int column)
 {
     Q_UNUSED(column);
     if (row >= 0 && row < tools_.size()) {
-        // TODO: 打开工具参数编辑对话框
+        // 打开工具参数编辑对话框
+        Algorithm::VisionTool* tool = tools_[row];
+        if (tool) {
+            QDialog* dialog = ToolDialogFactory::instance().createDialog(tool, this);
+            if (dialog) {
+                if (dialog->exec() == QDialog::Accepted) {
+                    // 更新工具表格显示
+                    updateToolTable();
+                    emit toolChanged(row);
+                }
+                delete dialog;
+            } else {
+                QMessageBox::information(this, tr("工具参数"),
+                                        tr("工具 '%1' 没有参数对话框").arg(tool->displayName()));
+            }
+        }
     }
 }
 
@@ -891,10 +942,103 @@ void ToolChainEditorDialog::onCategoryItemDoubleClicked(QTreeWidgetItem* item, i
         return;
     }
 
-    // 是子节点，添加工具
+    // 是子节点，创建工具
     QString toolName = item->text(0);
-    QMessageBox::information(this, tr("添加工具"),
-                            tr("添加工具: %1\n(功能开发中)").arg(toolName));
+    Algorithm::VisionTool* newTool = nullptr;
+
+    // 根据工具名称创建对应的工具实例
+    if (toolName == tr("灰度转换")) {
+        newTool = new Algorithm::GrayTool(this);
+    } else if (toolName == tr("滤波")) {
+        newTool = new Algorithm::BlurTool(this);
+    } else if (toolName == tr("二值化")) {
+        newTool = new Algorithm::ThresholdTool(this);
+    } else if (toolName == tr("边缘检测")) {
+        newTool = new Algorithm::EdgeTool(this);
+    } else if (toolName == tr("形态学")) {
+        newTool = new Algorithm::MorphologyTool(this);
+    } else if (toolName == tr("颜色转换")) {
+        newTool = new Algorithm::ColorConvertTool(this);
+    } else if (toolName == tr("ROI")) {
+        newTool = new Algorithm::ROITool(this);
+    } else if (toolName == tr("模板匹配")) {
+        newTool = new Algorithm::TemplateMatchTool(this);
+#ifdef USE_HALCON
+    } else if (toolName == tr("形状匹配")) {
+        newTool = new Algorithm::ShapeMatchTool(this);
+#endif
+    } else if (toolName == tr("快速搜索")) {
+        newTool = new Algorithm::QuickSearchTool(this);
+    } else if (toolName == tr("图案搜索")) {
+        newTool = new Algorithm::PatternSearchTool(this);
+    } else if (toolName == tr("角点搜索")) {
+        newTool = new Algorithm::CornerSearchTool(this);
+    } else if (toolName == tr("找圆")) {
+        newTool = new Algorithm::CircleTool(this);
+    } else if (toolName == tr("找线")) {
+        newTool = new Algorithm::LineTool(this);
+    } else if (toolName == tr("找边")) {
+        newTool = new Algorithm::FindEdgeTool(this);
+    } else if (toolName == tr("Blob分析")) {
+        newTool = new Algorithm::BlobTool(this);
+    } else if (toolName == tr("测量距离")) {
+        newTool = new Algorithm::MeasureDistanceTool(this);
+    } else if (toolName == tr("测量角度")) {
+        newTool = new Algorithm::MeasureAngleTool(this);
+    } else if (toolName == tr("测量面积")) {
+        newTool = new Algorithm::MeasureAreaTool(this);
+    } else if (toolName == tr("计算中心")) {
+        newTool = new Algorithm::CalcCenterTool(this);
+    } else if (toolName == tr("计算方向")) {
+        newTool = new Algorithm::CalcOrientationTool(this);
+    } else if (toolName == tr("范围判定")) {
+        newTool = new Algorithm::RangeJudgeTool(this);
+    } else if (toolName == tr("逻辑运算")) {
+        newTool = new Algorithm::LogicOperationTool(this);
+#ifdef USE_HALCON
+    } else if (toolName == tr("二维码/条码")) {
+        newTool = new Algorithm::CodeReadTool(this);
+#endif
+    } else if (toolName == tr("相机标定")) {
+        newTool = new Algorithm::CameraCalibTool(this);
+    } else if (toolName == tr("九点标定")) {
+        newTool = new Algorithm::NinePointCalibTool(this);
+    } else if (toolName == tr("多点对位")) {
+        newTool = new Algorithm::MultiPointAlignmentTool(this);
+    } else if (toolName == tr("PLC输出")) {
+        newTool = new Algorithm::PLCOutputTool(this);
+    } else if (toolName == tr("保存图像")) {
+        newTool = new Algorithm::SaveImageTool(this);
+    } else if (toolName == tr("对位输出")) {
+        newTool = new Algorithm::AlignmentOutputTool(this);
+    }
+
+    if (!newTool) {
+        QMessageBox::warning(this, tr("添加工具"),
+                            tr("工具 '%1' 暂不支持").arg(toolName));
+        return;
+    }
+
+    // 使用工具对话框工厂创建对话框
+    QDialog* dialog = ToolDialogFactory::instance().createDialog(newTool, this);
+    if (dialog) {
+        // 显示工具配置对话框
+        if (dialog->exec() == QDialog::Accepted) {
+            // 用户确认，添加工具到工具链
+            addTool(newTool);
+            updateToolTable();
+        } else {
+            // 用户取消，删除工具
+            delete newTool;
+        }
+        delete dialog;
+    } else {
+        // 没有对话框，直接添加工具
+        addTool(newTool);
+        updateToolTable();
+        QMessageBox::information(this, tr("添加工具"),
+                                tr("已添加工具: %1").arg(newTool->displayName()));
+    }
 }
 
 void ToolChainEditorDialog::onCaptureImage()
