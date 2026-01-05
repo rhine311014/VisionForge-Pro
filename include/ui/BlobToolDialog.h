@@ -58,6 +58,11 @@ public:
      */
     void updateUI();
 
+    /**
+     * @brief 设置嵌入模式
+     */
+    Q_INVOKABLE void setEmbeddedMode(bool embedded);
+
 signals:
     /**
      * @brief 参数已改变
@@ -118,8 +123,10 @@ private:
 private:
     Algorithm::BlobTool* tool_;
     Base::ImageData::Ptr currentImage_;
+    bool embeddedMode_ = false;
 
     // 左侧图像显示
+    QWidget* leftPanel_ = nullptr;
     HalconImageViewer* imageViewer_;
     QSplitter* mainSplitter_;
 

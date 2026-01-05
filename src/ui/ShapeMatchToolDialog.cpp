@@ -213,14 +213,14 @@ void ShapeMatchToolDialog::createUI()
     mainSplitter_ = new QSplitter(Qt::Horizontal, this);
 
     // 左侧面板 - 图像显示
-    QWidget* leftPanel = new QWidget(mainSplitter_);
-    createLeftPanel(leftPanel);
+    leftPanel_ = new QWidget(mainSplitter_);
+    createLeftPanel(leftPanel_);
 
     // 右侧面板 - 参数设置
     QWidget* rightPanel = new QWidget(mainSplitter_);
     createRightPanel(rightPanel);
 
-    mainSplitter_->addWidget(leftPanel);
+    mainSplitter_->addWidget(leftPanel_);
     mainSplitter_->addWidget(rightPanel);
     mainSplitter_->setStretchFactor(0, 3);  // 图像区域占比更大
     mainSplitter_->setStretchFactor(1, 2);
@@ -1857,6 +1857,28 @@ void ShapeMatchToolDialog::onCaptureImageClicked()
 {
     emit captureImageRequested();
     LOG_INFO("请求采集图像");
+}
+
+void ShapeMatchToolDialog::setEmbeddedMode(bool embedded)
+{
+    embeddedMode_ = embedded;
+    if (embedded) {
+        if (leftPanel_) leftPanel_->hide();
+        if (leftSplitter_) leftSplitter_->hide();
+        if (okBtn_) okBtn_->hide();
+        if (cancelBtn_) cancelBtn_->hide();
+        if (applyBtn_) applyBtn_->hide();
+        if (mainSplitter_) mainSplitter_->setSizes({0, 1});
+        setMinimumSize(0, 0);
+        resize(400, 500);
+    } else {
+        if (leftPanel_) leftPanel_->show();
+        if (leftSplitter_) leftSplitter_->show();
+        if (okBtn_) okBtn_->show();
+        if (cancelBtn_) cancelBtn_->show();
+        if (applyBtn_) applyBtn_->show();
+        if (mainSplitter_) mainSplitter_->setSizes({600, 400});
+    }
 }
 
 } // namespace UI

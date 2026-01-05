@@ -73,6 +73,13 @@ public:
      */
     void setCamera(HAL::ICamera* camera);
 
+    /**
+     * @brief 设置嵌入模式
+     * @details 嵌入模式下隐藏图像查看器和底部按钮，只显示参数面板
+     * @param embedded 是否为嵌入模式
+     */
+    Q_INVOKABLE void setEmbeddedMode(bool embedded);
+
 signals:
     void trainModelRequested();
     /**
@@ -137,6 +144,9 @@ private:
 
 private:
     Algorithm::CodeReadTool* tool_;
+    bool embeddedMode_ = false;
+    QSplitter* mainSplitter_ = nullptr;
+    QWidget* leftPanel_ = nullptr;
 
     // 图像相关
     ImageViewer* imageViewer_;

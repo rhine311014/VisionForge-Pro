@@ -8,7 +8,10 @@
 #include "ui/ToolChainEditorDialog.h"
 #include "ui/HalconImageViewer.h"
 #include "ui/ToolDialogFactory.h"
+#include "ui/IToolDialog.h"
+#include "ui/TemplateMatchToolDialog.h"
 #include "algorithm/VisionTool.h"
+#include "base/ImageData.h"
 
 // 工具类头文件
 #include "algorithm/GrayTool.h"
@@ -39,6 +42,9 @@
 #include "algorithm/NinePointCalibTool.h"
 #include "algorithm/MultiPointAlignmentTool.h"
 #include "algorithm/AlignmentOutputTool.h"
+#include "algorithm/SubPixelEdgeTool.h"
+#include "algorithm/VirtualObjectTool.h"
+#include "algorithm/AIDetectionTool.h"
 
 #ifdef USE_HALCON
 #include "algorithm/ShapeMatchTool.h"
@@ -125,8 +131,11 @@ ToolChainEditorDialog::ToolChainEditorDialog(QWidget* parent)
     , captureBtn_(nullptr)
     , cameraParamBtn_(nullptr)
     , lightControlBtn_(nullptr)
-    , runToolBtn_(nullptr)
-    , runAllBtn_(nullptr)
+    , inputImageBtn_(nullptr)
+    , trainImageBtn_(nullptr)
+    , resultImageBtn_(nullptr)
+    , testRunBtn_(nullptr)
+    , runImageFileBtn_(nullptr)
     , saveConfigBtn_(nullptr)
     , loadConfigBtn_(nullptr)
     , bottomSplitter_(nullptr)
@@ -297,17 +306,34 @@ void ToolChainEditorDialog::createSideBar(QVBoxLayout* layout)
 
     layout->addSpacing(20);
 
-    // 运行工具
-    runToolBtn_ = new QPushButton(tr("运行工具"));
-    runToolBtn_->setFixedHeight(36);
-    runToolBtn_->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }");
-    layout->addWidget(runToolBtn_);
+    // 输入图像
+    inputImageBtn_ = new QPushButton(tr("输入图像"));
+    inputImageBtn_->setFixedHeight(36);
+    layout->addWidget(inputImageBtn_);
 
-    // 运行全部
-    runAllBtn_ = new QPushButton(tr("运行全部"));
-    runAllBtn_->setFixedHeight(36);
-    runAllBtn_->setStyleSheet("QPushButton { background-color: #2196F3; color: white; }");
-    layout->addWidget(runAllBtn_);
+    // 训练图像
+    trainImageBtn_ = new QPushButton(tr("训练图像"));
+    trainImageBtn_->setFixedHeight(36);
+    layout->addWidget(trainImageBtn_);
+
+    // 结果图像
+    resultImageBtn_ = new QPushButton(tr("结果图像"));
+    resultImageBtn_->setFixedHeight(36);
+    layout->addWidget(resultImageBtn_);
+
+    layout->addSpacing(20);
+
+    // 测试运行
+    testRunBtn_ = new QPushButton(tr("测试运行"));
+    testRunBtn_->setFixedHeight(36);
+    testRunBtn_->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }");
+    layout->addWidget(testRunBtn_);
+
+    // 运行图像文件
+    runImageFileBtn_ = new QPushButton(tr("运行图像文件"));
+    runImageFileBtn_->setFixedHeight(36);
+    runImageFileBtn_->setStyleSheet("QPushButton { background-color: #2196F3; color: white; }");
+    layout->addWidget(runImageFileBtn_);
 
     layout->addSpacing(20);
 
@@ -327,8 +353,11 @@ void ToolChainEditorDialog::createSideBar(QVBoxLayout* layout)
     connect(captureBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onCaptureImage);
     connect(cameraParamBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onCameraParam);
     connect(lightControlBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onLightControl);
-    connect(runToolBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onRunTool);
-    connect(runAllBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onRunAll);
+    connect(inputImageBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onInputImage);
+    connect(trainImageBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onTrainImage);
+    connect(resultImageBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onResultImage);
+    connect(testRunBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onTestRun);
+    connect(runImageFileBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onRunImageFile);
     connect(saveConfigBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onSaveConfig);
     connect(loadConfigBtn_, &QPushButton::clicked, this, &ToolChainEditorDialog::onLoadConfig);
 }
@@ -682,7 +711,9 @@ void ToolChainEditorDialog::initToolCategories()
     new QTreeWidgetItem(detectItem, {tr("找圆")});
     new QTreeWidgetItem(detectItem, {tr("找线")});
     new QTreeWidgetItem(detectItem, {tr("找边")});
+    new QTreeWidgetItem(detectItem, {tr("亚像素边缘")});
     new QTreeWidgetItem(detectItem, {tr("Blob分析")});
+    new QTreeWidgetItem(detectItem, {tr("虚拟对象")});
 
     // 测量
     auto* measureItem = new QTreeWidgetItem(categoryTree_, {tr("测量")});
@@ -703,6 +734,7 @@ void ToolChainEditorDialog::initToolCategories()
     auto* codeItem = new QTreeWidgetItem(categoryTree_, {tr("识别")});
     codeItem->setData(0, Qt::UserRole, static_cast<int>(ToolCategory::CodeRead));
     new QTreeWidgetItem(codeItem, {tr("二维码/条码")});
+    new QTreeWidgetItem(codeItem, {tr("AI检测")});
 
     // 标定
     auto* calibItem = new QTreeWidgetItem(categoryTree_, {tr("标定")});
@@ -846,6 +878,20 @@ void ToolChainEditorDialog::updateToolSettings()
         // 移除对话框的窗口标题栏，使其成为嵌入式控件
         dialog->setWindowFlags(Qt::Widget);
         dialog->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+        // 尝试调用setEmbeddedMode方法
+        // 首先尝试IToolDialog接口
+        if (auto* toolDialog = dynamic_cast<IToolDialog*>(dialog)) {
+            toolDialog->setEmbeddedMode(true);
+        }
+        // 其他特定对话框的嵌入模式设置
+        else if (auto* templateDialog = dynamic_cast<TemplateMatchToolDialog*>(dialog)) {
+            templateDialog->setEmbeddedMode(true);
+        }
+        // 使用Qt元对象系统尝试调用setEmbeddedMode（对于其他没有继承IToolDialog的对话框）
+        else {
+            QMetaObject::invokeMethod(dialog, "setEmbeddedMode", Q_ARG(bool, true));
+        }
 
         // 将对话框添加到布局中（在stretch之前）
         toolSettingLayout_->insertWidget(0, dialog);
@@ -1019,8 +1065,12 @@ void ToolChainEditorDialog::onCategoryItemDoubleClicked(QTreeWidgetItem* item, i
         newTool = new Algorithm::LineTool(this);
     } else if (toolName == tr("找边")) {
         newTool = new Algorithm::FindEdgeTool(this);
+    } else if (toolName == tr("亚像素边缘")) {
+        newTool = new Algorithm::SubPixelEdgeTool(this);
     } else if (toolName == tr("Blob分析")) {
         newTool = new Algorithm::BlobTool(this);
+    } else if (toolName == tr("虚拟对象")) {
+        newTool = new Algorithm::VirtualObjectTool(this);
     } else if (toolName == tr("测量距离")) {
         newTool = new Algorithm::MeasureDistanceTool(this);
     } else if (toolName == tr("测量角度")) {
@@ -1039,6 +1089,8 @@ void ToolChainEditorDialog::onCategoryItemDoubleClicked(QTreeWidgetItem* item, i
     } else if (toolName == tr("二维码/条码")) {
         newTool = new Algorithm::CodeReadTool(this);
 #endif
+    } else if (toolName == tr("AI检测")) {
+        newTool = new Algorithm::AIDetectionTool(this);
     } else if (toolName == tr("相机标定")) {
         newTool = new Algorithm::CameraCalibTool(this);
     } else if (toolName == tr("九点标定")) {
@@ -1083,16 +1135,78 @@ void ToolChainEditorDialog::onLightControl()
     emit lightControlRequested();
 }
 
-void ToolChainEditorDialog::onRunTool()
+void ToolChainEditorDialog::onInputImage()
 {
-    if (currentToolIndex_ >= 0 && currentToolIndex_ < tools_.size()) {
-        emit executeToolRequested(currentToolIndex_);
+    // 从文件加载输入图像
+    QString filePath = QFileDialog::getOpenFileName(this, tr("加载输入图像"),
+                                                    QString(), tr("图像文件 (*.png *.jpg *.jpeg *.bmp *.tif *.tiff)"));
+    if (!filePath.isEmpty()) {
+        Base::ImageData::Ptr image = Base::ImageData::loadFromFile(filePath);
+        if (image) {
+            imageViewer_->setImage(image);
+            imageInfoLabel_->setText(tr("输入图像: %1 x %2").arg(static_cast<int>(image->width())).arg(static_cast<int>(image->height())));
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图像文件"));
+        }
     }
 }
 
-void ToolChainEditorDialog::onRunAll()
+void ToolChainEditorDialog::onTrainImage()
 {
-    emit executeAllRequested();
+    // 显示训练图像（用于模板训练等）
+    // TODO: 从当前工具获取训练图像并显示
+    if (currentToolIndex_ >= 0 && currentToolIndex_ < tools_.size()) {
+        auto* tool = tools_[currentToolIndex_];
+        if (tool) {
+            // 尝试获取工具的训练图像
+            QMessageBox::information(this, tr("训练图像"), tr("显示当前工具的训练图像 (功能开发中)"));
+        }
+    } else {
+        QMessageBox::information(this, tr("训练图像"), tr("请先选择一个工具"));
+    }
+}
+
+void ToolChainEditorDialog::onResultImage()
+{
+    // 显示结果图像（工具执行后的结果图像）
+    // TODO: 从当前工具获取结果图像并显示
+    if (currentToolIndex_ >= 0 && currentToolIndex_ < tools_.size()) {
+        auto* tool = tools_[currentToolIndex_];
+        if (tool) {
+            // 尝试获取工具的结果图像
+            QMessageBox::information(this, tr("结果图像"), tr("显示当前工具的结果图像 (功能开发中)"));
+        }
+    } else {
+        QMessageBox::information(this, tr("结果图像"), tr("请先选择一个工具"));
+    }
+}
+
+void ToolChainEditorDialog::onTestRun()
+{
+    // 测试运行当前选中的工具
+    if (currentToolIndex_ >= 0 && currentToolIndex_ < tools_.size()) {
+        emit executeToolRequested(currentToolIndex_);
+    } else {
+        QMessageBox::information(this, tr("测试运行"), tr("请先选择一个工具"));
+    }
+}
+
+void ToolChainEditorDialog::onRunImageFile()
+{
+    // 选择图像文件并运行所有工具
+    QString filePath = QFileDialog::getOpenFileName(this, tr("选择测试图像"),
+                                                    QString(), tr("图像文件 (*.png *.jpg *.jpeg *.bmp *.tif *.tiff)"));
+    if (!filePath.isEmpty()) {
+        Base::ImageData::Ptr image = Base::ImageData::loadFromFile(filePath);
+        if (image) {
+            imageViewer_->setImage(image);
+            imageInfoLabel_->setText(tr("测试图像: %1 x %2").arg(static_cast<int>(image->width())).arg(static_cast<int>(image->height())));
+            // 运行所有工具
+            emit executeAllRequested();
+        } else {
+            QMessageBox::warning(this, tr("加载失败"), tr("无法加载图像文件"));
+        }
+    }
 }
 
 void ToolChainEditorDialog::onSaveConfig()

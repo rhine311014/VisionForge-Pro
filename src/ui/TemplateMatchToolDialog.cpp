@@ -33,6 +33,7 @@ namespace UI {
 TemplateMatchToolDialog::TemplateMatchToolDialog(Algorithm::TemplateMatchTool* tool, QWidget* parent)
     : QDialog(parent)
     , tool_(tool)
+    , leftPanel_(nullptr)
     , imageViewer_(nullptr)
     , templateViewer_(nullptr)
     , mainSplitter_(nullptr)
@@ -188,14 +189,14 @@ void TemplateMatchToolDialog::createUI()
     mainSplitter_ = new QSplitter(Qt::Horizontal, this);
 
     // 左侧面板 - 图像显示
-    QWidget* leftPanel = new QWidget(mainSplitter_);
-    createLeftPanel(leftPanel);
+    leftPanel_ = new QWidget(mainSplitter_);
+    createLeftPanel(leftPanel_);
 
     // 右侧面板 - 参数设置
     QWidget* rightPanel = new QWidget(mainSplitter_);
     createRightPanel(rightPanel);
 
-    mainSplitter_->addWidget(leftPanel);
+    mainSplitter_->addWidget(leftPanel_);
     mainSplitter_->addWidget(rightPanel);
     mainSplitter_->setStretchFactor(0, 3);
     mainSplitter_->setStretchFactor(1, 2);
@@ -929,6 +930,46 @@ void TemplateMatchToolDialog::onCaptureImageClicked()
 {
     emit captureImageRequested();
     LOG_INFO("请求采集图像");
+}
+
+void TemplateMatchToolDialog::setEmbeddedMode(bool embedded)
+{
+    embeddedMode_ = embedded;
+
+    if (embedded) {
+        // 隐藏左侧面板（图像查看器和模板预览）
+        if (leftPanel_) {
+            leftPanel_->hide();
+        }
+
+        // 隐藏底部按钮
+        if (okBtn_) okBtn_->hide();
+        if (cancelBtn_) cancelBtn_->hide();
+        if (applyBtn_) applyBtn_->hide();
+        if (previewBtn_) previewBtn_->hide();
+        if (autoPreviewCheck_) autoPreviewCheck_->hide();
+
+        // 调整分割器，让右侧面板占据全部空间
+        if (mainSplitter_) {
+            mainSplitter_->setSizes({0, 1});
+        }
+
+        // 设置最小尺寸以适应嵌入环境
+        setMinimumSize(0, 0);
+        resize(400, 500);
+    } else {
+        // 恢复显示
+        if (leftPanel_) leftPanel_->show();
+        if (okBtn_) okBtn_->show();
+        if (cancelBtn_) cancelBtn_->show();
+        if (applyBtn_) applyBtn_->show();
+        if (previewBtn_) previewBtn_->show();
+        if (autoPreviewCheck_) autoPreviewCheck_->show();
+
+        if (mainSplitter_) {
+            mainSplitter_->setSizes({600, 400});
+        }
+    }
 }
 
 } // namespace UI

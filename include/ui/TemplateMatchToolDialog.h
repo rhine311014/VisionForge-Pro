@@ -58,6 +58,13 @@ public:
      */
     void updateUI();
 
+    /**
+     * @brief 设置嵌入模式
+     * @details 嵌入模式下隐藏图像查看器和底部按钮，只显示参数面板
+     * @param embedded 是否为嵌入模式
+     */
+    void setEmbeddedMode(bool embedded);
+
 signals:
     /**
      * @brief 参数已改变
@@ -125,6 +132,7 @@ private:
     Base::ImageData::Ptr currentImage_;
 
     // 左侧图像显示
+    QWidget* leftPanel_;                 // 左侧面板容器
     HalconImageViewer* imageViewer_;
     HalconImageViewer* templateViewer_;  // 模板预览窗口
     QSplitter* mainSplitter_;
@@ -179,6 +187,9 @@ private:
     // 实时预览
     PreviewHelper* previewHelper_;
     QCheckBox* autoPreviewCheck_;
+
+    // 嵌入模式标志
+    bool embeddedMode_ = false;
 };
 
 } // namespace UI

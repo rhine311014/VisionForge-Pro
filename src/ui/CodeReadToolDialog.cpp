@@ -74,22 +74,23 @@ void CodeReadToolDialog::setupUi()
     mainLayout->setContentsMargins(10, 10, 10, 10);
 
     // 使用分割器
-    QSplitter* splitter = new QSplitter(Qt::Horizontal, this);
-    splitter->setChildrenCollapsible(false);
+    mainSplitter_ = new QSplitter(Qt::Horizontal, this);
+    mainSplitter_->setChildrenCollapsible(false);
 
-    createImagePanel(splitter);
-    createControlPanel(splitter);
+    createImagePanel(mainSplitter_);
+    createControlPanel(mainSplitter_);
 
     // 设置分割比例
-    splitter->setStretchFactor(0, 3);  // 图像区域占3份
-    splitter->setStretchFactor(1, 1);  // 控制面板占1份
+    mainSplitter_->setStretchFactor(0, 3);  // 图像区域占3份
+    mainSplitter_->setStretchFactor(1, 1);  // 控制面板占1份
 
-    mainLayout->addWidget(splitter);
+    mainLayout->addWidget(mainSplitter_);
 }
 
 void CodeReadToolDialog::createImagePanel(QSplitter* splitter)
 {
-    QWidget* imagePanel = new QWidget(this);
+    leftPanel_ = new QWidget(this);
+    QWidget* imagePanel = leftPanel_;
     QVBoxLayout* layout = new QVBoxLayout(imagePanel);
     layout->setContentsMargins(0, 0, 0, 0);
 
@@ -1154,6 +1155,40 @@ void CodeReadToolDialog::onCaptureImageClicked()
 {
     emit captureImageRequested();
     LOG_INFO("请求采集图像");
+}
+
+void CodeReadToolDialog::setEmbeddedMode(bool embedded)
+{
+    embeddedMode_ = embedded;
+
+    if (embedded) {
+        // 隐藏左侧面板（图像查看器）
+        if (leftPanel_) {
+            leftPanel_->hide();
+        }
+
+        // 隐藏底部按钮
+        if (applyButton_) applyButton_->hide();
+        if (closeButton_) closeButton_->hide();
+
+        // 调整分割器，让右侧面板占据全部空间
+        if (mainSplitter_) {
+            mainSplitter_->setSizes({0, 1});
+        }
+
+        // 设置最小尺寸以适应嵌入环境
+        setMinimumSize(0, 0);
+        resize(400, 500);
+    } else {
+        // 恢复显示
+        if (leftPanel_) leftPanel_->show();
+        if (applyButton_) applyButton_->show();
+        if (closeButton_) closeButton_->show();
+
+        if (mainSplitter_) {
+            mainSplitter_->setSizes({900, 300});
+        }
+    }
 }
 
 } // namespace UI

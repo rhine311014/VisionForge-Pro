@@ -200,8 +200,11 @@ private slots:
     void onCaptureImage();
     void onCameraParam();
     void onLightControl();
-    void onRunTool();
-    void onRunAll();
+    void onInputImage();
+    void onTrainImage();
+    void onResultImage();
+    void onTestRun();
+    void onRunImageFile();
     void onSaveConfig();
     void onLoadConfig();
 
@@ -318,8 +321,11 @@ private:
     QPushButton* captureBtn_;           ///< 采集图像
     QPushButton* cameraParamBtn_;       ///< 相机参数
     QPushButton* lightControlBtn_;      ///< 光源控制
-    QPushButton* runToolBtn_;           ///< 运行工具
-    QPushButton* runAllBtn_;            ///< 运行全部
+    QPushButton* inputImageBtn_;        ///< 输入图像
+    QPushButton* trainImageBtn_;        ///< 训练图像
+    QPushButton* resultImageBtn_;       ///< 结果图像
+    QPushButton* testRunBtn_;           ///< 测试运行
+    QPushButton* runImageFileBtn_;      ///< 运行图像文件
     QPushButton* saveConfigBtn_;        ///< 保存配置
     QPushButton* loadConfigBtn_;        ///< 加载配置
 

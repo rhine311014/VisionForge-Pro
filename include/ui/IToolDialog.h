@@ -42,6 +42,21 @@ public:
     virtual void setPreviewImage(Base::ImageData::Ptr image) { setImage(image); }
 
     /**
+     * @brief 设置嵌入模式
+     * @details 当对话框作为嵌入式控件时，隐藏不必要的元素（如图像查看器、底部按钮等）
+     * @param embedded 是否为嵌入模式
+     */
+    virtual void setEmbeddedMode(bool embedded) { embeddedMode_ = embedded; }
+
+    /**
+     * @brief 检查是否为嵌入模式
+     */
+    bool isEmbeddedMode() const { return embeddedMode_; }
+
+protected:
+    bool embeddedMode_ = false;  ///< 嵌入模式标志
+
+    /**
      * @brief 获取关联的工具
      * @return 工具指针
      */

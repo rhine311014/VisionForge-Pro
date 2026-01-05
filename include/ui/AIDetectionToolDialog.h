@@ -61,6 +61,13 @@ public:
      */
     void updateUI();
 
+    /**
+     * @brief 设置嵌入模式
+     * @details 嵌入模式下隐藏图像查看器和底部按钮，只显示参数面板
+     * @param embedded 是否为嵌入模式
+     */
+    Q_INVOKABLE void setEmbeddedMode(bool embedded);
+
 signals:
     /**
      * @brief 参数已改变
@@ -123,8 +130,10 @@ private:
 private:
     Algorithm::AIDetectionTool* tool_;
     Base::ImageData::Ptr currentImage_;
+    bool embeddedMode_ = false;
 
     // 左侧图像显示
+    QWidget* leftPanel_;
     HalconImageViewer* imageViewer_;
     QSplitter* mainSplitter_;
     QPushButton* loadImageBtn_;

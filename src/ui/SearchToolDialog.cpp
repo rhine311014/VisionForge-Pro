@@ -724,5 +724,49 @@ void SearchToolDialog::onResultTableRowSelected(int row)
         .arg(result.score, 0, 'f', 4));
 }
 
+/**
+ * @brief 设置嵌入模式
+ * @details 嵌入模式下隐藏图像查看器和底部按钮，只显示参数面板
+ */
+void SearchToolDialog::setEmbeddedMode(bool embedded)
+{
+    IToolDialog::setEmbeddedMode(embedded);
+
+    if (embedded) {
+        // 隐藏左侧面板（图像查看器）
+        if (leftPanel_) {
+            leftPanel_->hide();
+        }
+
+        // 隐藏底部按钮
+        if (okBtn_) okBtn_->hide();
+        if (cancelBtn_) cancelBtn_->hide();
+        if (applyBtn_) applyBtn_->hide();
+        if (previewBtn_) previewBtn_->hide();
+        if (autoPreviewCheck_) autoPreviewCheck_->hide();
+
+        // 调整分割器，让右侧面板占据全部空间
+        if (mainSplitter_ && rightPanel_) {
+            mainSplitter_->setSizes({0, 1});
+        }
+
+        // 设置最小尺寸以适应嵌入环境
+        setMinimumSize(0, 0);
+        resize(400, 500);
+    } else {
+        // 恢复显示
+        if (leftPanel_) leftPanel_->show();
+        if (okBtn_) okBtn_->show();
+        if (cancelBtn_) cancelBtn_->show();
+        if (applyBtn_) applyBtn_->show();
+        if (previewBtn_) previewBtn_->show();
+        if (autoPreviewCheck_) autoPreviewCheck_->show();
+
+        if (mainSplitter_) {
+            mainSplitter_->setSizes({500, 400});
+        }
+    }
+}
+
 } // namespace UI
 } // namespace VisionForge

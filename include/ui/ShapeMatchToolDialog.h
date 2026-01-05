@@ -57,6 +57,11 @@ public:
      */
     void updateUI();
 
+    /**
+     * @brief 设置嵌入模式
+     */
+    Q_INVOKABLE void setEmbeddedMode(bool embedded);
+
 signals:
     /**
      * @brief 参数已改变
@@ -141,8 +146,10 @@ private:
     Algorithm::ShapeMatchTool* tool_;
     Base::ImageData::Ptr currentImage_;
     QString currentLibraryModelId_;  // 当前加载的模板库模型ID（用于直接更新）
+    bool embeddedMode_ = false;
 
     // 左侧图像显示
+    QWidget* leftPanel_ = nullptr;
     HalconImageViewer* imageViewer_;
     HalconImageViewer* featureViewer_;  // 特征预览窗口
     QSplitter* mainSplitter_;

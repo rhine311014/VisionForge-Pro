@@ -105,6 +105,13 @@ public:
      */
     Algorithm::VisionTool* tool() const override { return tool_; }
 
+    /**
+     * @brief 设置嵌入模式
+     * @details 嵌入模式下隐藏图像查看器和底部按钮，只显示参数面板
+     * @param embedded 是否为嵌入模式
+     */
+    void setEmbeddedMode(bool embedded) override;
+
 protected:
     // ==================== 子类必须实现的纯虚函数 ====================
 

@@ -111,14 +111,14 @@ void ROIToolDialog::createUI()
     mainSplitter_ = new QSplitter(Qt::Horizontal, this);
 
     // 左侧面板 - 图像显示
-    auto* leftWidget = new QWidget(mainSplitter_);
-    createLeftPanel(leftWidget);
+    leftPanel_ = new QWidget(mainSplitter_);
+    createLeftPanel(leftPanel_);
 
     // 右侧面板 - 参数设置
     auto* rightWidget = new QWidget(mainSplitter_);
     createRightPanel(rightWidget);
 
-    mainSplitter_->addWidget(leftWidget);
+    mainSplitter_->addWidget(leftPanel_);
     mainSplitter_->addWidget(rightWidget);
     mainSplitter_->setSizes({600, 400});
 
@@ -741,6 +741,28 @@ void ROIToolDialog::onCaptureImageClicked()
 {
     emit captureImageRequested();
     LOG_INFO("请求采集图像");
+}
+
+void ROIToolDialog::setEmbeddedMode(bool embedded)
+{
+    embeddedMode_ = embedded;
+    if (embedded) {
+        if (leftPanel_) leftPanel_->hide();
+        if (okBtn_) okBtn_->hide();
+        if (cancelBtn_) cancelBtn_->hide();
+        if (applyBtn_) applyBtn_->hide();
+        if (previewBtn_) previewBtn_->hide();
+        if (mainSplitter_) mainSplitter_->setSizes({0, 1});
+        setMinimumSize(0, 0);
+        resize(400, 500);
+    } else {
+        if (leftPanel_) leftPanel_->show();
+        if (okBtn_) okBtn_->show();
+        if (cancelBtn_) cancelBtn_->show();
+        if (applyBtn_) applyBtn_->show();
+        if (previewBtn_) previewBtn_->show();
+        if (mainSplitter_) mainSplitter_->setSizes({600, 400});
+    }
 }
 
 } // namespace UI
