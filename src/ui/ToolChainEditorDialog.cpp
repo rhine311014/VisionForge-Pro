@@ -1019,25 +1019,20 @@ void ToolChainEditorDialog::onCategoryItemDoubleClicked(QTreeWidgetItem* item, i
         return;
     }
 
-    // 使用工具对话框工厂创建对话框
+    // 先添加工具到工具链
+    addTool(newTool);
+    updateToolTable();
+
+    // 选中新添加的工具
+    if (toolTable_->rowCount() > 0) {
+        toolTable_->selectRow(toolTable_->rowCount() - 1);
+    }
+
+    // 然后打开工具参数对话框进行配置
     QDialog* dialog = ToolDialogFactory::instance().createDialog(newTool, this);
     if (dialog) {
-        // 显示工具配置对话框
-        if (dialog->exec() == QDialog::Accepted) {
-            // 用户确认，添加工具到工具链
-            addTool(newTool);
-            updateToolTable();
-        } else {
-            // 用户取消，删除工具
-            delete newTool;
-        }
+        dialog->exec();
         delete dialog;
-    } else {
-        // 没有对话框，直接添加工具
-        addTool(newTool);
-        updateToolTable();
-        QMessageBox::information(this, tr("添加工具"),
-                                tr("已添加工具: %1").arg(newTool->displayName()));
     }
 }
 
