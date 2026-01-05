@@ -171,7 +171,7 @@ void ToolChainEditorDialog::createMainLayout()
 
     // 侧边栏
     sideBarWidget_ = new QWidget();
-    sideBarWidget_->setFixedWidth(80);
+    sideBarWidget_->setFixedWidth(100);
     auto* sideLayout = new QVBoxLayout(sideBarWidget_);
     createSideBar(sideLayout);
 
@@ -207,7 +207,7 @@ void ToolChainEditorDialog::createLeftPanel(QWidget* parent)
 
     // 图像信息
     imageInfoLabel_ = new QLabel(tr("图像: 无"));
-    imageInfoLabel_->setStyleSheet("QLabel { background-color: #f0f0f0; padding: 4px; }");
+    imageInfoLabel_->setStyleSheet("QLabel { background-color: #3c3c3c; color: #e0e0e0; padding: 4px; }");
     layout->addWidget(imageInfoLabel_);
 }
 
@@ -520,7 +520,7 @@ void ToolChainEditorDialog::createBottomPanel(QWidget* parent)
     positionImageLabel_ = new QLabel();
     positionImageLabel_->setMinimumSize(150, 150);
     positionImageLabel_->setAlignment(Qt::AlignCenter);
-    positionImageLabel_->setStyleSheet("QLabel { background-color: #f5f5f5; border: 1px solid #ddd; }");
+    positionImageLabel_->setStyleSheet("QLabel { background-color: #3c3c3c; color: #e0e0e0; border: 1px solid #555; }");
     positionImageLabel_->setText(tr("位置示意图"));
     posGroupLayout->addWidget(positionImageLabel_);
 
@@ -541,7 +541,7 @@ void ToolChainEditorDialog::createCategoryTree()
     layout->setSpacing(4);
 
     auto* label = new QLabel(tr("工具类别"));
-    label->setStyleSheet("QLabel { font-weight: bold; padding: 4px; background-color: #e0e0e0; }");
+    label->setStyleSheet("QLabel { font-weight: bold; padding: 4px; background-color: #3c3c3c; color: #e0e0e0; }");
     layout->addWidget(label);
 
     categoryTree_ = new QTreeWidget();
@@ -566,7 +566,7 @@ void ToolChainEditorDialog::createToolTable()
     auto* headerLayout = new QHBoxLayout();
 
     auto* label = new QLabel(tr("工具列表"));
-    label->setStyleSheet("QLabel { font-weight: bold; padding: 4px; background-color: #e0e0e0; }");
+    label->setStyleSheet("QLabel { font-weight: bold; padding: 4px; background-color: #3c3c3c; color: #e0e0e0; }");
     headerLayout->addWidget(label);
     headerLayout->addStretch();
 
