@@ -41,6 +41,7 @@
 #include "ui/QRCalibDialog.h"
 #include "ui/SystemSettingsDialog.h"
 #include "ui/OptionsDialog.h"
+#include "ui/ProductManageDialog.h"
 // 工具对话框工厂
 #include "ui/ToolDialogFactory.h"
 // 系统对话框
@@ -1580,11 +1581,10 @@ void MainWindow::connectOperatorSignals()
     // 隐藏按钮 - 切换侧边面板
     connect(operatorToolBar_, &OperatorToolBar::hideClicked, this, &MainWindow::onTogglePanels);
 
-    // 产品按钮 - 打开方案管理
+    // 产品按钮 - 打开产品管理对话框
     connect(operatorToolBar_, &OperatorToolBar::productClicked, [this]() {
-        if (recipeDock_) {
-            recipeDock_->setVisible(!recipeDock_->isVisible());
-        }
+        ProductManageDialog dialog(this);
+        dialog.exec();
     });
 
     // 选项按钮 - 打开选项设置对话框
