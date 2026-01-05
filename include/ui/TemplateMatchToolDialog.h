@@ -63,7 +63,14 @@ public:
      * @details 嵌入模式下隐藏图像查看器和底部按钮，只显示参数面板
      * @param embedded 是否为嵌入模式
      */
-    void setEmbeddedMode(bool embedded);
+    Q_INVOKABLE void setEmbeddedMode(bool embedded);
+
+    /**
+     * @brief 设置外部图像查看器
+     * @details 嵌入模式下使用外部图像查看器进行ROI绘制等操作
+     * @param viewer 外部图像查看器指针
+     */
+    Q_INVOKABLE void setExternalImageViewer(HalconImageViewer* viewer);
 
 signals:
     /**
@@ -190,6 +197,15 @@ private:
 
     // 嵌入模式标志
     bool embeddedMode_ = false;
+
+    // 外部图像查看器（嵌入模式使用）
+    HalconImageViewer* externalImageViewer_ = nullptr;
+
+    /**
+     * @brief 获取当前活动的图像查看器
+     * @return 嵌入模式下返回外部查看器，否则返回内部查看器
+     */
+    HalconImageViewer* getActiveViewer() const;
 };
 
 } // namespace UI

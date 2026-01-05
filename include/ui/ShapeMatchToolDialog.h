@@ -62,6 +62,13 @@ public:
      */
     Q_INVOKABLE void setEmbeddedMode(bool embedded);
 
+    /**
+     * @brief 设置外部图像查看器
+     * @details 嵌入模式下使用外部图像查看器进行ROI绘制等操作
+     * @param viewer 外部图像查看器指针
+     */
+    Q_INVOKABLE void setExternalImageViewer(HalconImageViewer* viewer);
+
 signals:
     /**
      * @brief 参数已改变
@@ -216,6 +223,15 @@ private:
     QPushButton* okBtn_;
     QPushButton* cancelBtn_;
     QPushButton* applyBtn_;
+
+    // 外部图像查看器（嵌入模式使用）
+    HalconImageViewer* externalImageViewer_ = nullptr;
+
+    /**
+     * @brief 获取当前活动的图像查看器
+     * @return 嵌入模式下返回外部查看器，否则返回内部查看器
+     */
+    HalconImageViewer* getActiveViewer() const;
 };
 
 } // namespace UI

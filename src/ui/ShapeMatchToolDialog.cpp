@@ -764,36 +764,57 @@ void ShapeMatchToolDialog::onPyramidLevelChanged(int value)
 
 void ShapeMatchToolDialog::onDrawROIClicked()
 {
-    if (!currentImage_) {
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (!activeViewer) {
+        QMessageBox::warning(this, "警告", "图像查看器不可用");
+        return;
+    }
+
+    // 嵌入模式下检查外部查看器是否有图像
+    if (embeddedMode_) {
+        if (!activeViewer->getImage()) {
+            QMessageBox::warning(this, "警告", "请先在左侧窗口加载图像");
+            return;
+        }
+    } else if (!currentImage_) {
         QMessageBox::warning(this, "警告", "请先加载图像");
         return;
     }
 
-    if (imageViewer_) {
-        imageViewer_->setInteractionMode(HalconImageViewer::DrawRectangle);
-        roiStatusLabel_->setText("ROI状态: 正在绘制... (拖动鼠标绘制矩形)");
-        roiStatusLabel_->setStyleSheet("color: #2196F3;");
-    }
+    activeViewer->setInteractionMode(HalconImageViewer::DrawRectangle);
+    roiStatusLabel_->setText("ROI状态: 正在绘制... (拖动鼠标绘制矩形)");
+    roiStatusLabel_->setStyleSheet("color: #2196F3;");
 }
 
 void ShapeMatchToolDialog::onDrawFreehandClicked()
 {
-    if (!currentImage_) {
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (!activeViewer) {
+        QMessageBox::warning(this, "警告", "图像查看器不可用");
+        return;
+    }
+
+    // 嵌入模式下检查外部查看器是否有图像
+    if (embeddedMode_) {
+        if (!activeViewer->getImage()) {
+            QMessageBox::warning(this, "警告", "请先在左侧窗口加载图像");
+            return;
+        }
+    } else if (!currentImage_) {
         QMessageBox::warning(this, "警告", "请先加载图像");
         return;
     }
 
-    if (imageViewer_) {
-        imageViewer_->setInteractionMode(HalconImageViewer::DrawFreehand);
-        roiStatusLabel_->setText("ROI状态: 自由绘制中... (按住鼠标拖动绘制轮廓)");
-        roiStatusLabel_->setStyleSheet("color: #E91E63;");  // 使用不同颜色区分
-    }
+    activeViewer->setInteractionMode(HalconImageViewer::DrawFreehand);
+    roiStatusLabel_->setText("ROI状态: 自由绘制中... (按住鼠标拖动绘制轮廓)");
+    roiStatusLabel_->setStyleSheet("color: #E91E63;");  // 使用不同颜色区分
 }
 
 void ShapeMatchToolDialog::onClearROIClicked()
 {
-    if (imageViewer_) {
-        imageViewer_->clearROIs();
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (activeViewer) {
+        activeViewer->clearROIs();
         roiStatusLabel_->setText("ROI状态: 未设置");
     }
 }
@@ -837,13 +858,30 @@ void ShapeMatchToolDialog::onGetTemplateImageClicked()
 
 void ShapeMatchToolDialog::onTrainModelClicked()
 {
-    if (!tool_ || !currentImage_) {
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (!tool_) {
+        QMessageBox::warning(this, "警告", "工具未初始化");
+        return;
+    }
+
+    // 获取图像：嵌入模式下从外部查看器获取，否则使用currentImage_
+    Base::ImageData::Ptr imageToUse = currentImage_;
+    if (embeddedMode_ && activeViewer) {
+        imageToUse = activeViewer->getImage();
+    }
+
+    if (!imageToUse) {
         QMessageBox::warning(this, "警告", "请先加载图像");
         return;
     }
 
+    if (!activeViewer) {
+        QMessageBox::warning(this, "警告", "图像查看器不可用");
+        return;
+    }
+
     // 获取ROI
-    std::vector<ROIShapePtr> rois = imageViewer_->getROIs();
+    std::vector<ROIShapePtr> rois = activeViewer->getROIs();
     if (rois.empty()) {
         QMessageBox::warning(this, "警告", "请先绘制ROI区域");
         return;
@@ -876,7 +914,7 @@ void ShapeMatchToolDialog::onTrainModelClicked()
             QVariant contourVariant = QVariant::fromValue(Algorithm::HalconObjectPtr(wrapper));
 
             // 从轮廓训练模板
-            if (tool_->trainModelFromContour(contourVariant, currentImage_)) {
+            if (tool_->trainModelFromContour(contourVariant, imageToUse)) {
                 LOG_INFO("从自由绘制轮廓训练模板成功");
                 currentLibraryModelId_.clear();  // 训练新模板，清除模板库ID
                 updateUI();
@@ -898,7 +936,7 @@ void ShapeMatchToolDialog::onTrainModelClicked()
         .arg(rect.top()).arg(rect.left()).arg(rect.bottom()).arg(rect.right()));
 
     // 直接在对话框内执行训练
-    if (tool_->trainModel(currentImage_,
+    if (tool_->trainModel(imageToUse,
         rect.top(),
         rect.left(),
         rect.bottom(),
@@ -1879,6 +1917,33 @@ void ShapeMatchToolDialog::setEmbeddedMode(bool embedded)
         if (applyBtn_) applyBtn_->show();
         if (mainSplitter_) mainSplitter_->setSizes({600, 400});
     }
+}
+
+void ShapeMatchToolDialog::setExternalImageViewer(HalconImageViewer* viewer)
+{
+    externalImageViewer_ = viewer;
+
+    // 如果在嵌入模式下且设置了外部查看器，连接ROI创建信号
+    if (embeddedMode_ && viewer) {
+        connect(viewer, &HalconImageViewer::roiCreated, this, [this](ROIShapePtr roi) {
+            Q_UNUSED(roi);
+            HalconImageViewer* activeViewer = getActiveViewer();
+            if (activeViewer) {
+                std::vector<ROIShapePtr> rois = activeViewer->getROIs();
+                roiStatusLabel_->setText(QString("ROI状态: 已设置 (%1个)").arg(rois.size()));
+                roiStatusLabel_->setStyleSheet("color: #4CAF50;");
+                activeViewer->setInteractionMode(HalconImageViewer::SelectMode);
+            }
+        });
+    }
+}
+
+HalconImageViewer* ShapeMatchToolDialog::getActiveViewer() const
+{
+    if (embeddedMode_ && externalImageViewer_) {
+        return externalImageViewer_;
+    }
+    return imageViewer_;
 }
 
 } // namespace UI

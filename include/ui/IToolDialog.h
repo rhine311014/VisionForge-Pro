@@ -17,6 +17,9 @@
 namespace VisionForge {
 namespace UI {
 
+// 前向声明
+class HalconImageViewer;
+
 /**
  * @brief 工具对话框抽象基类
  *
@@ -53,8 +56,26 @@ public:
      */
     bool isEmbeddedMode() const { return embeddedMode_; }
 
+    /**
+     * @brief 设置外部图像查看器
+     * @details 嵌入模式下使用外部图像查看器进行ROI绘制等操作
+     * @param viewer 外部图像查看器指针
+     */
+    virtual void setExternalImageViewer(HalconImageViewer* viewer) {
+        externalImageViewer_ = viewer;
+    }
+
+    /**
+     * @brief 获取用于ROI操作的图像查看器
+     * @return 嵌入模式下返回外部查看器，否则返回nullptr（由子类返回内部查看器）
+     */
+    HalconImageViewer* getActiveImageViewer() const {
+        return embeddedMode_ && externalImageViewer_ ? externalImageViewer_ : nullptr;
+    }
+
 protected:
     bool embeddedMode_ = false;  ///< 嵌入模式标志
+    HalconImageViewer* externalImageViewer_ = nullptr;  ///< 外部图像查看器（嵌入模式使用）
 
     /**
      * @brief 获取关联的工具

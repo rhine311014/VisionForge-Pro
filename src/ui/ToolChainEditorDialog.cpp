@@ -879,18 +879,23 @@ void ToolChainEditorDialog::updateToolSettings()
         dialog->setWindowFlags(Qt::Widget);
         dialog->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-        // 尝试调用setEmbeddedMode方法
+        // 尝试调用setEmbeddedMode方法和setExternalImageViewer
         // 首先尝试IToolDialog接口
         if (auto* toolDialog = dynamic_cast<IToolDialog*>(dialog)) {
             toolDialog->setEmbeddedMode(true);
+            toolDialog->setExternalImageViewer(imageViewer_);
         }
         // 其他特定对话框的嵌入模式设置
         else if (auto* templateDialog = dynamic_cast<TemplateMatchToolDialog*>(dialog)) {
             templateDialog->setEmbeddedMode(true);
+            templateDialog->setExternalImageViewer(imageViewer_);
         }
         // 使用Qt元对象系统尝试调用setEmbeddedMode（对于其他没有继承IToolDialog的对话框）
         else {
             QMetaObject::invokeMethod(dialog, "setEmbeddedMode", Q_ARG(bool, true));
+            // 尝试调用setExternalImageViewer
+            QMetaObject::invokeMethod(dialog, "setExternalImageViewer",
+                Q_ARG(VisionForge::UI::HalconImageViewer*, imageViewer_));
         }
 
         // 将对话框添加到布局中（在stretch之前）

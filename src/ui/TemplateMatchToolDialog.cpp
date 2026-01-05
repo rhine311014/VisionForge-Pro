@@ -709,12 +709,29 @@ void TemplateMatchToolDialog::onSelectTemplateClicked()
 
 void TemplateMatchToolDialog::onCreateTemplateFromROIClicked()
 {
-    if (!tool_ || !currentImage_) {
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (!tool_) {
+        QMessageBox::warning(this, "警告", "工具未初始化");
+        return;
+    }
+
+    // 获取图像：嵌入模式下从外部查看器获取，否则使用currentImage_
+    Base::ImageData::Ptr imageToUse = currentImage_;
+    if (embeddedMode_ && activeViewer) {
+        imageToUse = activeViewer->getImage();
+    }
+
+    if (!imageToUse) {
         QMessageBox::warning(this, "警告", "请先加载图像");
         return;
     }
 
-    std::vector<ROIShapePtr> rois = imageViewer_->getROIs();
+    if (!activeViewer) {
+        QMessageBox::warning(this, "警告", "图像查看器不可用");
+        return;
+    }
+
+    std::vector<ROIShapePtr> rois = activeViewer->getROIs();
     if (rois.empty()) {
         QMessageBox::warning(this, "警告", "请先绘制ROI区域");
         return;
@@ -723,7 +740,7 @@ void TemplateMatchToolDialog::onCreateTemplateFromROIClicked()
     ROIShapePtr roi = rois.front();
     QRect rect = roi->boundingRect();
 
-    cv::Mat mat = currentImage_->mat();
+    cv::Mat mat = imageToUse->mat();
     QRectF roiRect(rect.x(), rect.y(), rect.width(), rect.height());
     tool_->createTemplateFromROI(mat, roiRect);
 
@@ -785,22 +802,33 @@ void TemplateMatchToolDialog::onClearTemplateClicked()
 
 void TemplateMatchToolDialog::onDrawROIClicked()
 {
-    if (!currentImage_) {
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (!activeViewer) {
+        QMessageBox::warning(this, "警告", "图像查看器不可用");
+        return;
+    }
+
+    // 嵌入模式下检查外部查看器是否有图像
+    if (embeddedMode_) {
+        if (!activeViewer->getImage()) {
+            QMessageBox::warning(this, "警告", "请先在左侧窗口加载图像");
+            return;
+        }
+    } else if (!currentImage_) {
         QMessageBox::warning(this, "警告", "请先加载图像");
         return;
     }
 
-    if (imageViewer_) {
-        imageViewer_->setInteractionMode(HalconImageViewer::DrawRectangle);
-        roiStatusLabel_->setText("ROI状态: 正在绘制...");
-        roiStatusLabel_->setStyleSheet("color: #2196F3;");
-    }
+    activeViewer->setInteractionMode(HalconImageViewer::DrawRectangle);
+    roiStatusLabel_->setText("ROI状态: 正在绘制...");
+    roiStatusLabel_->setStyleSheet("color: #2196F3;");
 }
 
 void TemplateMatchToolDialog::onClearROIClicked()
 {
-    if (imageViewer_) {
-        imageViewer_->clearROIs();
+    HalconImageViewer* activeViewer = getActiveViewer();
+    if (activeViewer) {
+        activeViewer->clearROIs();
         roiStatusLabel_->setText("ROI状态: 未设置");
         roiStatusLabel_->setStyleSheet("color: #888;");
     }
@@ -808,7 +836,15 @@ void TemplateMatchToolDialog::onClearROIClicked()
 
 void TemplateMatchToolDialog::onPreviewClicked()
 {
-    if (!tool_ || !currentImage_) {
+    HalconImageViewer* activeViewer = getActiveViewer();
+
+    // 获取图像：嵌入模式下从外部查看器获取，否则使用currentImage_
+    Base::ImageData::Ptr imageToUse = currentImage_;
+    if (embeddedMode_ && activeViewer) {
+        imageToUse = activeViewer->getImage();
+    }
+
+    if (!tool_ || !imageToUse) {
         QMessageBox::warning(this, "警告", "请先加载图像和模板");
         return;
     }
@@ -821,9 +857,9 @@ void TemplateMatchToolDialog::onPreviewClicked()
     applyParameters();
 
     Algorithm::ToolResult result;
-    if (tool_->process(currentImage_, result)) {
-        if (result.outputImage) {
-            imageViewer_->setImage(result.outputImage);
+    if (tool_->process(imageToUse, result)) {
+        if (result.outputImage && activeViewer) {
+            activeViewer->setImage(result.outputImage);
         }
         LOG_INFO(QString("匹配完成，找到 %1 个结果").arg(tool_->allMatches().size()));
     } else {
@@ -970,6 +1006,33 @@ void TemplateMatchToolDialog::setEmbeddedMode(bool embedded)
             mainSplitter_->setSizes({600, 400});
         }
     }
+}
+
+void TemplateMatchToolDialog::setExternalImageViewer(HalconImageViewer* viewer)
+{
+    externalImageViewer_ = viewer;
+
+    // 如果在嵌入模式下且设置了外部查看器，连接ROI创建信号
+    if (embeddedMode_ && viewer) {
+        connect(viewer, &HalconImageViewer::roiCreated, this, [this](ROIShapePtr roi) {
+            Q_UNUSED(roi);
+            HalconImageViewer* activeViewer = getActiveViewer();
+            if (activeViewer) {
+                std::vector<ROIShapePtr> rois = activeViewer->getROIs();
+                roiStatusLabel_->setText(QString("ROI状态: 已设置 (%1个)").arg(rois.size()));
+                roiStatusLabel_->setStyleSheet("color: #4CAF50;");
+                activeViewer->setInteractionMode(HalconImageViewer::SelectMode);
+            }
+        });
+    }
+}
+
+HalconImageViewer* TemplateMatchToolDialog::getActiveViewer() const
+{
+    if (embeddedMode_ && externalImageViewer_) {
+        return externalImageViewer_;
+    }
+    return imageViewer_;
 }
 
 } // namespace UI
