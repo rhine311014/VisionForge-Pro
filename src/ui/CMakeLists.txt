@@ -106,6 +106,8 @@ if(USE_HALCON)
         QuickSearchToolDialog.cpp
         # 虚拟对象计算工具对话框
         VirtualObjectToolDialog.cpp
+        # 工具链编辑器对话框
+        ToolChainEditorDialog.cpp
     )
 endif()
 
@@ -215,6 +217,8 @@ if(USE_HALCON)
         ${CMAKE_SOURCE_DIR}/include/ui/QuickSearchToolDialog.h
         # 虚拟对象计算工具对话框
         ${CMAKE_SOURCE_DIR}/include/ui/VirtualObjectToolDialog.h
+        # 工具链编辑器对话框
+        ${CMAKE_SOURCE_DIR}/include/ui/ToolChainEditorDialog.h
     )
 endif()
 
